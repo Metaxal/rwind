@@ -1,0 +1,164 @@
+#lang racket/base
+
+(require rwind/base
+         rwind/doc-string
+         racket/system
+         racket/list
+         racket/string
+         racket/file
+         )
+
+(define* (path-string->string ps)
+  (if (path? ps)
+      (path->string ps)
+      ps))
+
+(define* (rwind-system . args)
+  "Runs a command asynchronously."
+  (system (string-append 
+           (string-join (map path-string->string args))
+           " &")))
+  
+(define (all-combinations-elt e cbs)
+  (append cbs
+          (map (λ(cb)(cons e cb))
+               cbs)))
+
+;; l: list
+;; Returns the list of all the combinations of the elements of l, 
+;; including the empty list.
+(define* (all-combinations l)
+  "Returns the partition list of list l."
+  (if (empty? l)
+      '(())
+      (all-combinations-elt (first l)
+                            (all-combinations (rest l)))))
+
+
+(module+ test
+  (require rackunit)
+  (check-equal? (all-combinations '()) '(()))
+  (check-equal? (all-combinations '(a b c))
+                '(() (c) (b) (b c) (a) (a c) (a b) (a b c)))
+  #;(all-combinations '(a b c d))
+  )
+
+;; Todo: for macos, it should be a different path?
+;; app-name: string?
+(define* (find-user-config-dir app-name)
+  "Returns the directory of application app-name (and may create it)."
+  (let ([d (getenv "XDG_CONFIG_HOME")])
+    (if (and d (directory-exists? d))
+        (build-path d app-name)
+        (let ([d (build-path (getenv "HOME") ".config" app-name)])
+          (unless (directory-exists? d)
+            (make-directory* d))
+          d))))
+  
+(define* (find-user-config-file app-name file-name)
+  "Returns the configuration-file path for application app-name (and may create the directory)."
+  (build-path (find-user-config-dir app-name) file-name))
+
+(define* (rwind-user-config-file)
+  "Returns the configuration-file path for rwind (and may create the directory)."
+  (find-user-config-file rwind-dir-name rwind-user-config-file-name))
+
+;; Uses the OS open facility
+;; file: (or/c path? string?)
+(define* (open-file file)
+  "Tries to open file with xdg-open or mimeopen on Linux, and open on MacOS X."
+  (case (system-type)
+    [(macosx) (rwind-system "open" file)]
+    [(unix) (cond [(find-executable-path "xdg-open")
+                   => (λ(e)(rwind-system e file))]
+                  [(find-executable-path "mimeopen")
+                   => (λ(e)(rwind-system e "-L" "-n" file))]
+                  )]))
+
+(define* (open-user-config-file)
+  "Tries to open the user configuration file for edition, using the system default editor."
+  (define f (rwind-user-config-file))
+  (unless (file-exists? f)
+    (display-to-file 
+     "#lang racket/base
+;;; User configuration file
+
+(require rwind/keymap rwind/base rwind/util rwind/window)
+
+"
+     f #:mode 'text))
+  (open-file f))
+
+(define* (call/values->list proc . args)
+  "Calls proc on args and turns the returned (multiple) values into a list."
+  (call-with-values (λ()(apply proc args)) list))
+
+(more-doc 
+ call/values->list
+ "Example:
+> (call/values->list values 1 2 3)
+'(1 2 3)")
+
+(define* cvl
+  "Same as 'call/values->list'. Convenience procedure for the command line."
+  call/values->list)
+
+
+(define* (print-wait msg . args)
+  "Prints a message followed by '...'"
+  (apply printf msg args)
+  (display "... ")
+  (flush-output))
+
+(define* (print-ok)
+  "Prints 'Ok.'"
+  (displayln "Ok."))
+
+(define* debug-prefix
+  "A parameter to control what string is printed before debug messages."
+  (make-parameter ""))
+
+(define* (dprintf fmt . args)
+  "Like printf but only in debugging mode."
+  (when (rwind-debug)
+    (display (debug-prefix))
+    (apply printf fmt args)))
+
+(define* (dprint-wait . args)
+  "Like print-wait, but for debugging."
+  (when (rwind-debug)
+    (display (debug-prefix))
+    (apply print-wait args)))
+
+(define* (dprint-ok)
+  "Like print-ok, but for debugging."
+  (when (rwind-debug)
+    ; The prefix is written because in multithread there is a risk
+    ; to lose this info if other threads write newlines in the middle of a "wait... ok."
+    (display (debug-prefix))
+    (print-ok)))
+
+(define* (write-data/flush data [out (current-output-port)])
+  "'write's the data to the output port, and flushes it.
+To ensure that the data is really sent as is, a space is added before flushing.
+(otherwise non-self-delimited data is not 'read' correctly, as the reader 
+waits for the delimiter to be read, and would thus hang)."
+  (write data out)
+  (display "  " out)
+  (flush-output out))
+
+#| write and non-delimited data
+> (with-input-from-string
+      (with-output-to-string (λ() (write 'x) (write 'y)))
+    read)
+'xy
+> (with-input-from-string
+      (with-output-to-string (λ() (write 'x) (print " ")(write 'y)))
+    (λ() (list (read) (read) (read))))
+'(x " " y)
+> (with-input-from-string
+      (with-output-to-string (λ() (write 'x) (display " ")(write 'y)))
+    (λ() (list (read) (read) (read))))
+'(x y #<eof>)
+|#
+

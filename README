@@ -1,0 +1,67 @@
+                                ==== RWind ====
+ 
+                           The Racket Window Manager
+
+An extensible window manager aiming to be similar to Sawfish 
+(http://sawfish.wikia.com), but written in the Racket programming language 
+(http://www.racket-lang.org).
+
+Warning: This package is under current development and is in no way stable.
+
+Current features:
+-----------------
+  - very little
+  - a client command line
+  - customization of key bindings and mouse bindings
+  - no frames
+
+Installation:
+-------------
+1) Install Racket: http://www.racket-lang.org
+
+2) Create a directory where to place Racket projects (e.g., 
+/home/me/Programming/Racket), then do:
+
+  git clone http://github.com/kazzmir/x11-racket.git
+  git clone http://github.com/Metaxal/RWind.git
+  raco link x11-racket rwind
+  raco setup x11-racket rwind
+
+3) Copy the provided .xinitrc-rwind file in your home directory, and modify its
+contents according to your installation.
+
+4) Optional, but recommended:
+
+Copy (or link) the file user-script-examples/me.rkt to 
+$XDG_CONFIG_HOME/rwind/config.rkt (or to $HOME/.config/rwind/config.rkt if the
+xdg environment variable is not set).
+
+It defines a number of default key and mouse bindings.
+ - Control-left-button to move a window around
+ - Control-right-button to resize the window
+
+5) In a login shell, type the following:
+
+  xinit .xinitrc-rwind -- :1 &
+
+You may need to modify the display ":1" to ":2" for example if ":1" is not 
+available.
+
+Press Alt-Escape to quit the session.
+
+Installation for use in lightdm/gdm:
+------------------------------------
+
+1) In rwind directory, compile and install the executable with:
+
+  raco exe rwind.rkt && sudo cp rwind /usr/bin
+
+2) Copy the provided file rwind.desktop to /usr/share/xsessions/rwind.desktop
+
+3) Close your session, choose RWind in the session menu and open your session.
+
+
+
+
+
+
