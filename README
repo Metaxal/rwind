@@ -6,14 +6,16 @@ An extensible window manager aiming to be similar to Sawfish
 (http://sawfish.wikia.com), but written in the Racket programming language 
 (http://www.racket-lang.org).
 
-Warning: This package is under current development and is in no way stable.
+Warning: This package is under current development and is in no way stable, and
+is intended for testing purposes only. Furthermore, it lacks security and should
+not be used on multiple user computers. Use at your own risk!
 
 Current features:
 -----------------
   - very little
   - a client command line
   - customization of key bindings and mouse bindings
-  - no frames
+  - no frames (yet)
 
 Installation:
 -------------
@@ -32,13 +34,18 @@ contents according to your installation.
 
 4) Optional, but recommended:
 
-Copy (or link) the file user-script-examples/me.rkt to 
-$XDG_CONFIG_HOME/rwind/config.rkt (or to $HOME/.config/rwind/config.rkt if the
-xdg environment variable is not set).
+Copy (or link) and rename one of the files in the user-script-examples directory
+to $XDG_CONFIG_HOME/rwind/config.rkt (or to $HOME/.config/rwind/config.rkt if
+the xdg environment variable is not set).
 
-It defines a number of default key and mouse bindings.
+Take a look at the file to know what key and mouse bindings are defined. You can
+modify it as you want.
+
+The file simple.rkt defines a number of default key and mouse bindings.
  - Control-left-button to move a window around
  - Control-right-button to resize the window
+ - Control-Alt-t to open xterm
+ - Alt-F12 opens the client 
 
 5) In a login shell, type the following:
 
@@ -52,6 +59,8 @@ Press Alt-Escape to quit the session.
 Installation for use in lightdm/gdm:
 ------------------------------------
 
+Do steps 1-4) of the installation above.
+
 1) In rwind directory, compile and install the executable with:
 
   raco exe rwind.rkt && sudo cp rwind /usr/bin
@@ -60,8 +69,23 @@ Installation for use in lightdm/gdm:
 
 3) Close your session, choose RWind in the session menu and open your session.
 
+The client:
+-----------
 
+The client is a console where you can evaluate expressions. 
+In RWind's directory, it can be opened in a terminal with:
 
+  racket client.rkt
 
+Try for example:
+> (map window-name (window-list))
+
+The list of available symbols provided by RWind is given by:
+> (known-identifiers)
+
+All bindings of '#lang racket' are available too.
+
+You can get help on a known identifier with:
+> (describe 'window-list)
 
 

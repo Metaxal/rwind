@@ -335,3 +335,40 @@ Useful for 'MotionNotify events (where the button is not specified)."
       (printf "Mouse-binding ~a found, calling thunk\n" key)
       (proc mouse-ev))
     (not (not proc)))) ; return boolean (and don't return the thunk itself)
+
+
+;;; To put in a separate file?
+
+(define* (motion-move-window)
+  "Returns a procedure to use with bind-motion."
+  (let ([x-ini #f] [y-ini #f] [x #f] [y #f] [window #f])
+    (λ(ev)
+      (case (keymap-event-type ev)
+        [(ButtonPress)
+         (set! window (keymap-event-window ev))
+         (set!-values (x-ini y-ini) (mouse-event-position ev))
+         (set!-values (x y) (window-position window))
+         #;(printf "@ Start dragging window ~a\n" (window-name window))]
+        [(ButtonMove)
+         (define-values (x-ev y-ev) (mouse-event-position ev))
+         (define x-diff (- x-ev x-ini))
+         (define y-diff (- y-ev y-ini))
+         #;(printf "@ Dragging window ~a...\n" (window-name (keymap-event-window ev)))
+         (move-window window (+ x x-diff) (+ y y-diff))]
+        #;[(ButtonRelease)
+         (printf "@ Stop dragging window ~a.\n" (window-name (keymap-event-window ev)))]))))
+
+(define* (motion-resize-window)
+  "Returns a procedure to use with bind-motion."
+  (let ([x-ini #f] [y-ini #f] [w #f] [h #f] [window #f])
+    (λ(ev)
+      (case (keymap-event-type ev)
+        [(ButtonPress)
+         (set! window (keymap-event-window ev))
+         (set!-values (x-ini y-ini) (mouse-event-position ev))
+         (set!-values (w h) (window-dimensions window))]
+        [(ButtonMove)
+         (define-values (x-ev y-ev) (mouse-event-position ev))
+         (define x-diff (- x-ev x-ini))
+         (define y-diff (- y-ev y-ini))
+         (resize-window window (max 1 (+ w x-diff)) (max 1 (+ h y-diff)))]))))

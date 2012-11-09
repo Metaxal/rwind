@@ -154,9 +154,7 @@ the visible name, the icon name and the visible icon name in order."
   (define attr (window-attributes window))
   (XWindowAttributes-border-width attr))
   
-
-
-;; This should be in x-util.rkt?
+;;; This should be in x-util.rkt?
 
 (define* (query-pointer)
 "Returns values:
@@ -179,6 +177,7 @@ the visible name, the icon name and the visible icon name in order."
   void)
 
 (define* (window-list)
+  "Returns the list of windows."
   (XQueryTree (current-display) (current-root-window)))
 
 (define* (find-windows rx)
@@ -209,6 +208,7 @@ the visible name, the icon name and the visible icon name in order."
   This could even be a usefull feature (to develop further and expand?)
 - each monitor may display a different workspace (like xmonad)
 - These should be done as extensions to RWind, not in the core
+- use xinerama?
 |#
 
 #;(define* (monitor-dimensions m)

@@ -51,13 +51,13 @@
                     (dynamic-wind
                      (λ() (XLockDisplay d))
                      (λ() 
-                       (printf "BEFORE EVAL")(flush-output)
+                       ;(printf "BEFORE EVAL")(flush-output)
                        (eval e server-namespace)
                        )
                      (λ() 
-                       (printf "BETWEEN EVAL AND FLUSH")(flush-output)
+                       ;(printf "BETWEEN EVAL AND FLUSH")(flush-output)
                        (XFlush (current-display))
-                       (printf "AFTER FLUSH")(flush-output)
+                       ;(printf "AFTER FLUSH")(flush-output)
                        (XUnlockDisplay d)))))
                 (dprint-wait "Sending value: ~v" res)
                 ; Printed in a string, to send a string, 

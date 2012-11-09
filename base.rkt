@@ -17,6 +17,7 @@
 ;(define current-display (make-parameter #f))
 ;(define current-root-window (make-parameter #f))
 ;(define rwind-debug (make-parameter #f))
+(define* exit-rwind?          (make-fun-box #f))
 
 (define* rwind-app-name "RWind")
 (define* rwind-version '(1 0))

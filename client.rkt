@@ -1,5 +1,10 @@
 #lang racket/base
 
+;;; Author: Laurent Orseau <laurent orseau gmail com> -- 2012-11-09
+;;; License: GPL (see gpl-3.0.txt)
+;;; (in GPL because the readline lib is itself in GPL.
+;;; But since the rest of RWind does not depend on this client, it's no big deal.)
+
 #| TODO
 - does not seem to detect that the server could not start?
 |#

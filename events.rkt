@@ -74,3 +74,48 @@
      (dprintf "Unhandled event ~a\n" (XEvent->list* event))
      ]) ; case
   )
+
+(provide run-event-loop)
+(define (run-event-loop)
+  ; Jon Rafkind's version
+  (define events (make-channel))
+  (start-x11-event-thread (current-display) events)
+  
+  (XFlush (current-display))
+  (let server-loop ()
+    
+    ;(XSync (current-display) #f)
+    ;(XFlush (current-display)) ; normally XNextEvent flushes itself
+    (flush-output) ; to write to file
+    
+    ;(define event (XNextEvent* (current-display))) ; waits for the next event
+    (sync (handle-evt events 
+                      (lambda (event)
+                        (dynamic-wind
+                         (λ()(XLockDisplay (current-display)))
+                         (λ()(handle-event event))
+                         (λ()(XUnlockDisplay (current-display))))
+                        (unless (exit-rwind?) 
+                          (server-loop))))))
+  
+  #| Kevin Tew version, still blocking  
+        (define scheme-make-fd-input-port
+          (let ([fun (get-ffi-obj "scheme_make_fd_input_port" #f (_fun _int _racket _int _int -> _racket))])
+            (lambda (fd name)
+              (fun fd name 0 0))))
+        
+        (define x11-port (scheme-make-fd-input-port (XConnectionNumber (current-display)) 'x11-connection))
+        
+        (let loop ()
+          (sync
+           (handle-evt x11-port
+                       (lambda (e)
+                         (let loop2 ()
+                           (when (XPending (current-display))
+                             (handle-event (XNextEvent* (current-display)))
+                             (loop2)))
+                         )))
+          (loop)))
+        |#
+  
+  )
