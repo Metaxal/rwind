@@ -7,6 +7,7 @@
          x11-racket/x11
          ;"../x11-racket/x11.rkt"
          racket/match
+         racket/list
          )
 
 ;(provide (all-defined-out))
@@ -115,6 +116,11 @@ the visible name, the icon name and the visible icon name in order."
 (define* (raise-window window)
   (XRaiseWindow (current-display) window))
 
+(define* (set-input-focus/raise w)
+  (when w
+    (set-input-focus w)
+    (raise-window w)))
+
 (define* (lower-window window)
   (XLowerWindow (current-display) window))
 
@@ -176,26 +182,64 @@ the visible name, the icon name and the visible icon name in order."
 #;(define* (select-window)
   void)
 
+(define* (focus-next!)
+  "Gives the keyboard focus to the next window in the list of windows" 
+  (define wl (viewable-windows))
+  (unless (empty? wl)
+    (let* ([wl (cons (last wl) wl)]
+           [w (input-focus)]
+           ; if no window has the focus (maybe the root has it)
+           [m (member w wl)])
+      (if m
+          ; the cadr should not be a problem because of the last that ensures 
+          ; that the list has at least 2 elements if w is found
+          (set-input-focus/raise (cadr m))
+          ; not found, give the focus to the firt window
+          (set-input-focus/raise (first wl))))))
+
 (define* (window-list)
   "Returns the list of windows."
-  (XQueryTree (current-display) (current-root-window)))
+  (filter values (XQueryTree (current-display) (current-root-window))))
+
+(define* (filter-windows proc)
+  "Maps proc to the list of windows."
+  (filter (λ(w)(and w (proc w))) (window-list)))
 
 (define* (find-windows rx)
   "Returns the list of windows that matches the regexp rx."
-  (filter (λ(w)(regexp-match rx (window-name w)))
-          (window-list)))
+  (filter-windows (λ(w)(regexp-match rx (window-name w)))))
 
 (define* (find-windows-by-class rx)
   "Returns the list of windows for which one of the window's classes matches the regexp rx."
-  (filter (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w)))
-          (window-list)))
+  (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w)))))
+
+(define* (window-map-state w)
+  (define attrs (and w (XGetWindowAttributes (current-display) w)))
+  (and attrs (XWindowAttributes-map-state attrs)))
+
+(define* (mapped-windows)
+  "Returns the list of windows that are mapped but not necessarily viewable (i.e., the window is mapped but one ancester is unmapped)."
+  (filter-windows (λ(w)(let ([s (window-map-state w)])
+                         (and s (not (eq? 'IsUnmapped s)))))))
+
+(define* (viewable-windows)
+  (filter-windows (λ(w)(eq? 'IsViewable (window-map-state w)))))
 
 (define* (display-dimensions [screen 0])
+  "Returns the values of width and height of the given screen."
   (values (XDisplayWidth (current-display) screen)
           (XDisplayHeight (current-display) screen)))
 
+(define* (display-width [screen 0])
+  (XDisplayWidth (current-display) screen))
+
+(define* (display-height [screen 0])
+  (XDisplayHeight (current-display) screen))
+
 (define* (screen-count)
   (XScreenCount (current-display)))
+
+
 
 
 ;================;

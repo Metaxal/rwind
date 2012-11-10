@@ -2,6 +2,10 @@
 #lang racket/base
 
 #| TODO: 
+- security of the server: make sure the user at the other end of the tcp connection 
+  is the same as the one running the server!
+  Use Unix uid's? ask for password?
+
 - (select-window)
   plus look at all the window utilities in Sawfish (lisp/sawfish/wm/windows.jl)
 - shutdown more gracefully?
@@ -29,6 +33,7 @@
 - ICCCM: http://tronche.com/gui/x/icccm/
 - non-ICCCM features: http://standards.freedesktop.org/wm-spec/1.4/ar01s02.html
 - Extended Window Manager Hints: http://standards.freedesktop.org/wm-spec/latest/
+- Window Managers: http://www.csl.mtu.edu/cs4760/www/Lectures/OlderLectures/HCIExamplesLectures/XWin/xWM.htm
 |#
 
 #|
@@ -173,6 +178,8 @@ to be able to use (require rwind/keymap) for example
       ;(XUnlockDisplay (current-display)) ; don't unlock?
       ; Call a break so that dynamic-wind can close the ports and the listener
       (break-thread server-thread)
+      ; Wait for the thread to be closed before closing everything
+      ;(thread-wait server-thread) ; seems to dead-lock... why?
       ; Not sure I should call that if the user wants to replace the current wm by some other
       ; without logging out.
       ;(XDestroySubwindows (current-display) (current-root-window)) ; useful?

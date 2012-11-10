@@ -6,6 +6,7 @@
          rwind/keymap
          rwind/window
          x11-racket/x11
+         x11-racket/fd
          racket/match
          )
 
@@ -63,12 +64,20 @@
     
     [(MapRequest)
      (define window (XMapRequestEvent-window event))
-     (XMapWindow (current-display) window)
+     (XMapRaised (current-display) window)
      (window-apply-keymap window window-keymap)
-     (set-input-focus window)]
+     (set-input-focus window)
+     ;(add-mapped-window window)
+     ]
     
     [(MappingNotify)
+     ; see the warning about override-redirect in Tronche's doc
      (XRefreshKeyboardMapping event)]
+    
+    #;[(UnmapNotify)
+     (define window (XUnmapEvent-window event))
+     ;(remove-mapped-window window)
+     ]
     
     [else
      (dprintf "Unhandled event ~a\n" (XEvent->list* event))
@@ -76,7 +85,7 @@
   )
 
 (provide run-event-loop)
-(define (run-event-loop)
+#;(define (run-event-loop)
   ; Jon Rafkind's version
   (define events (make-channel))
   (start-x11-event-thread (current-display) events)
@@ -89,33 +98,34 @@
     (flush-output) ; to write to file
     
     ;(define event (XNextEvent* (current-display))) ; waits for the next event
-    (sync (handle-evt events 
-                      (lambda (event)
-                        (dynamic-wind
-                         (λ()(XLockDisplay (current-display)))
-                         (λ()(handle-event event))
-                         (λ()(XUnlockDisplay (current-display))))
-                        (unless (exit-rwind?) 
-                          (server-loop))))))
-  
-  #| Kevin Tew version, still blocking  
-        (define scheme-make-fd-input-port
-          (let ([fun (get-ffi-obj "scheme_make_fd_input_port" #f (_fun _int _racket _int _int -> _racket))])
-            (lambda (fd name)
-              (fun fd name 0 0))))
-        
-        (define x11-port (scheme-make-fd-input-port (XConnectionNumber (current-display)) 'x11-connection))
-        
-        (let loop ()
-          (sync
-           (handle-evt x11-port
-                       (lambda (e)
-                         (let loop2 ()
-                           (when (XPending (current-display))
-                             (handle-event (XNextEvent* (current-display)))
-                             (loop2)))
-                         )))
-          (loop)))
-        |#
-  
+    (sync/enable-break
+     (handle-evt events 
+                 (lambda (event)
+                   (dynamic-wind
+                    (λ()(XLockDisplay (current-display)))
+                    (λ()(handle-event event))
+                    (λ()(XUnlockDisplay (current-display))))
+                   (unless (exit-rwind?) 
+                     (server-loop))))))
   )
+
+(define (run-event-loop)
+  (XFlush (current-display))
+  ; Kevin Tew's version
+  (define x11-port (open-fd-input-port (XConnectionNumber (current-display)) #;'x11-connection))
+  (let loop ()
+    (sync/enable-break
+     (handle-evt x11-port 
+                 (lambda (e)
+                   (let loop2 ()
+                     ; don't we miss handling event e?
+                     (unless (zero? (XPending (current-display)))
+                       (handle-event (XNextEvent* (current-display)))
+                       (loop2)))
+                   ))
+     ; This could be used by the server instead of creating a thread?
+     #;(handle-evt (current-input-port)
+                   (lambda (e)
+                     (printf "INPUT ~a ~a\n" e (read-line e)))))
+    (unless (exit-rwind?)
+      (loop))))
