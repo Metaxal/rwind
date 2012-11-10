@@ -2,6 +2,8 @@
 
 (require rwind/base
          rwind/util
+         rwind/window
+         rwind/keymap
          racket/tcp
          )
 
@@ -26,6 +28,8 @@
   (define e (read in))
   (cond [(equal? e '(exit))
          #f]
+        [(eof-object? e)
+         #f]
         [else
          (dprintf "Received ~a\n" e)
          ; if it fails, simply return the message
@@ -42,8 +46,8 @@
          (dprint-ok)
          #t]))
 
-(module+ main
-  
+#;(module+ main
+  (rwind-debug #t)
   (define listener (make-server-listener))
   (define clients '())
   (dynamic-wind
@@ -81,3 +85,41 @@
      (dprint-ok)
      )))
 
+;; With threads
+(module+ main
+  (rwind-debug #t)
+  (define listener (make-server-listener))
+  (define (make-client-thread in out)
+    (thread
+     (λ()
+       (let loop ()
+         (sync/enable-break
+          (handle-evt (port-closed-evt in)
+                      (λ(e)
+                        (dprintf "Port closed.\n")))
+          (handle-evt in
+                      (λ(in)
+                        (if (handle-server-input in out)
+                            (loop)
+                            (dprintf "Client exited.\n"))
+                        )))))))
+  
+  (dynamic-wind
+   void
+   (let loop ()
+     
+     (sync/enable-break
+      #;(handle-evt (system-idle-evt)
+                    (λ(e)(dprintf "Idle\n")
+                      (loop)))
+      (handle-evt listener 
+                  (λ(listener)
+                    (define in-out (handle-server-accept listener))
+                    (apply make-client-thread in-out)
+                    (loop)))
+      ))
+   (λ()
+     (dprintf "Terminating")
+     (tcp-close listener)
+     (dprint-ok)
+     )))
