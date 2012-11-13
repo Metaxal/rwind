@@ -47,7 +47,7 @@ The file simple.rkt defines a number of default key and mouse bindings.
  - Control-Alt-t to open xterm
  - Alt-F12 opens the client 
 
-5) In a login shell, type the following:
+5a) In a login shell, type the following:
 
   xinit .xinitrc-rwind -- :1 &
 
@@ -55,6 +55,14 @@ You may need to modify the display ":1" to ":2" for example if ":1" is not
 available.
 
 Press Alt-Escape to quit the session.
+
+5b) You can also test with Xephyr (from the xserver-xephyr package), that 
+creates a nested X session (thanks to Asumu):
+ 
+  Xephyr -ac -noreset -screen 800x600 :1 &
+  DISPLAY=:1.0 racket rwind.rkt &
+
+
 
 Installation for use in lightdm/gdm:
 ------------------------------------
