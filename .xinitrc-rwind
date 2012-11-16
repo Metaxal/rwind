@@ -14,6 +14,6 @@ xterm -g 80x24+0-0 &
 
 # The window manager
 # use debug mode for x11-racket
-#X11_RACKET_DEBUG=1 racket $HOME/<path to rwind directory>/rwind.rkt
-racket $HOME/<path to rwind directory>/rwind.rkt
+#X11_RACKET_DEBUG=1 exec racket $HOME/<path to rwind directory>/rwind.rkt
+exec racket $HOME/<path to rwind directory>/rwind.rkt
 

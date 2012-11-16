@@ -8,6 +8,7 @@
          ;"../x11-racket/x11.rkt"
          racket/match
          racket/list
+         racket/contract
          )
 
 ;(provide (all-defined-out))
@@ -20,15 +21,21 @@
   Scribblings?
 |#
 
-(define* (root-window? window)
+(define* window? exact-nonnegative-integer?)
+
+(define*/contract (window=? w1 w2)
+  (window? window? . -> . boolean?)
+  (eq? w1 w2))
+
+#;(define* (root-window? window)
   ; windows are _ulong or #f
   (and window
        (= (current-root-window) window)))
 
-(define* (subwindow? window)
+#;(define* (subwindow? window)
   (and window (not (root-window? window))))
 
-(define* (least-root-window w1 w2)
+#;(define* (least-root-window w1 w2)
   "Returns w1 or w2 if one of them is a non-root window, 
 otherwise returns the root window if either w1 or w2 is the root window,
 otherwise returns #f."
@@ -37,6 +44,9 @@ otherwise returns #f."
       (if (subwindow? w2)
           w2
           (or w1 w2))))
+
+(define* (least-root-window parent child)
+  (or child parent))
 
 (define* (move-window window x y)
   (XMoveWindow (current-display) window x y))
@@ -97,6 +107,8 @@ otherwise returns #f."
   "Returns the list of list of strings for the name, 
 the visible name, the icon name and the visible icon name in order."
   (map (λ(v)(window-text-property window v))
+       (list 'XA_WM_NAME 'XA_WM_ICON_NAME))
+  #;(map (λ(v)(window-text-property window v))
        (list _NET_WM_NAME
              _NET_WM_VISIBLE_NAME
              _NET_WM_ICON_NAME
@@ -111,7 +123,17 @@ the visible name, the icon name and the visible icon name in order."
   (car (XGetInputFocus (current-display))))
 
 (define* (set-input-focus window)
+  ; window must be viewable otherwise a badmatch error occurs
   (XSetInputFocus (current-display) window 0 CurrentTime))
+
+(define* (show-window window)
+  (XMapWindow (current-display) window))
+
+(define* (show/raise-window window)
+  (XMapRaised (current-display) window))
+
+(define* (hide-window window)
+  (XUnmapWindow (current-display) window))
 
 (define* (raise-window window)
   (XRaiseWindow (current-display) window))
@@ -121,6 +143,12 @@ the visible name, the icon name and the visible icon name in order."
     (set-input-focus w)
     (raise-window w)))
 
+(define* (map-window window)
+  (XMapWindow (current-display) window))
+
+(define* (unmap-window window)
+  (XUnmapWindow (current-display) window))
+
 (define* (lower-window window)
   (XLowerWindow (current-display) window))
 
@@ -128,6 +156,20 @@ the visible name, the icon name and the visible icon name in order."
   (XIconifyWindow (current-display) window))
 
 ;(define (uniconify-window window)(void))
+
+(define* (reparent-window window new-parent)
+  "Changes the parent of window to new-parent."
+  (define-values (x y) (window-position window))
+  (XReparentWindow (current-display) window new-parent
+                   x y))
+
+;; TEST: for testing
+(define* (create-test-window [x 100] [y 100])
+  "Creates a simple window under the root and maps it."
+  (define window (XCreateSimpleWindow (current-display) (current-root-window)
+                                      x y 100 100 2 0 0))
+  (when window (map-window window))
+  window)
 
 (define* (destroy-window window)
   (XDestroyWindow (current-display) window))
@@ -197,33 +239,34 @@ the visible name, the icon name and the visible icon name in order."
           ; not found, give the focus to the firt window
           (set-input-focus/raise (first wl))))))
 
-(define* (window-list)
+(define* (window-list [parent (current-root-window)])
   "Returns the list of windows."
-  (filter values (XQueryTree (current-display) (current-root-window))))
+  (filter values (XQueryTree (current-display) parent)))
 
-(define* (filter-windows proc)
+(define* (filter-windows proc [parent (current-root-window)])
   "Maps proc to the list of windows."
-  (filter (λ(w)(and w (proc w))) (window-list)))
+  (filter (λ(w)(and w (proc w))) (window-list parent)))
 
-(define* (find-windows rx)
+(define* (find-windows rx [parent (current-root-window)])
   "Returns the list of windows that matches the regexp rx."
-  (filter-windows (λ(w)(regexp-match rx (window-name w)))))
+  (filter-windows (λ(w)(regexp-match rx (window-name w))) parent))
 
-(define* (find-windows-by-class rx)
+(define* (find-windows-by-class rx [parent (current-root-window)])
   "Returns the list of windows for which one of the window's classes matches the regexp rx."
-  (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w)))))
+  (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w))) parent))
 
 (define* (window-map-state w)
   (define attrs (and w (XGetWindowAttributes (current-display) w)))
   (and attrs (XWindowAttributes-map-state attrs)))
 
-(define* (mapped-windows)
+(define* (mapped-windows [parent (current-root-window)])
   "Returns the list of windows that are mapped but not necessarily viewable (i.e., the window is mapped but one ancester is unmapped)."
   (filter-windows (λ(w)(let ([s (window-map-state w)])
-                         (and s (not (eq? 'IsUnmapped s)))))))
+                         (and s (not (eq? 'IsUnmapped s)))))
+                  parent))
 
-(define* (viewable-windows)
-  (filter-windows (λ(w)(eq? 'IsViewable (window-map-state w)))))
+(define* (viewable-windows [parent (current-root-window)])
+  (filter-windows (λ(w)(eq? 'IsViewable (window-map-state w))) parent))
 
 (define* (display-dimensions [screen 0])
   "Returns the values of width and height of the given screen."
@@ -240,7 +283,7 @@ the visible name, the icon name and the visible icon name in order."
   (XScreenCount (current-display)))
 
 
-
+;; todo: send window to left/right/up/down, etc.
 
 ;================;
 ;=== Monitors ===;
@@ -260,3 +303,26 @@ the visible name, the icon name and the visible icon name in order."
 
 #;(define* (monitor-offset m)
   #f)
+
+
+;===================;
+;=== Root Window ===;
+;===================;
+
+(define* (init-root-window)
+  (true-root-window (XDefaultRootWindow (current-display)))
+  ;; Ask the root window to send us any event
+  ;; (Q: is it useful if we use virtual roots?)
+  (define attrs (make-XSetWindowAttributes #:event-mask '(SubstructureRedirectMask)))
+  (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask) attrs)
+  )
+
+(define* (with-root-window/proc new-root proc)
+  (let ([old-root (current-root-window)])
+    (dynamic-wind
+     (λ()(current-root-window new-root))
+     proc
+     (λ()(current-root-window old-root)))))
+
+
+

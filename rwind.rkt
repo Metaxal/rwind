@@ -12,8 +12,13 @@
 - contracts? types?
 - time-stamps are probably not handled properly
 
+- global keymap: events are sent to the virtual root window (and callbacks receive this window)
+- window keymap: callbacks receive the child window. Useful for callbacks that are meaningless on root windows such as move/resize
+
 - workspaces (desktops) + viewports?
 - monitors
+
+- Planet 2 packaging
 |#
 
 ;;; Author: Laurent Orseau
@@ -25,6 +30,7 @@
 - simplewm: http://sqizit.bartletts.id.au/2011/03/28/how-to-write-a-window-manager-in-python/
 - sawfish: http://sawfish.wikia.com/wiki/Main_Page
 - xlambda: https://github.com/kazzmir/x11-racket/blob/master/xlambda/xlambda.rkt
+- awesome: http://awesome.naquadah.org/download/
 - http://tronche.com/gui/x/xlib
 - for window managers:
   http://tronche.com/gui/x/xlib/window-and-session-manager/
@@ -34,6 +40,9 @@
 - non-ICCCM features: http://standards.freedesktop.org/wm-spec/1.4/ar01s02.html
 - Extended Window Manager Hints: http://standards.freedesktop.org/wm-spec/latest/
 - Window Managers: http://www.csl.mtu.edu/cs4760/www/Lectures/OlderLectures/HCIExamplesLectures/XWin/xWM.htm
+- wmctrl: a small software with which RWind should be made compliant
+  http://en.wikipedia.org/wiki/Wmctrl
+- X Window Managers: http://en.wikipedia.org/wiki/X_window_manager
 |#
 
 #|
@@ -53,121 +62,57 @@ to be able to use (require rwind/keymap) for example
          ;; WARNING! Requiring the files via a raco link or via relative file does not require it in the same "namespace" (or something)!!
          ;; Further requirement for the bug to appear: it must started with xinit
          ;; see https://groups.google.com/forum/?fromgroups=#!topic/racket-users/jEXWq_24cOU
-         rwind/base rwind/window rwind/keymap rwind/util rwind/events rwind/server 
+         rwind/base
+         rwind/display
+         rwind/events
+         rwind/keymap
+         rwind/server 
+         rwind/user
+         rwind/util
+         rwind/window
+         rwind/workspace
          x11-racket/x11 ; needs raco link x11-racket
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
-         racket/date
-         racket/function
-         racket/pretty
          )
 
 (rwind-debug #t)
 (debug-prefix "RW: ")
 
-(define restart? #f)
+#;(define restart? #f)
 
 (with-output-to-file (build-path (find-system-path 'home-dir) "rwind.log")
   #:exists 'replace
+  ; For logging purposes, also see racket's logging facility search for "logging")
   (λ()
     (parameterize ([current-error-port (current-output-port)]
                    ;; Set the current directory to the user's dir
                    [current-directory (find-user-config-dir rwind-dir-name)])
       
-      (dprintf "\n *** New session on ~a on display ~a ***\n" 
-               (date->string (current-date) #t)
-               (getenv "DISPLAY"))
-      
       ;; Initialize thread support
       ;; This must be the first X procedure to call
       (XInitThreads)
       
-      (current-display (XOpenDisplay #f))
-      (unless (current-display)
-        (error "Cannot open display.")
-        (exit))
-      
+      (init-display)
+      (init-debug)
+
       (XLockDisplay (current-display))
       
-      (current-root-window (XDefaultRootWindow (current-display)))
-      
-      (when (rwind-debug)
-        ;:::::::::::;
-        ;:: Debug ::;
-        ;:::::::::::;
-        
-        (set-Xdebug! #t) ; for POSIX compliant systems
-        
-        (x11-debug-prefix "  X: ")
-        
-        ; For debugging purposes only, because very slow!
-        (XSynchronize (current-display) #t)
-        
-        ; TODO: set _XDebug to #t !
-        #;(XSetAfterFunction (current-display)
-                           (λ(display) ; -> int
-                             ; This function is called after each X function
-                             ))
-        ; Errors and error-handlers:
-        ; http://tronche.com/gui/x/xlib/event-handling/protocol-errors/default-handlers.html
-        (XSetErrorHandler 
-         (λ(display err-ev)
-           ;(printf "Error received: ~a\n" (XErrorEvent->list* err-ev))
-           (printf "*** Error: ~a\n" (XGetErrorText 
-                                      (XErrorEvent-display err-ev)
-                                      (XErrorEvent-error-code err-ev)
-                                      200)) ; Sufficient bytes?
-           1)) ; must return an _int
-        ) ; debug
+      (init-root-window)
       
       ;; Find which ModMask are the *-Lock modifiers
       (find-lock-modifiers)
       
       (intern-atoms)
       
-      ;; Ask the root window to send us any event
-      (define attrs (make-XSetWindowAttributes #:event-mask '(SubstructureRedirectMask)))
-      (XChangeWindowAttributes (current-display) (current-root-window) '(EventMask) attrs)
-      
-      ;(XSync (current-display) #f)
-      ;(XFlush (current-display))
-      
-      ;; Start the server
-      (define server-thread
-        (parameterize ([debug-prefix "Srv: "])
-          (thread start-rwind-server)))
-      
-      ;; Read user configuration file
-      ;; There must be a 'raco link' to the rwind directory (no need to raco setup for now),
-      ;; so that it can be easily used with (require rwind/keymap) for example.
-      ;; (a language might even be better, to redefine define (or just give a new 'define/doc'?)
-      ;; It would be useless to thread it, as one would still need to call XLockDisplay
-      (let ([user-f (rwind-user-config-file)])
-        (with-handlers ([exn:fail? (λ(e)(printf "Error while loading user config file ~a:\n~a\n"
-                                                user-f
-                                                (exn-message e)))])
-          (when (file-exists? user-f)
-            (dynamic-require user-f #f))))
-      
-      ;; TODO: Make a "root" keymap, that remains on top of the global one, 
-      ;; and that cannot be modified by the user?
-      (bind-key global-keymap "Escape" '(Mod1Mask) 
-                (thunk*
-                 (dprintf "Now exiting.\n")
-                 (exit-rwind? #t)))
-      #;(bind-key global-keymap "Escape" '(ControlMask Mod1Mask) 
-                (thunk*
-                 (printf "Restarting...\n")
-                 (set! exit? #t)
-                 (set! restart? #t)))
+      (init-user)
 
-      (dprintf "global keymap:\n")
-      (pretty-print global-keymap)
-      (dprintf "window keymap:\n")
-      (pretty-print window-keymap)
+      (init-keymap)
       
-      (window-apply-keymap (current-root-window) global-keymap)
-      
-      
+      ; This adds all mapped windows to the first workspace:
+      (init-workspaces)
+            
+      (init-server)
+            
       ;==================;
       ;=== Event loop ===;
       ;==================;
@@ -175,15 +120,17 @@ to be able to use (require rwind/keymap) for example
             
       
       (dprintf "Terminating... ")
-      ;(XUnlockDisplay (current-display)) ; don't unlock?
-      ; Call a break so that dynamic-wind can close the ports and the listener
-      (break-thread server-thread)
-      ; Wait for the thread to be closed before closing everything
-      ;(thread-wait server-thread) ; seems to dead-lock... why?
+      
+      ; Need to unlock to avoid deadlock with the server-thread break
+      (XUnlockDisplay (current-display))
+      
+      (exit-server)
+      
       ; Not sure I should call that if the user wants to replace the current wm by some other
       ; without logging out.
       ;(XDestroySubwindows (current-display) (current-root-window)) ; useful?
-      (XCloseDisplay (current-display))
+      
+      (exit-display)
       ))) ; log to file
 
 

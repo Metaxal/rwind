@@ -11,6 +11,8 @@
          ;"../racket/common/debug.rkt"
          racket/list
          racket/match
+         racket/function
+         racket/pretty
          )
 
 #| TODO
@@ -144,7 +146,8 @@
    value ; key-code or mouse-button
    type ; (one-of 'KeyPress 'KeyRelease 'ButtonPress 'ButtonMove 'ButtonRelease)
    modifiers ; see above
-   ))
+   )
+  #:mutable)
 
 ;; That's not very efficient...
 ;; but ensure that the code can be found.
@@ -180,6 +183,8 @@
   res)
 
 (define* (call-binding keymap km-ev)
+  "Looks for the callback corresponding to the given event, calls it if found.
+  Returns true if the callback was found, false otherwise."
   (match-define (keymap-event window key-code/button type modifiers)
     km-ev)
   (let* ([key (make-keymap-key key-code/button type modifiers)]
@@ -190,12 +195,16 @@
     (not (not proc))))
 
 (define* (call-keymaps-binding km-ev)
-  (or (call-binding window-keymap km-ev)
-      (call-binding global-keymap km-ev)))
+  (define window (keymap-event-window km-ev))
+  (or (and window (call-binding window-keymap km-ev))
+      (begin
+        ; if it is not called on a window, then the window value is meaningless
+        (set-keymap-event-window! km-ev #f)
+        (call-binding global-keymap km-ev))))
 
-(define* (window-apply-keymap window keymap)
+(define (window-apply-keymap window keymap)
   ; TODO: First remove all grabbings?
-  (printf "window-apply-keymap ~a\n" (window-name window))
+  (printf "window-apply-keymap ~a\n" window)
   (for ([(k v) keymap])
     (define value (first k)) ; button-num or key-code
     (define type (second k))
@@ -211,6 +220,10 @@
        ; So I just use the same (more general) combination as in Sawfish.
        (grab-button window value modifiers pointer-grab-events)]
       [else (error "Event type not found in window-apply-keymap:" type)])))
+
+(define* (window-apply-keymaps window)
+  (window-apply-keymap window global-keymap)
+  (window-apply-keymap window window-keymap))
 
 ;================;
 ;=== Keyboard ===;
@@ -310,11 +323,14 @@ Useful for 'MotionNotify events (where the button is not specified)."
     ))
   
 (define* (bind-motion keymap button-num modifiers proc)
+  "Like bind-button, but for press, move and release events.
+  The keymap-event-type is set to 'ButtonPress, 'ButtonMove and 'ButtonRelease accordingly."
   (define motion-mask (string->symbol (format "Button~aMotionMask" button-num)))
   (bind-button keymap button-num 'ButtonPress modifiers 
                (λ(ev)
                  (proc ev)
-                 (grab-pointer (keymap-event-window ev)
+                 ; Warning: It may happen that if some call fails, the grab is not released!
+                 (grab-pointer (current-root-window);(keymap-event-window ev)
                                (list* motion-mask pointer-grab-events))
                  ))
   (bind-button keymap button-num 'ButtonMove modifiers
@@ -324,18 +340,6 @@ Useful for 'MotionNotify events (where the button is not specified)."
                  (ungrab-pointer) ; before proc-release, in case it fails
                  (proc ev)))
   )
-
-#;(define (call-mouse-binding keymap mouse-ev)
-  (match-define (mouse-event window button-num type modifiers _x _y)
-    mouse-ev)
-  (let* ([key (make-keymap-key button-num type modifiers)]
-         ; (but keep other modifiers, since they contain mouse masks)
-         [proc (keymap-ref keymap key)])
-    (when proc
-      (printf "Mouse-binding ~a found, calling thunk\n" key)
-      (proc mouse-ev))
-    (not (not proc)))) ; return boolean (and don't return the thunk itself)
-
 
 ;;; To put in a separate file?
 
@@ -372,3 +376,25 @@ Useful for 'MotionNotify events (where the button is not specified)."
          (define x-diff (- x-ev x-ini))
          (define y-diff (- y-ev y-ini))
          (resize-window window (max 1 (+ w x-diff)) (max 1 (+ h y-diff)))]))))
+
+(define* (init-keymap)
+  ;; TODO: Make a "root" keymap, that remains on top of the global one, 
+  ;; and that cannot be modified by the user?
+  (bind-key global-keymap "Escape" '(Mod1Mask) 
+            (thunk*
+             (dprintf "Now exiting.\n")
+             (exit-rwind? #t)))
+  #;(bind-key global-keymap "Escape" '(ControlMask Mod1Mask) 
+              (thunk*
+               (printf "Restarting...\n")
+               (set! exit? #t)
+               (set! restart? #t)))
+  
+  (dprintf "global keymap:\n")
+  (pretty-print global-keymap)
+  (dprintf "window keymap:\n")
+  (pretty-print window-keymap) ; not really used currently?
+  
+  (window-apply-keymap (true-root-window) global-keymap) 
+  ; but not the window-keymap! (otherwise virtual roots will be considered as subwindows)
+  )

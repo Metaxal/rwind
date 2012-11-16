@@ -6,6 +6,7 @@
          rwind/window
          rwind/util
          rwind/base
+         rwind/user
          racket/function)
 
 ;;; Some key/mouse bindings

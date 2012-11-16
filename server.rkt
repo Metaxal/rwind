@@ -12,6 +12,7 @@
          rwind/window
          rwind/keymap
          rwind/doc-string
+         rwind/workspace
          racket/tcp
          )
 
@@ -52,17 +53,20 @@
                      (λ() (XLockDisplay d))
                      (λ() 
                        ;(printf "BEFORE EVAL")(flush-output)
-                       (eval e server-namespace)
-                       )
+                       (with-output-to-string
+                        (λ()
+                          (define r (eval e server-namespace))
+                          (unless (void? r)
+                            (write r)))))
                      (λ() 
                        ;(printf "BETWEEN EVAL AND FLUSH")(flush-output)
                        (XFlush (current-display))
                        ;(printf "AFTER FLUSH")(flush-output)
                        (XUnlockDisplay d)))))
-                (dprint-wait "Sending value: ~v" res)
+                (dprint-wait "Sending value: ~a" res)
                 ; Printed in a string, to send a string, 
                 ; because the reader cannot read things like #<some-object>
-                (write-data/flush (~v res) out)
+                (write-data/flush res out)
                 )
             (dprint-ok)
             (dprint-wait "Waiting for data")
@@ -80,6 +84,22 @@
      (dprint-wait "Closing listener")
      (tcp-close listener)
      (dprint-ok))))
+
+(define server-thread #f)
+
+(define* (init-server)
+  ;; Start the server
+  (set! server-thread
+    (parameterize ([debug-prefix "Srv: "])
+      (thread start-rwind-server)))
+  )
+
+(define* (exit-server)
+  ; Call a break so that dynamic-wind can close the ports and the listener
+  (break-thread server-thread)
+  ; Wait for the thread to be closed before closing everything
+  ;(thread-wait server-thread) ; deadlock?
+  )
 
 (module+ main
   (rwind-debug #t)

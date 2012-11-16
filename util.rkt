@@ -59,10 +59,6 @@
   "Returns the configuration-file path for application app-name (and may create the directory)."
   (build-path (find-user-config-dir app-name) file-name))
 
-(define* (rwind-user-config-file)
-  "Returns the configuration-file path for rwind (and may create the directory)."
-  (find-user-config-file rwind-dir-name rwind-user-config-file-name))
-
 ;; Uses the OS open facility
 ;; file: (or/c path? string?)
 (define* (open-file file)
@@ -74,20 +70,6 @@
                   [(find-executable-path "mimeopen")
                    => (λ(e)(rwind-system e "-L" "-n" file))]
                   )]))
-
-(define* (open-user-config-file)
-  "Tries to open the user configuration file for edition, using the system default editor."
-  (define f (rwind-user-config-file))
-  (unless (file-exists? f)
-    (display-to-file 
-     "#lang racket/base
-;;; User configuration file
-
-(require rwind/keymap rwind/base rwind/util rwind/window)
-
-"
-     f #:mode 'text))
-  (open-file f))
 
 (define* (call/values->list proc . args)
   "Calls proc on args and turns the returned (multiple) values into a list."
@@ -162,3 +144,25 @@ waits for the delimiter to be read, and would thus hang)."
 '(x y #<eof>)
 |#
 
+(provide ++ -- += -=)
+
+(define-syntax-rule (++ var)
+  (set! var (+ var 1)))
+
+(define-syntax-rule (-- var)
+  (set! var (- var 1)))
+
+(define-syntax-rule (+= var n)
+  (set! var (+ var n)))
+
+(define-syntax-rule (-= var n)
+  (set! var (- var n)))
+
+(provide cons!)
+(define-syntax-rule (cons! elt list-var)
+  (set! list-var (cons elt list-var)))
+
+(provide L)
+(define-syntax-rule (L args body ...)
+  (lambda args body ...))
+(doc 'L "Synonym for lambda.")
