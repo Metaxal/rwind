@@ -21,6 +21,14 @@
 
 http://en.wikipedia.org/wiki/Root_window
 http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
+|#
+
+#| *** Workspace ****
+
+The children of the root window are the workspace's virtual roots (one per workspace).
+The virtual root contains all the "top-level" windows of the clients.
+To switch between workspaces, it suffices to unmap the current workspace and map the new one
+(This is done by activate-workspace).
 
 |#
 

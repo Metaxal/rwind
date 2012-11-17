@@ -12,9 +12,8 @@
 - to speed up loading, once the doc is generated, it can be saved in a separate file
 that can be loaded only on demand (or reconstructed if outdated).
 
-- define*/contract
-to support contracts (the contract should appear before the doc-string)
-and also document them.
+- use (provide (contract-out ...)) instead of define/contract to avoid in-module checks.
+- use a compile-time (env?) variable to enable/disable macro for speed.
 
 |#
 

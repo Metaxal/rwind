@@ -15,6 +15,7 @@ Current features:
   - very little
   - a client command line
   - customization of key bindings and mouse bindings
+  - workspaces
   - no frames (yet)
 
 Installation:
