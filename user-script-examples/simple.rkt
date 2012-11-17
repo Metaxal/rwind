@@ -7,6 +7,7 @@
          rwind/util
          rwind/base
          rwind/user
+         rwind/workspace
          racket/function)
 
 ;;; Some key/mouse bindings
@@ -22,6 +23,12 @@
           (thunk* (rwind-system "xterm -g 80x24+400+0 -e 'racket -e \"(require rwind/client)\"'")))
 (bind-key global-keymap "F10" '(Mod1Mask)
           (thunk* (open-user-config-file)))
+
+(bind-key global-keymap "F1" '(Mod4Mask)
+          (L* (activate-workspace 0)))
+(bind-key global-keymap "F2" '(Mod4Mask)
+          (L* (activate-workspace 1)))
+
 
 ;; Left-click to focus and raise window
 (bind-button global-keymap 1 'ButtonPress '()
