@@ -131,7 +131,7 @@ Useful to avoid adding big strings (like examples) in the definition of a proced
        (eq? (car e) '->)))
 
 (define* (describe-string symbol)
-  "Returns a description string of the function or variable if found."
+  "Returns a description string of the identifier if found."
   (define res (hash-ref doc-dict symbol #f))
   (if res
       (string-join 
@@ -167,7 +167,7 @@ In case id is a procedure, the header is also added to the documentation.")
 Like define* but with a contract right after the header (if a procedure) or the identifier (if a variable).")
 
 (define* (describe symbol)
-  "Prints a description of the function or variable if found."
+  "Prints a description of the identifier if found."
   (display (describe-string symbol)))
 
 (define* (symbol<=? s1 s2)

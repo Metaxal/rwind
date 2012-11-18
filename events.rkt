@@ -102,7 +102,6 @@
     
     #;[(UnmapNotify)
      (define window (XUnmapEvent-window event))
-     ; TODO: remove the window from its workspace
      ]
     
     #;[(CreateNotify)
@@ -110,10 +109,16 @@
      (define override? (XCreateWindowEvent-override-redirect event))
     ]
     
+    [(ClientMessage)
+     (dprintf "Client message: window: ~a message-type: ~a format: ~a\n" 
+              (XClientMessageEvent-window event)
+              (XClientMessageEvent-message-type event)
+              (XClientMessageEvent-format event))
+     ]
+    
     [else
      (dprintf "Unhandled event ~a\n" (XEvent->list* event))
-     ]) ; case
-  )
+     ]))
 
 (provide run-event-loop)
 #;(define (run-event-loop)

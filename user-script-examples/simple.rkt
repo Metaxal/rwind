@@ -20,7 +20,7 @@
 (bind-key global-keymap "F2" '(Mod1Mask)
           (thunk* (rwind-system "gmrun")))
 (bind-key global-keymap "F12" '(Mod1Mask)
-          (thunk* (rwind-system "xterm -g 80x24+400+0 -e 'racket -e \"(require rwind/client)\"'")))
+          (thunk* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -e \"(require rwind/client)\"'")))
 (bind-key global-keymap "F10" '(Mod1Mask)
           (thunk* (open-user-config-file)))
 

@@ -5,6 +5,7 @@
          rwind/util
          rwind/keymap
          rwind/window
+         rwind/color
          x11-racket/x11
          racket/list
          racket/contract
@@ -58,12 +59,16 @@ To switch between workspaces, it suffices to unmap the current workspace and map
   "Returns #f if window is a mapped window of the specified workspace, or non-#f otherwise."
   (member window (workspace-subwindows window)))
 
-(define*/contract (make-workspace [id #f])
-  (() ((or/c string? #f)) . ->* . workspace?)
+(define*/contract (make-workspace [id #f]
+                                  #:background-color [bk-color black-pixel])
+  (() ((or/c string? #f) #:background-color exact-nonnegative-integer?) . ->* . workspace?)
   "Returns a newly created workspace, which contains a new unmapped window of the size of the display.
   The new workspace is inserted into the workspace list."
   ;; Sets the new window attributes so that it will report any events
-  (define attrs (make-XSetWindowAttributes #:event-mask '(SubstructureRedirectMask)))
+  (define attrs (make-XSetWindowAttributes 
+                 #:event-mask '(SubstructureRedirectMask)
+                 #:background-pixel bk-color
+                 ))
   (define window
     (XCreateWindow (current-display) (true-root-window)
                    0 0
@@ -72,7 +77,7 @@ To switch between workspaces, it suffices to unmap the current workspace and map
                    CopyFromParent/int
                    'InputOutput
                    #f
-                   '(EventMask) attrs))
+                   '(EventMask BackPixel) attrs))
   ;; Create the window, but don't map it yet.
   ;; Make sure we will see the keymap events
   (window-apply-keymaps window)
@@ -190,10 +195,11 @@ To switch between workspaces, it suffices to unmap the current workspace and map
   (define existing-windows (window-list (true-root-window)))
   ;; Create a two initial workspaces
   ;; This sets the current-root-window, and applies the keymap to it
-  (make-workspace "First")
-  (make-workspace "Second")
+  (make-workspace "First" #:background-color (find-named-color "DarkSlateGray"))
+  (make-workspace "Second" #:background-color (find-named-color "DarkSlateBlue"))
+  (make-workspace "Third" #:background-color (find-named-color "Sienna"))
 
-  (activate-workspace 1)
+  (activate-workspace 0)
 
   ;; Put all mapped windows in the activated worskpace
   (for-each (λ(w)(add-window-to-workspace w (current-workspace)))

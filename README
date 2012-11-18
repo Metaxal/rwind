@@ -6,9 +6,11 @@ An extensible window manager aiming to be similar to Sawfish
 (http://sawfish.wikia.com), but written in the Racket programming language 
 (http://www.racket-lang.org).
 
-Warning: This package is under current development and is in no way stable, and
-is intended for testing purposes only. Furthermore, it lacks security and should
-not be used on multiple user computers. Use at your own risk!
+Warnings: 
+- This package is under current development and is in no way stable, and
+is intended for testing purposes only. 
+- No backward compatibility will be ensured in th 0.x branch
+- Due to a security issue, the current version should not be used on multiple user computers. Use at your own risk!
 
 Current features:
 -----------------
@@ -23,7 +25,7 @@ Installation:
 1) Install Racket: http://www.racket-lang.org
 
 2) Create a directory where to place Racket projects (e.g., 
-/home/me/Programming/Racket), then do:
+/home/me/Programming/Racket), then do, in this directory:
 
   git clone http://github.com/kazzmir/x11-racket.git
   git clone http://github.com/Metaxal/RWind.git

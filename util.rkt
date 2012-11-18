@@ -6,6 +6,7 @@
          racket/list
          racket/string
          racket/file
+         racket/function
          )
 
 (define* (path-string->string ps)
@@ -165,4 +166,9 @@ waits for the delimiter to be read, and would thus hang)."
 (provide L)
 (define-syntax-rule (L args body ...)
   (lambda args body ...))
-(doc 'L "Synonym for lambda.")
+(doc L "Synonym for lambda.")
+
+(provide L*)
+(define-syntax-rule (L* body ...)
+  (thunk* body ...))
+(doc L* "Synonym for thunk*.")

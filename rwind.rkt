@@ -63,6 +63,7 @@ to be able to use (require rwind/keymap) for example
          ;; Further requirement for the bug to appear: it must started with xinit
          ;; see https://groups.google.com/forum/?fromgroups=#!topic/racket-users/jEXWq_24cOU
          rwind/base
+         rwind/color
          rwind/display
          rwind/events
          rwind/keymap
@@ -99,6 +100,8 @@ to be able to use (require rwind/keymap) for example
       
       (init-root-window)
       
+      (init-colors)
+      
       ;; Find which ModMask are the *-Lock modifiers
       (find-lock-modifiers)
       
@@ -117,7 +120,11 @@ to be able to use (require rwind/keymap) for example
       ;=== Event loop ===;
       ;==================;
       (run-event-loop)
-            
+      ; testing in a thread to see if unlocks racket's gtk, but no.
+      #;(define event-thread
+        (thread run-event-loop))
+      #;(thread-wait event-thread)
+      
       
       (dprintf "Terminating... ")
       

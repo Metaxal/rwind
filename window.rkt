@@ -1,24 +1,17 @@
 #lang racket/base
 
-(require ;"base.rkt"
-         rwind/base
+(require rwind/base
          rwind/doc-string
          rwind/util
          x11-racket/x11
-         ;"../x11-racket/x11.rkt"
          racket/match
          racket/list
          racket/contract
          )
 
-;(provide (all-defined-out))
-
 #| TODO
-- error checking!
-  use contracts and verify that windows exist, etc.
-- Documentation
-  Docstrings?
-  Scribblings?
+- contracts
+- reorganize this file 
 |#
 
 (define* window? exact-nonnegative-integer?)
@@ -26,27 +19,6 @@
 (define*/contract (window=? w1 w2)
   (window? window? . -> . boolean?)
   (eq? w1 w2))
-
-#;(define* (root-window? window)
-  ; windows are _ulong or #f
-  (and window
-       (= (current-root-window) window)))
-
-#;(define* (subwindow? window)
-  (and window (not (root-window? window))))
-
-#;(define* (least-root-window w1 w2)
-  "Returns w1 or w2 if one of them is a non-root window, 
-otherwise returns the root window if either w1 or w2 is the root window,
-otherwise returns #f."
-  (if (subwindow? w1)
-      w1
-      (if (subwindow? w2)
-          w2
-          (or w1 w2))))
-
-(define* (least-root-window parent child)
-  (or child parent))
 
 (define* (move-window window x y)
   (XMoveWindow (current-display) window x y))
@@ -101,7 +73,7 @@ otherwise returns #f."
     (or
      (window-text-property window _NET_WM_NAME)
      (window-text-property window 'XA_WM_NAME)))
-  (and names (car names)))
+  (and names (not (null? names)) (car names)))
    
 (define* (window-names window)
   "Returns the list of list of strings for the name, 
@@ -119,13 +91,6 @@ the visible name, the icon name and the visible icon name in order."
   "Returns the list of classes of the window."
   (window-text-property window 'XA_WM_CLASS))
 
-(define* (input-focus)
-  (car (XGetInputFocus (current-display))))
-
-(define* (set-input-focus window)
-  ; window must be viewable otherwise a badmatch error occurs
-  (XSetInputFocus (current-display) window 0 CurrentTime))
-
 (define* (show-window window)
   (XMapWindow (current-display) window))
 
@@ -137,11 +102,6 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (raise-window window)
   (XRaiseWindow (current-display) window))
-
-(define* (set-input-focus/raise w)
-  (when w
-    (set-input-focus w)
-    (raise-window w)))
 
 (define* (map-window window)
   (XMapWindow (current-display) window))
@@ -201,8 +161,30 @@ the visible name, the icon name and the visible icon name in order."
 (define* (window-border-width window)
   (define attr (window-attributes window))
   (XWindowAttributes-border-width attr))
+
+(define* (clear-window window)
+  (XClearWindow (current-display) window))
+
+(define* (set-window-background-color window color)
+  "Color must be a color found with find-named-color or similar (i.e., it is a color-pixel)."
+  (XSetWindowBackground (current-display) window color)
+  ; refresh:
+  (clear-window window))
   
 ;;; This should be in x-util.rkt?
+
+(define* (input-focus)
+  (car (XGetInputFocus (current-display))))
+
+(define* (set-input-focus window)
+  ; window must be viewable otherwise a badmatch error occurs
+  ; TODO: focus should not be given to windows that don't want it
+  (XSetInputFocus (current-display) window 'RevertToParent CurrentTime))
+
+(define* (set-input-focus/raise w)
+  (when w
+    (set-input-focus w)
+    (raise-window w)))
 
 (define* (query-pointer)
 "Returns values:
@@ -226,6 +208,7 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (focus-next!)
   "Gives the keyboard focus to the next window in the list of windows" 
+  ; TODO: cycle only among windows that want focus
   (define wl (viewable-windows))
   (unless (empty? wl)
     (let* ([wl (cons (last wl) wl)]
