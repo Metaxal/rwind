@@ -29,7 +29,8 @@ Installation:
 
   git clone http://github.com/kazzmir/x11-racket.git
   git clone http://github.com/Metaxal/RWind.git
-  raco link x11-racket rwind
+  raco link --name rwind RWind
+  raco link x11-racket
   raco setup x11-racket rwind
 
 3) Copy the provided .xinitrc-rwind file in your home directory, and modify its
