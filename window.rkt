@@ -64,6 +64,8 @@
   _NET_WM_VISIBLE_NAME
   _NET_WM_ICON_NAME
   _NET_WM_VISIBLE_ICON_NAME
+  WM_TAKE_FOCUS
+  WM_DELETE_WINDOW
   )
 
 
@@ -131,8 +133,22 @@ the visible name, the icon name and the visible icon name in order."
   (when window (map-window window))
   window)
 
+(define* (window-protocols window)
+  ; Use XGetAtomNames instead of XGetAtomName ?
+  (map (λ(v)(if (symbol? v)
+                v
+                (XGetAtomName (current-display) v)))
+       (XGetWMProtocols (current-display) window)))
+
 (define* (destroy-window window)
   (XDestroyWindow (current-display) window))
+
+(define* (kill-client window)
+  (XKillClient (current-display) window))
+
+;(define* (delete-window)
+;  (cond ([(window-supports-wm-protocol? window 'WM_DELETE_WINDOW)
+;          (send-client-message window 'WM_PROTOCOLS
 
 (define* (configure-window configure-request-event)
   (match-define 

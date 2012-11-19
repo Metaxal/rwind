@@ -11,6 +11,7 @@ Warnings:
 is intended for testing purposes only. 
 - No backward compatibility will be ensured in th 0.x branch
 - Due to a security issue, the current version should not be used on multiple user computers. Use at your own risk!
+- Keep your X11-Racket (via git pull) up to date since RWind's development depends on it.
 
 Current features:
 -----------------
@@ -51,7 +52,7 @@ The file simple.rkt defines a number of default key and mouse bindings.
  - Control-Alt-t to open xterm
  - Alt-F12 opens the client 
 
-5a) In a login shell, type the following:
+5a) In a login shell, in rwind directory, type the following:
 
   xinit .xinitrc-rwind -- :1 &
 
@@ -61,10 +62,10 @@ available.
 Press Alt-Escape to quit the session.
 
 5b) You can also test with Xephyr (from the xserver-xephyr package), that 
-creates a nested X session (thanks to Asumu):
+creates a nested X session (thanks to Asumu), in the rwind directory:
  
   Xephyr -ac -noreset -screen 800x600 :1 &
-  DISPLAY=:1.0 racket rwind.rkt &
+  DISPLAY=:1.0 ./run.sh &
 
 
 

@@ -5,7 +5,6 @@
 (require rwind/keymap
          rwind/window
          rwind/util
-         rwind/base
          rwind/user
          rwind/workspace
          racket/function)
@@ -31,18 +30,18 @@
 
 
 ;; Left-click to focus and raise window
-(bind-button global-keymap 1 'ButtonPress '()
+(bind-button window-keymap 1 'ButtonPress '()
              (λ(ev)
                (define w (keymap-event-window ev))
-               (set-input-focus w)
                (raise-window w)
+               (set-input-focus w)
                ))
 
 ;; Moving window with Ctrl-Button1
-(bind-motion global-keymap 1 '(ControlMask)
+(bind-motion window-keymap 1 '(ControlMask)
              (motion-move-window))
 
 ;; Resizing window with Ctrl-Button3
-(bind-motion global-keymap 3 '(ControlMask)
+(bind-motion window-keymap 3 '(ControlMask)
              (motion-resize-window))
 

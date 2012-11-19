@@ -1,6 +1,9 @@
 #!/usr/bin/racket
 #lang racket/base
 
+;;; Author: Laurent Orseau
+;;; License: LGPL, except for the client.rkt which is in GPL (because of readline)
+
 #| TODO: 
 - security of the server: make sure the user at the other end of the tcp connection 
   is the same as the one running the server!
@@ -20,9 +23,6 @@
 
 - Planet 2 packaging
 |#
-
-;;; Author: Laurent Orseau
-;;; License: LGPL, except for the client.rkt which is in GPL (because of readline)
 
 #| Helpful resources:
 - tinywm: http://incise.org/tinywm.html
@@ -76,79 +76,116 @@ to be able to use (require rwind/keymap) for example
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
          )
 
-(rwind-debug #t)
 (debug-prefix "RW: ")
 
 #;(define restart? #f)
 
-(with-output-to-file (build-path (find-system-path 'home-dir) "rwind.log")
-  #:exists 'replace
-  ; For logging purposes, also see racket's logging facility search for "logging")
-  (λ()
-    (parameterize ([current-error-port (current-output-port)]
-                   ;; Set the current directory to the user's dir
-                   [current-directory (find-user-config-dir rwind-dir-name)])
-      
-      ;; Initialize thread support
-      ;; This must be the first X procedure to call
-      (XInitThreads)
-      
-      (init-display)
-      (init-debug)
+(define (run)
+  (with-output-to-file (build-path (find-system-path 'home-dir) "rwind.log")
+    #:exists 'replace
+    ; For logging purposes, also see racket's logging facility search for "logging")
+    (λ()
+      (parameterize ([current-error-port (current-output-port)]
+                     ;; Set the current directory to the user's dir
+                     [current-directory (find-user-config-dir rwind-dir-name)])
+        
+        ;; Initialize thread support
+        ;; This must be the first X procedure to call
+        (XInitThreads)
+        
+        (init-display)
+        (init-debug)
+        
+        (XLockDisplay (current-display))
+        
+        (init-root-window)
+        
+        (init-colors)
+        
+        ;; Find which ModMask are the *-Lock modifiers
+        (find-lock-modifiers)
+        
+        (intern-atoms)
+        
+        (init-user)
+        
+        (init-keymap)
+        
+        ; This adds all mapped windows to the first workspace:
+        (init-workspaces)
+        
+        (init-server)
+        
+        ;==================;
+        ;=== Event loop ===;
+        ;==================;
+        (run-event-loop)
+        ; testing in a thread to see if unlocks racket's gtk, but no.
+        #;(define event-thread
+            (thread run-event-loop))
+        #;(thread-wait event-thread)
+        
+        
+        (dprintf "Terminating... ")
+        
+        ; Need to unlock to avoid deadlock with the server-thread break
+        (XUnlockDisplay (current-display))
+        
+        (exit-server)
+        
+        ; Not sure I should call that if the user wants to replace the current wm by some other
+        ; without logging out.
+        ;(XDestroySubwindows (current-display) (current-root-window)) ; useful?
+        
+        (exit-display)
+        ))); log to file
+  
+  
+  
+  ; Broken
+  #;(when restart?
+      (dprintf "Restarting... ")
+      ; Run another process without killing this one, 
+      ; otherwise the Xserver may terminate
+      (define l (cons  (path->string (find-system-path 'run-file))
+                       (vector->list (current-command-line-arguments))))
+      (dprintf "Command-line:~a\n" l)
+      (apply system* l))
+  
+  (dprintf "Finished.\n"))
 
-      (XLockDisplay (current-display))
-      
-      (init-root-window)
-      
-      (init-colors)
-      
-      ;; Find which ModMask are the *-Lock modifiers
-      (find-lock-modifiers)
-      
-      (intern-atoms)
-      
-      (init-user)
+(module+ main
+  (require racket/match)
+  
+  ;; take the config file from the environment
+  (let ([config-file (getenv "RWIND_CONFIG_FILE")])
+    (when (and config-file (file-exists? config-file))
+      (cmd-line-config-file (path->complete-path config-file))))
 
-      (init-keymap)
-      
-      ; This adds all mapped windows to the first workspace:
-      (init-workspaces)
-            
-      (init-server)
-            
-      ;==================;
-      ;=== Event loop ===;
-      ;==================;
-      (run-event-loop)
-      ; testing in a thread to see if unlocks racket's gtk, but no.
-      #;(define event-thread
-        (thread run-event-loop))
-      #;(thread-wait event-thread)
-      
-      
-      (dprintf "Terminating... ")
-      
-      ; Need to unlock to avoid deadlock with the server-thread break
-      (XUnlockDisplay (current-display))
-      
-      (exit-server)
-      
-      ; Not sure I should call that if the user wants to replace the current wm by some other
-      ; without logging out.
-      ;(XDestroySubwindows (current-display) (current-root-window)) ; useful?
-      
-      (exit-display)
-      ))) ; log to file
+  (let arg-loop ([args (vector->list (current-command-line-arguments))])
+    (match args
+      [(list (or "--help" "-h"))
+       (displayln "Usage:
+rwind [arguments] ...
+racket -t rwind.rkt [arguments] ...
 
-
-; Broken
-#;(when restart?
-  (dprintf "Restarting... ")
-  ; Run another process without killing this one, 
-  ; otherwise the Xserver may terminate
-  (define l (cons  (path->string (find-system-path 'run-file))
-                   (vector->list (current-command-line-arguments))))
-  (dprintf "Command-line:~a\n" l)
-  (apply system* l))
-
-(dprintf "Finished.\n")
+Arguments:
+-h, --help
+    This help message
+-c, --config config-file
+    Uses config-file in place of the default user configuration file
+--debug
+    Prints RWind debugging information
+")]
+      [(list (or "--config" "-c") config-file arg-rest ...)
+       (if (file-exists? config-file)
+           (cmd-line-config-file (path->complete-path config-file))
+           (error "Configuration file does not exist:" config-file))
+       (arg-loop arg-rest)]
+      [(list "--debug" arg-rest ...)
+       (rwind-debug #t)
+       (arg-loop arg-rest)]
+      [else
+       (printf "Warning: Unused arguments ~a\n" args)]))
+    (run)
+    )

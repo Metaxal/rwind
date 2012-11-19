@@ -6,9 +6,12 @@
          racket/file
          )
 
+(define* cmd-line-config-file (make-fun-box #f))
+
 (define* (rwind-user-config-file)
   "Returns the configuration-file path for rwind (and may create the directory)."
-  (find-user-config-file rwind-dir-name rwind-user-config-file-name))
+  (or (cmd-line-config-file)
+      (find-user-config-file rwind-dir-name rwind-user-config-file-name)))
 
 (define* (open-user-config-file)
   "Tries to open the user configuration file for edition, using the system default editor."
