@@ -1,7 +1,9 @@
 #lang racket ; to load all useful procedures for evaling the client commands
 
 #| TODO
-- security: verify that the user is the same as the owner of the root window
+- security: 
+  - verify that the user is the same as the owner of the root window
+  - accept only localhost connections
 - module->namespace with a separate module instead of an anchor?
 
 |#
@@ -23,7 +25,7 @@
 
 (define (start-rwind-server [continuous? #t])
   (dprint-wait "Opening listener")
-  (define listener (tcp-listen rwind-tcp-port))
+  (define listener (tcp-listen rwind-tcp-port 4 #t "127.0.0.1"))
   (dprint-ok)
   
   (dynamic-wind
