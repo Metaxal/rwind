@@ -13,6 +13,8 @@
          racket/match
          racket/function
          racket/pretty
+         racket/string
+         racket/dict
          )
 
 #| TODO
@@ -97,44 +99,78 @@
     Button4Mask
     Button5Mask))
 
+(define* modifier-XK-dict (make-hasheq))
 (define* num-lock-mask #f)
 (define* scroll-lock-mask #f)
 (define* caps-lock-mask 'LockMask)
 (define* lock-masks #f)
 (define* all-lock-combinations #f)
 
-;; Translated from:
+(define* default-mask (make-fun-box 'Mod4Mask))
+
+(define* (keycode->keysym code [index 0])
+  (XKeycodeToKeysym (current-display) code index))
+
+(define* (keysym->keycode sym)
+  (XKeysymToKeycode (current-display) sym))
+
+(define* (keysym-symbol->modifier sym)
+  (dict-ref modifier-XK-dict sym #f))
+
+;; Adapted from:
 ;; http://code.google.com/p/jnativehook/source/browse/branches/test_code/linux/XGrabKey.c?r=297
-(define* (find-lock-modifiers)
-  "Find the *-Lock modifiers ModMasks, since there is no fixed value for them."
-  (define nlock (XKeysymToKeycode (current-display) XK-Num-Lock))
-  (define slock (XKeysymToKeycode (current-display) XK-Scroll-Lock))
+;; Sawfish, see src/keys.(h|c), lisp/sawfish/wm/util/decode-events.jl
+(define* (find-modifiers)
+  "Creates the modifier dictionary, and find the *-Lock modifiers ModMasks,
+since there is no fixed value for them."
   (define modmap (XGetModifierMapping (current-display)))
   (define mods (XModifierKeymap->vector modmap))
+  (define mod-list (vector->list mods))
+  
+  (displayln mod-list)
   
   (cond
     [modmap
+     ;; Search for the *-lock modifiers
      (define keypermod (XModifierKeymap-max-keypermod modmap))
+     ;; Memorize the dictionary
      (for* ([i 8]
             [j keypermod])
        (define code (vector-ref mods (+ (* i keypermod) j)))
        (define mask (vector-ref keyboard-modifiers i))
-       (cond [(= code nlock)
-              (set! num-lock-mask mask)]
-             [(= code slock)
-              (set! scroll-lock-mask code)]))
-     
+       (define sym0 (keycode->keysym code 0))
+       ;; Search for both index 0 and 1 (shifted),
+       ;; because some keys like Meta (on my keyboard) need shift-Alt for example
+       ;; (but we don't care about the shift in the dictionary)
+       (for ([index 2])
+         (define sym (keycode->keysym code index))
+         (unless (zero? sym)
+           (dict-set! modifier-XK-dict 
+                      (keysym-number->symbol sym) mask))))
+
+     ;; Find the num-lock and scrol-lock masks
+     (set! num-lock-mask    (keysym-symbol->modifier 'XK-Num-Lock))
+     (set! scroll-lock-mask (keysym-symbol->modifier 'XK-Scroll-Lock))
      ;; Remove the modifiers that were not fould if any
      (set! lock-masks (filter values (list caps-lock-mask num-lock-mask scroll-lock-mask)))
      ;; Create the list of all possible combinations of *-Lock modifiers
      (set! all-lock-combinations
            (all-combinations lock-masks))
      
-     (dprintf "~a\n" all-lock-combinations)
-     
+     (dprintf "All lock combinations: ~a\n" all-lock-combinations)
      (XFreeModifiermap modmap)]
     [else
      (printf "Warning: Could not find modifiers!\n")]))
+
+(module+ test
+  (define dpy (XOpenDisplay #f))
+  (current-display dpy)
+  (find-modifiers)
+  modifier-XK-dict
+  ; when shift is pressed (strangely there are more of them):
+  (keysym-number->symbol (keycode->keysym (keysym->keycode XK-Scroll-Lock)))
+  (XCloseDisplay dpy)
+  )
 
 ;==============;
 ;=== Keymap ===;
@@ -398,3 +434,91 @@ Useful for 'MotionNotify events (where the button is not specified)."
   (window-apply-keymap (true-root-window) global-keymap) 
   ; but not the window-keymap! (otherwise virtual roots will be considered as subwindows)
   )
+
+(define* (string->mask s)
+    (match s
+      [(or "S" "Shift") 'ShiftMask]
+      [(or "C" "Control") 'ControlMask]
+      [(or "M" "Meta") (keysym-symbol->modifier 'XK-Meta-L)]
+      [(or "A" "Alt") (keysym-symbol->modifier 'XK-Alt-L)]
+      [(or "Super") (keysym-symbol->modifier 'XK-Super-L)]
+      [(or "H" "Hyper") (keysym-symbol->modifier 'XK-Hyper-L)]
+      ["Mod1" 'Mod1Mask]
+      ["Mod2" 'Mod2Mask]
+      ["Mod3" 'Mod3Mask]
+      ["Mod4" 'Mod4Mask]
+      ["Mod5" 'Mod5Mask]
+      ["Button1" 'Button1Mask]
+      ["Button2" 'Button2Mask]
+      ["Button3" 'Button3Mask]
+      ["Button4" 'Button4Mask]
+      ["Button5" 'Button5Mask]
+      ["W" default-mask]
+      [else (error "Modifier not found:" s)]))
+
+(define* (string->keysym s)
+  ;; direct translation of sawfish/src/keys.c
+  (match s
+    ["SPC" XK-space]
+    ["Space" XK-space]
+    ["TAB" XK-Tab]
+    ["RET" XK-Return]
+    ["ESC" XK-Escape]
+    ["BS" XK-BackSpace]
+    ["DEL" XK-Delete]
+
+    [" " XK-space]
+    ["!" XK-exclam]
+    ["\"" XK-quotedbl]
+    ["#" XK-numbersign]
+    ["$" XK-dollar]
+    ["%" XK-percent]
+    ["&" XK-ampersand]
+    ["'" XK-quoteright]
+    ["(" XK-parenleft]
+    [")" XK-parenright]
+    ["*" XK-asterisk]
+    ["+" XK-plus]
+    ["," XK-comma]
+    ["-" XK-minus]
+    ["." XK-period]
+    ["/" XK-slash]
+    [":" XK-colon]
+    [";" XK-semicolon]
+    ["<" XK-less]
+    ["=" XK-equal]
+    [">" XK-greater]
+    ["?" XK-question]
+    ["@" XK-at]
+    ["[" XK-bracketleft]
+    ["\\" XK-backslash]
+    ["]" XK-bracketright]
+    ["^" XK-asciicircum]
+    ["_" XK-underscore]
+    ["`" XK-quoteleft]
+    ["{" XK-braceleft]
+    ["|" XK-bar]
+    ["}" XK-braceright]
+    ["~" XK-asciitilde]
+    [else (XStringToKeysym s)]))
+
+
+#;(define (string->mask s)
+  (define d '(("S" . ShiftMask)
+              ("Shift" . ShiftMask)
+              ("C" . ControlMask)
+              ("Control" . ControlMask)
+              ("M" . Mod1Mask)
+              ("Meta" . Mod1Mask)
+              ("Alt" . Mod1Mask)
+              ("Super" . Mod4Mask)
+              ;("Hyper" . Mod5Mask);?
+              ))
+  (dict-ref d s))
+
+(define* (string->key-list str)
+  "Turns a string like \"M-C-t\" into '(\"t\" Mod1Mask ControlMask)"
+  (define-values (mods key) (split-at-right (string-split str "-") 1))
+  (cons (string->keysym (car key)) (map string->mask mods)))
+
+  
