@@ -4,14 +4,12 @@
          rwind/doc-string
          rwind/util
          x11-racket/x11
-         racket/match
          racket/list
          racket/contract
          )
 
 #| TODO
 - contracts
-- reorganize this file 
 |#
 
 (define* window? exact-nonnegative-integer?)
@@ -20,14 +18,17 @@
   (window? window? . -> . boolean?)
   (eq? w1 w2))
 
-(define* (move-window window x y)
-  (XMoveWindow (current-display) window x y))
+;; TEST: for testing
+(define* (create-test-window [x 100] [y 100])
+  "Creates a simple window under the root and maps it."
+  (define window (XCreateSimpleWindow (current-display) (current-root-window)
+                                      x y 100 100 2 0 0))
+  (when window (map-window window))
+  window)
 
-(define* (resize-window window w h)
-  (XResizeWindow (current-display) window w h))
-
-(define* (move-resize-window window x y w h)
-  (XMoveResizeWindow (current-display) window x y w h))
+;========================;
+;=== Window Accessors ===;
+;========================;
 
 #;(define* (window-name/class window)
   (define-values (status hint) (XGetClassHint (current-display) window))
@@ -93,6 +94,44 @@ the visible name, the icon name and the visible icon name in order."
   "Returns the list of classes of the window."
   (window-text-property window 'XA_WM_CLASS))
 
+
+(define* (window-protocols window)
+  ; Use XGetAtomNames instead of XGetAtomName ?
+  (map (λ(v)(if (symbol? v)
+                v
+                (XGetAtomName (current-display) v)))
+       (XGetWMProtocols (current-display) window)))
+
+(define* (window-attributes window)
+  (XGetWindowAttributes (current-display) window))
+
+(define* (window-dimensions window)
+  (define attr (window-attributes window))
+  (values (XWindowAttributes-width attr)
+          (XWindowAttributes-height attr)))
+
+(define* (window-position window)
+  (define attr (window-attributes window))
+  (values (XWindowAttributes-x attr)
+          (XWindowAttributes-y attr)))
+
+(define* (window-border-width window)
+  (define attr (window-attributes window))
+  (XWindowAttributes-border-width attr))
+
+;========================;
+;=== Window Modifiers ===;
+;========================;
+
+(define* (move-window window x y)
+  (XMoveWindow (current-display) window x y))
+
+(define* (resize-window window w h)
+  (XResizeWindow (current-display) window w h))
+
+(define* (move-resize-window window x y w h)
+  (XMoveResizeWindow (current-display) window x y w h))
+
 (define* (show-window window)
   (XMapWindow (current-display) window))
 
@@ -125,20 +164,13 @@ the visible name, the icon name and the visible icon name in order."
   (XReparentWindow (current-display) window new-parent
                    x y))
 
-;; TEST: for testing
-(define* (create-test-window [x 100] [y 100])
-  "Creates a simple window under the root and maps it."
-  (define window (XCreateSimpleWindow (current-display) (current-root-window)
-                                      x y 100 100 2 0 0))
-  (when window (map-window window))
-  window)
+(define* (send-event window event-mask event [propagate #t])
+  (XSendEvent (current-display) window propagate event-mask event))
 
-(define* (window-protocols window)
-  ; Use XGetAtomNames instead of XGetAtomName ?
-  (map (λ(v)(if (symbol? v)
-                v
-                (XGetAtomName (current-display) v)))
-       (XGetWMProtocols (current-display) window)))
+(define* (send-client-message window msg-type msg-value)
+  (error "Not implemented.")
+  ;(define event (make-XClientMessageEvent 
+  )
 
 (define* (destroy-window window)
   (XDestroyWindow (current-display) window))
@@ -146,48 +178,27 @@ the visible name, the icon name and the visible icon name in order."
 (define* (kill-client window)
   (XKillClient (current-display) window))
 
-;(define* (delete-window)
-;  (cond ([(window-supports-wm-protocol? window 'WM_DELETE_WINDOW)
-;          (send-client-message window 'WM_PROTOCOLS
-
-(define* (configure-window configure-request-event)
-  (match-define 
-    (XConfigureRequestEvent type serial send-event _display parent window
-                            x y width height border-width above stack-mode value-mask)
-    configure-request-event)
-  (XConfigureWindow (current-display) window value-mask 
-                    (make-XWindowChanges x y width height border-width above stack-mode)))
+(define* (delete-window window)
+  "Tries to gently close the window and client if possible, otherwise kills it."
+  (if (memq 'WM_DELETE_WINDOW (window-protocols window))
+      (send-client-message window 'WM_PROTOCOLS 'WM_DELETE_WINDOW)
+      (kill-client window)))
 
 (define* (set-window-border-width window width)
   (XSetWindowBorderWidth (current-display) window width))
-
-(define* (window-attributes window)
-  (XGetWindowAttributes (current-display) window))
-
-(define* (window-dimensions window)
-  (define attr (window-attributes window))
-  (values (XWindowAttributes-width attr)
-          (XWindowAttributes-height attr)))
-
-(define* (window-position window)
-  (define attr (window-attributes window))
-  (values (XWindowAttributes-x attr)
-          (XWindowAttributes-y attr)))
-
-(define* (window-border-width window)
-  (define attr (window-attributes window))
-  (XWindowAttributes-border-width attr))
-
-(define* (clear-window window)
-  (XClearWindow (current-display) window))
 
 (define* (set-window-background-color window color)
   "Color must be a color found with find-named-color or similar (i.e., it is a color-pixel)."
   (XSetWindowBackground (current-display) window color)
   ; refresh:
   (clear-window window))
-  
-;;; This should be in x-util.rkt?
+
+(define* (clear-window window)
+  (XClearWindow (current-display) window))
+
+;=====================;
+;=== Focus/Pointer ===;
+;=====================;
 
 (define* (input-focus)
   (car (XGetInputFocus (current-display))))
@@ -195,12 +206,13 @@ the visible name, the icon name and the visible icon name in order."
 (define* (set-input-focus window)
   ; window must be viewable otherwise a badmatch error occurs
   ; TODO: focus should not be given to windows that don't want it
-  (XSetInputFocus (current-display) window 'RevertToParent CurrentTime))
+  (when window
+    (XSetInputFocus (current-display) window 'RevertToParent CurrentTime)))
 
-(define* (set-input-focus/raise w)
-  (when w
-    (set-input-focus w)
-    (raise-window w)))
+(define* (set-input-focus/raise window)
+  (when window
+    (set-input-focus window)
+    (raise-window window)))
 
 (define* (query-pointer)
 "Returns values:
@@ -238,6 +250,10 @@ the visible name, the icon name and the visible icon name in order."
           ; not found, give the focus to the firt window
           (set-input-focus/raise (first wl))))))
 
+;===============================;
+;=== Window Lists Operations ===;
+;===============================;
+
 (define* (window-list [parent (current-root-window)])
   "Returns the list of windows."
   (filter values (XQueryTree (current-display) parent)))
@@ -254,32 +270,19 @@ the visible name, the icon name and the visible icon name in order."
   "Returns the list of windows for which one of the window's classes matches the regexp rx."
   (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w))) parent))
 
-(define* (window-map-state w)
-  (define attrs (and w (XGetWindowAttributes (current-display) w)))
+(define* (window-map-state window)
+  (define attrs (and window (XGetWindowAttributes (current-display) window)))
   (and attrs (XWindowAttributes-map-state attrs)))
 
 (define* (mapped-windows [parent (current-root-window)])
-  "Returns the list of windows that are mapped but not necessarily viewable (i.e., the window is mapped but one ancester is unmapped)."
+  "Returns the list of windows that are mapped but not necessarily viewable
+(i.e., the window is mapped but one ancester is unmapped)."
   (filter-windows (λ(w)(let ([s (window-map-state w)])
                          (and s (not (eq? 'IsUnmapped s)))))
                   parent))
 
 (define* (viewable-windows [parent (current-root-window)])
   (filter-windows (λ(w)(eq? 'IsViewable (window-map-state w))) parent))
-
-(define* (display-dimensions [screen 0])
-  "Returns the values of width and height of the given screen."
-  (values (XDisplayWidth (current-display) screen)
-          (XDisplayHeight (current-display) screen)))
-
-(define* (display-width [screen 0])
-  (XDisplayWidth (current-display) screen))
-
-(define* (display-height [screen 0])
-  (XDisplayHeight (current-display) screen))
-
-(define* (screen-count)
-  (XScreenCount (current-display)))
 
 
 ;; todo: send window to left/right/up/down, etc.

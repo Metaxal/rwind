@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require rwind/base
+         rwind/display
          rwind/doc-string
          rwind/util
          rwind/keymap

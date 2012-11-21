@@ -9,7 +9,6 @@
          x11-racket/x11
          x11-racket/fd
          racket/match
-         srfi/1
          )
 
 (define* (handle-event event)
@@ -63,7 +62,12 @@
      (call-keymaps-binding mouse-ev)]
     
     [(ConfigureRequest)
-     (configure-window event)]
+     (match-define 
+       (XConfigureRequestEvent type serial send-event _display parent window
+                               x y width height border-width above stack-mode value-mask)
+       event)
+     (XConfigureWindow (current-display) window value-mask 
+                       (make-XWindowChanges x y width height border-width above stack-mode))]
     
     #;[(Expose)]
     

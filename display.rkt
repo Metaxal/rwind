@@ -7,6 +7,21 @@
          racket/date
          )
 
+(define* (display-dimensions [screen 0])
+  "Returns the values of width and height of the given screen."
+  (values (XDisplayWidth (current-display) screen)
+          (XDisplayHeight (current-display) screen)))
+
+(define* (display-width [screen 0])
+  (XDisplayWidth (current-display) screen))
+
+(define* (display-height [screen 0])
+  (XDisplayHeight (current-display) screen))
+
+(define* (screen-count)
+  (XScreenCount (current-display)))
+
+
 (define* (init-debug)
   (when (rwind-debug)
     ;:::::::::::;

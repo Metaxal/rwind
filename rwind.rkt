@@ -103,7 +103,7 @@ to be able to use (require rwind/keymap) for example
         (init-colors)
         
         ;; Find which ModMask are the *-Lock modifiers
-        (find-lock-modifiers)
+        (find-modifiers)
         
         (intern-atoms)
         
