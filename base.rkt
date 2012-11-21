@@ -1,5 +1,8 @@
 #lang racket
 
+;;; Author: Laurent Orseau
+;;; License: LGPL
+
 (require rwind/doc-string)
 
 ;; like a box, but with a function (and it's easy to switch with a parameter)

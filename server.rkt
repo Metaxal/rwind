@@ -1,5 +1,8 @@
 #lang racket ; to load all useful procedures for evaling the client commands
 
+;;; Author: Laurent Orseau
+;;; License: LGPL
+
 #| TODO
 - security: 
   - verify that the user is the same as the owner of the root window

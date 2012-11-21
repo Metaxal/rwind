@@ -1,5 +1,8 @@
 #lang racket/base
 
+;;; Author: Laurent Orseau
+;;; License: LGPL
+
 (require rwind/base
          rwind/display
          rwind/doc-string
@@ -13,7 +16,6 @@
          )
 
 #| 
-
 - See sawfish/lisp/sawfish/wm/workspaces.jl
 - evilwm, make-new-client
 - Workspaces are organized into a list (no need for a vector since we don't expect more 
@@ -25,7 +27,7 @@ http://en.wikipedia.org/wiki/Root_window
 http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 |#
 
-#| *** Workspace ****
+#| *** Workspace **** (aka desktops)
 
 The children of the root window are the workspace's virtual roots (one per workspace).
 The virtual root contains all the "top-level" windows of the clients.

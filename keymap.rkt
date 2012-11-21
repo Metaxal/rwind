@@ -1,5 +1,8 @@
 #lang racket/base
 
+;;; Author: Laurent Orseau
+;;; License: LGPL
+
 (require ;"base.rkt" "util.rkt" "window-util.rkt"
          rwind/base 
          rwind/util

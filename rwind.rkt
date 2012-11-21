@@ -15,11 +15,8 @@
 - contracts? types?
 - time-stamps are probably not handled properly
 
-- global keymap: events are sent to the virtual root window (and callbacks receive this window)
-- window keymap: callbacks receive the child window. Useful for callbacks that are meaningless on root windows such as move/resize
-
-- workspaces (desktops) + viewports?
-- monitors
+- viewports?
+- monitors / heads
 
 - Planet 2 packaging
 |#
@@ -163,9 +160,10 @@ to be able to use (require rwind/keymap) for example
       (cmd-line-config-file (path->complete-path config-file))))
 
   (let arg-loop ([args (vector->list (current-command-line-arguments))])
-    (match args
-      [(list (or "--help" "-h"))
-       (displayln "Usage:
+    (unless (null? args)
+      (match args
+        [(list (or "--help" "-h"))
+         (displayln "Usage:
 rwind [arguments] ...
 racket -t rwind.rkt [arguments] ...
 
@@ -177,15 +175,15 @@ Arguments:
 --debug
     Prints RWind debugging information
 ")]
-      [(list (or "--config" "-c") config-file arg-rest ...)
-       (if (file-exists? config-file)
-           (cmd-line-config-file (path->complete-path config-file))
-           (error "Configuration file does not exist:" config-file))
-       (arg-loop arg-rest)]
-      [(list "--debug" arg-rest ...)
-       (rwind-debug #t)
-       (arg-loop arg-rest)]
-      [else
-       (printf "Warning: Unused arguments ~a\n" args)]))
+        [(list (or "--config" "-c") config-file arg-rest ...)
+         (if (file-exists? config-file)
+             (cmd-line-config-file (path->complete-path config-file))
+             (error "Configuration file does not exist:" config-file))
+         (arg-loop arg-rest)]
+        [(list "--debug" arg-rest ...)
+         (rwind-debug #t)
+         (arg-loop arg-rest)]
+        [else
+         (printf "Warning: Unused arguments ~a\n" args)])))
     (run)
     )
