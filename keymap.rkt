@@ -102,7 +102,9 @@
     Button4Mask
     Button5Mask))
 
-(define* modifier-XK-dict (make-hasheq))
+(define* modifier-XK-dict 
+  "Dictionary that holds the modifier mask associated with a given XK-key."
+  (make-hasheq))
 (define* num-lock-mask #f)
 (define* scroll-lock-mask #f)
 (define* caps-lock-mask 'LockMask)
@@ -119,6 +121,90 @@
 
 (define* (keysym-symbol->modifier sym)
   (dict-ref modifier-XK-dict sym #f))
+
+
+(define* (string->mask s)
+    (match s
+      [(or "S" "Shift")    'ShiftMask]
+      [(or "C" "Control")  'ControlMask]
+      [(or "M" "Meta")     (keysym-symbol->modifier 'XK-Meta-L)]
+      [(or "A" "Alt")      (keysym-symbol->modifier 'XK-Alt-L)]
+      [(or "Super")        (keysym-symbol->modifier 'XK-Super-L)]
+      [(or "H" "Hyper")    (keysym-symbol->modifier 'XK-Hyper-L)]
+      ["Mod1" 'Mod1Mask]
+      ["Mod2" 'Mod2Mask]
+      ["Mod3" 'Mod3Mask]
+      ["Mod4" 'Mod4Mask]
+      ["Mod5" 'Mod5Mask]
+      ["Button1" 'Button1Mask]
+      ["Button2" 'Button2Mask]
+      ["Button3" 'Button3Mask]
+      ["Button4" 'Button4Mask]
+      ["Button5" 'Button5Mask]
+      ["W" default-mask]
+      [else (error "Modifier not found:" s)]))
+
+(define* (string->keysym str)
+  "Returns the corresponding keysym if str is a keyboard key string.
+If it is a mouse key string, it returns a list of the corresponding number and type."
+  ;; direct translation of sawfish/src/keys.c
+  (match str
+    ["Press1" (list 1 'ButtonPress)]
+    ["Press2" (list 2 'ButtonPress)]
+    ["Press3" (list 3 'ButtonPress)]
+    ["Release1" (list 1 'ButtonRelease)]
+    ["Release2" (list 2 'ButtonRelease)]
+    ["Release3" (list 3 'ButtonRelease)]
+    ["Move1"  (list 1 'ButtonMove)]
+    ["Move2"  (list 2 'ButtonMove)]
+    ["Move3"  (list 3 'ButtonMove)]
+    
+    [(or "SPC" "Space") XK-space]
+    ["TAB" XK-Tab]
+    ["RET" XK-Return]
+    ["ESC" XK-Escape]
+    ["BS" XK-BackSpace]
+    ["DEL" XK-Delete]
+    
+    [" " XK-space]
+    ["!" XK-exclam]
+    ["\"" XK-quotedbl]
+    ["#" XK-numbersign]
+    ["$" XK-dollar]
+    ["%" XK-percent]
+    ["&" XK-ampersand]
+    ["'" XK-quoteright]
+    ["(" XK-parenleft]
+    [")" XK-parenright]
+    ["*" XK-asterisk]
+    ["+" XK-plus]
+    ["," XK-comma]
+    ["-" XK-minus]
+    ["." XK-period]
+    ["/" XK-slash]
+    [":" XK-colon]
+    [";" XK-semicolon]
+    ["<" XK-less]
+    ["=" XK-equal]
+    [">" XK-greater]
+    ["?" XK-question]
+    ["@" XK-at]
+    ["[" XK-bracketleft]
+    ["\\" XK-backslash]
+    ["]" XK-bracketright]
+    ["^" XK-asciicircum]
+    ["_" XK-underscore]
+    ["`" XK-quoteleft]
+    ["{" XK-braceleft]
+    ["|" XK-bar]
+    ["}" XK-braceright]
+    ["~" XK-asciitilde]
+    [else (XStringToKeysym str)]))
+
+(define* (string->key-list str)
+  "Turns a string like \"M-C-t\" into '(<key-sym for \"t\"> Mod1Mask ControlMask)"
+  (define-values (mods key) (split-at-right (string-split str "-") 1))
+  (cons (string->keysym (car key)) (map string->mask mods)))
 
 ;; Adapted from:
 ;; http://code.google.com/p/jnativehook/source/browse/branches/test_code/linux/XGrabKey.c?r=297
@@ -264,6 +350,18 @@ since there is no fixed value for them."
   (window-apply-keymap window global-keymap)
   (window-apply-keymap window window-keymap))
 
+;@@ add-binding 
+(define* (add-binding keymap str proc)
+  (define l (string->key-list str))
+  (define mods (rest l))
+  (match (first l)
+    [(list button-num 'ButtonMove)
+     (bind-motion keymap button-num mods proc)]
+    [(list button-num type)
+     (bind-button keymap button-num type mods proc)]
+    [keysym
+     (bind-keycode keymap (keysym->keycode keysym) mods proc)]))
+
 ;================;
 ;=== Keyboard ===;
 ;================;
@@ -276,33 +374,24 @@ since there is no fixed value for them."
   (keymap-event-value event))
 
 ;; http://tronche.com/gui/x/xlib/input/XGrabKey.html
-(define* (grab-key window key-code [modifiers '()])
+(define* (grab-key window keycode [modifiers '()])
   "Register KeyPress events
 The given combination is done for all combinations of the *-Lock modifiers."
   (for ([lock-mods all-lock-combinations])
-    (XGrabKey (current-display) key-code 
+    (XGrabKey (current-display) keycode 
               (append modifiers lock-mods)
               window
               #f 'GrabModeAsync 'GrabModeAsync)))
 
-;; KeyPress only is used, because it seems that XGrabKey cares only about them.
-(define* (bind-key keymap key-string modifiers proc [window (current-root-window)])
-  (define key-code (XKeysymToKeycode (current-display) (XStringToKeysym key-string)))
-  (define key (make-keymap-key key-code 'KeyPress modifiers))
-  (keymap-set! keymap key proc)
-  )
+(define* (bind-keycode keymap keycode modifiers proc)
+  (define key (make-keymap-key keycode 'KeyPress modifiers))
+  (keymap-set! keymap key proc))
 
-#;(define (call-key-binding keymap kb-ev)
-  (match-define (keyboard-event window key-code type modifiers)
-    kb-ev)
-  (let* ([key-sym (XKeycodeToKeysym (current-display) key-code 0)]
-         [key-string (XKeysymToString key-sym)]
-         [key (make-keymap-key key-code type modifiers)]
-         [proc (keymap-ref keymap key)])
-    (when proc
-      (printf "Key-binding ~a (~a) ~a found, calling thunk\n" key-code key-string modifiers)
-      (proc kb-ev))
-    (not (not proc)))) ; return boolean (and don't return the thunk itself)
+;; KeyPress only is used, because it seems that XGrabKey cares only about them.
+(define* (bind-key keymap key-string modifiers proc)
+  (define keycode (XKeysymToKeycode (current-display) (string->keysym key-string)))
+  (bind-keycode keymap keycode modifiers proc)
+  )
 
 ;=============;
 ;=== Mouse ===;
@@ -376,7 +465,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
                proc)
   (bind-button keymap button-num 'ButtonRelease modifiers
                (λ(ev)
-                 (ungrab-pointer) ; before proc-release, in case it fails
+                 (ungrab-pointer) ; before proc, in case it fails
                  (proc ev)))
   )
 
@@ -437,91 +526,3 @@ Useful for 'MotionNotify events (where the button is not specified)."
   (window-apply-keymap (true-root-window) global-keymap) 
   ; but not the window-keymap! (otherwise virtual roots will be considered as subwindows)
   )
-
-(define* (string->mask s)
-    (match s
-      [(or "S" "Shift") 'ShiftMask]
-      [(or "C" "Control") 'ControlMask]
-      [(or "M" "Meta") (keysym-symbol->modifier 'XK-Meta-L)]
-      [(or "A" "Alt") (keysym-symbol->modifier 'XK-Alt-L)]
-      [(or "Super") (keysym-symbol->modifier 'XK-Super-L)]
-      [(or "H" "Hyper") (keysym-symbol->modifier 'XK-Hyper-L)]
-      ["Mod1" 'Mod1Mask]
-      ["Mod2" 'Mod2Mask]
-      ["Mod3" 'Mod3Mask]
-      ["Mod4" 'Mod4Mask]
-      ["Mod5" 'Mod5Mask]
-      ["Button1" 'Button1Mask]
-      ["Button2" 'Button2Mask]
-      ["Button3" 'Button3Mask]
-      ["Button4" 'Button4Mask]
-      ["Button5" 'Button5Mask]
-      ["W" default-mask]
-      [else (error "Modifier not found:" s)]))
-
-(define* (string->keysym s)
-  ;; direct translation of sawfish/src/keys.c
-  (match s
-    ["SPC" XK-space]
-    ["Space" XK-space]
-    ["TAB" XK-Tab]
-    ["RET" XK-Return]
-    ["ESC" XK-Escape]
-    ["BS" XK-BackSpace]
-    ["DEL" XK-Delete]
-
-    [" " XK-space]
-    ["!" XK-exclam]
-    ["\"" XK-quotedbl]
-    ["#" XK-numbersign]
-    ["$" XK-dollar]
-    ["%" XK-percent]
-    ["&" XK-ampersand]
-    ["'" XK-quoteright]
-    ["(" XK-parenleft]
-    [")" XK-parenright]
-    ["*" XK-asterisk]
-    ["+" XK-plus]
-    ["," XK-comma]
-    ["-" XK-minus]
-    ["." XK-period]
-    ["/" XK-slash]
-    [":" XK-colon]
-    [";" XK-semicolon]
-    ["<" XK-less]
-    ["=" XK-equal]
-    [">" XK-greater]
-    ["?" XK-question]
-    ["@" XK-at]
-    ["[" XK-bracketleft]
-    ["\\" XK-backslash]
-    ["]" XK-bracketright]
-    ["^" XK-asciicircum]
-    ["_" XK-underscore]
-    ["`" XK-quoteleft]
-    ["{" XK-braceleft]
-    ["|" XK-bar]
-    ["}" XK-braceright]
-    ["~" XK-asciitilde]
-    [else (XStringToKeysym s)]))
-
-
-#;(define (string->mask s)
-  (define d '(("S" . ShiftMask)
-              ("Shift" . ShiftMask)
-              ("C" . ControlMask)
-              ("Control" . ControlMask)
-              ("M" . Mod1Mask)
-              ("Meta" . Mod1Mask)
-              ("Alt" . Mod1Mask)
-              ("Super" . Mod4Mask)
-              ;("Hyper" . Mod5Mask);?
-              ))
-  (dict-ref d s))
-
-(define* (string->key-list str)
-  "Turns a string like \"M-C-t\" into '(\"t\" Mod1Mask ControlMask)"
-  (define-values (mods key) (split-at-right (string-split str "-") 1))
-  (cons (string->keysym (car key)) (map string->mask mods)))
-
-  

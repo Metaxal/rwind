@@ -14,35 +14,35 @@
 ;;; Mod4Mask is the Super key (Windows key on PCs)
 
 ;; Open xterm
-(bind-key global-keymap "t" '(Mod1Mask ControlMask)
-          (L* (rwind-system "xterm")))
+(add-binding global-keymap "A-C-t"
+             (L* (rwind-system "xterm")))
 
 ;; Open xclock
-(bind-key global-keymap "c" '(Mod1Mask ControlMask)
+(add-binding global-keymap "M-C-c"
           (L* (rwind-system "xclock -digital -update 1")))
 
 ;; Open gmrun (requires it to be installed)
-(bind-key global-keymap "F2" '(Mod1Mask)
+(add-binding global-keymap "M-F2"
           (L* (rwind-system "gmrun")))
 
 ;; Opens the client of rwind for console interaction
-(bind-key global-keymap "F12" '(Mod1Mask)
+(add-binding global-keymap "M-F12"
           (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -e \"(require rwind/client)\"'")))
 
 ;; Open the config file for editing, with "open" on mac or "xdg-open" on Linux
-(bind-key global-keymap "F10" '(Mod1Mask)
+(add-binding global-keymap "M-F10"
           (L* (open-user-config-file)))
 
 ;; Switch to the first workspace
-(bind-key global-keymap "F1" '(Mod4Mask)
+(add-binding global-keymap "Super-F1"
           (L* (activate-workspace 0)))
 
 ;; Switch to the second workspace
-(bind-key global-keymap "F2" '(Mod4Mask)
+(add-binding global-keymap "Super-F2"
           (L* (activate-workspace 1)))
 
 ;; Left-click to focus and raise window
-(bind-button window-keymap 1 'ButtonPress '()
+(add-binding window-keymap "Press1"
              (λ(ev)
                (define w (keymap-event-window ev))
                (raise-window w)
@@ -50,10 +50,10 @@
                ))
 
 ;; Moving window with Ctrl-Button1
-(bind-motion window-keymap 1 '(ControlMask)
+(add-binding window-keymap "C-Move1"
              (motion-move-window))
 
 ;; Resizing window with Ctrl-Button3
-(bind-motion window-keymap 3 '(ControlMask)
+(add-binding window-keymap "C-Move3"
              (motion-resize-window))
 
