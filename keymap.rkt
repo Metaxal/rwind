@@ -362,6 +362,17 @@ since there is no fixed value for them."
     [keysym
      (bind-keycode keymap (keysym->keycode keysym) mods proc)]))
 
+(define* (add-bindings keymap . str/procs)
+  "(add-binding keymap str1 proc1 str2 proc2 ...)
+Like add-binding, but for several str procs pairs."
+  (let loop ([str/procs str/procs])
+    (unless (empty? str/procs)
+    (cond [(empty? (rest str/procs))
+           (error "add-bindings: Wrong number of arguments. Last arg:" (car str/procs))]
+          [else
+           (add-binding keymap (first str/procs) (second str/procs))
+           (loop (cddr str/procs))]))))
+
 ;================;
 ;=== Keyboard ===;
 ;================;
