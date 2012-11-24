@@ -31,13 +31,3 @@
 (define* rwind-website "http://github/...")
 
 (define* rwind-tcp-port 54321)
-
-#;(define mapped-windows '())
-#;(define (get-mapped-windows)
-  mapped-windows)
-#;(provide (rename-out [get-mapped-windows mapped-windows]))
-#;(doc mapped-windows "Returns the list of mapped windows.")
-#;(define* (add-mapped-window w)
-  (set! mapped-windows (cons w mapped-windows)))
-#;(define* (remove-mapped-window w)
-  (set! mapped-windows (remv w mapped-windows)))
