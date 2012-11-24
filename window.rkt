@@ -122,6 +122,16 @@ the visible name, the icon name and the visible icon name in order."
   (define attr (window-attributes window))
   (XWindowAttributes-border-width attr))
 
+
+(define* (window-map-state window)
+  "Returns 'IsUnmapped, 'IsUnviewable or 'IsViewable.
+ IsUnviewable is used if the window is mapped but some ancestor is unmapped."
+  (define attrs (and window (XGetWindowAttributes (current-display) window)))
+  (and attrs (XWindowAttributes-map-state attrs)))
+
+(define* (window-viewable? window)
+  (eq? 'IsViewable (window-map-state window)))
+
 ;========================;
 ;=== Window Modifiers ===;
 ;========================;
@@ -207,9 +217,9 @@ the visible name, the icon name and the visible icon name in order."
   (car (XGetInputFocus (current-display))))
 
 (define* (set-input-focus window)
-  ; window must be viewable otherwise a badmatch error occurs
+  "Gives the keyboard focus to the window if it is viewable."
   ; TODO: focus should not be given to windows that don't want it
-  (when window
+  (when (and window (window-viewable? window))
     (XSetInputFocus (current-display) window 'RevertToParent CurrentTime)))
 
 (define* (set-input-focus/raise window)
@@ -273,10 +283,6 @@ the visible name, the icon name and the visible icon name in order."
   "Returns the list of windows for which one of the window's classes matches the regexp rx."
   (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w))) parent))
 
-(define* (window-map-state window)
-  (define attrs (and window (XGetWindowAttributes (current-display) window)))
-  (and attrs (XWindowAttributes-map-state attrs)))
-
 (define* (mapped-windows [parent (current-root-window)])
   "Returns the list of windows that are mapped but not necessarily viewable
 (i.e., the window is mapped but one ancester is unmapped)."
@@ -295,12 +301,17 @@ the visible name, the icon name and the visible icon name in order."
 ;================;
 
 #| Ideas
+- The best and simplest way may be to consider one desktop per monitor.
+  (this however requires to resize the windows and positions according to each monitor?)
 - to test monitors on a single screen, I could set up "virtual" monitors, 
   i.e., split the screen in different monitors.
   This could even be a usefull feature (to develop further and expand?)
 - each monitor may display a different workspace (like xmonad)
 - These should be done as extensions to RWind, not in the core
 - use xinerama?
+- Resources:
+  http://awesome.naquadah.org/wiki/Using_Multiple_Screens
+  (fr) http://doc.ubuntu-fr.org/multi-ecran
 |#
 
 #;(define* (monitor-dimensions m)

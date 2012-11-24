@@ -21,7 +21,7 @@
  "M-F2" (L* (rwind-system "gmrun"))
  ;; Opens the client of rwind for console interaction
  "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -e \"(require rwind/client)\"'"))
- ;; Open the config file for editing, with "open" on mac or "xdg-open" on Linux
+ ;; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
  "M-F10" (L* (open-user-config-file))
  ;; Switch to the first workspace
  "Super-F1" (L* (activate-workspace 0))

@@ -2,7 +2,8 @@
 #lang racket/base
 
 ;;; Author: Laurent Orseau
-;;; License: LGPL, except for the client.rkt which is in GPL (because of readline)
+;;; License: LGPL
+;;; Note that client.rkt is in GPL, because it uses readline, but rwind does not depend on it.
 
 #| TODO: 
 - security of the server: make sure the user at the other end of the tcp connection 
@@ -13,10 +14,14 @@
   plus look at all the window utilities in Sawfish (lisp/sawfish/wm/windows.jl)
 - shutdown more gracefully?
 - contracts? types?
-- time-stamps are probably not handled properly
+- time-stamps are quite probably not handled properly
 
 - viewports?
 - monitors / heads
+
+- GUI. Started, but problem, conflict with Racket's gui?
+
+- grab the server here and there to speed up things
 
 - Planet 2 packaging
 |#

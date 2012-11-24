@@ -72,7 +72,10 @@
      (XConfigureWindow (current-display) window value-mask 
                        (make-XWindowChanges x y width height border-width above stack-mode))]
     
-    #;[(Expose)]
+    #;[(Expose)
+     (define window (XExposeEvent-window event))
+     ; give the input focus to the window that appears?
+     (set-input-focus window)]
     
     [(MapRequest)
      (define window (XMapRequestEvent-window event))
@@ -98,10 +101,8 @@
             (add-window-to-workspace window (current-workspace))
             (show/raise-window window)
             ])
-     
-     ;(dprintf "Trying to give it focus. It may be too early if this returns a bad match error.\n")
-     ; (set-input-focus window) ; no, we can't do that because the window may not be exposed yet
-     ]
+     ; give the window the input focus (if viewable)
+     (set-input-focus window)]
     
     [(MappingNotify)
      ; see the warning about override-redirect in Tronche's doc
