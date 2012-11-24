@@ -100,7 +100,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (member window (workspace-subwindows window)))
 
 (define* (valid-workspace-number? wkn)
-  (and (>= wkn 0) (< wkn (count-workspaces))))
+  (and (number? wkn) (>= wkn 0) (< wkn (count-workspaces))))
 
 (define* workspace-ref?
   (or/c workspace? number? string?))
@@ -131,7 +131,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (workspace->number wk)
   (workspace? . -> . number?)
   "Returns the workspace-number of the given workpsace."
-  (for/first ([w workspaces] [i (in-naturals)])
+  (for/or ([w workspaces] [i (in-naturals)])
     (and (eq? w wk) i)))
 
 (define* (current-workspace)
@@ -144,7 +144,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
         [(string? wk/i/n)
          (findf (λ(wk)(string=? wk/i/n (workspace-id wk)))
                 workspaces)]
-        [(valid-workspace-number? (number->workspace wk/i/n))]
+        [(valid-workspace-number? wk/i/n)
+         (number->workspace wk/i/n)]
         [else #f])
   )
 
@@ -220,7 +221,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (activate-workspace (workspace-subn current-workspace-number dec warp?)))
 
 (define*/contract (remove-window-from-workspace window wk)
-  (window? workspace? . -> . void?)
+  (window? workspace? . -> . any/c)
   #f)
 
 (define*/contract (add-window-to-workspace window wk)
@@ -263,9 +264,9 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (define existing-windows (window-list (true-root-window)))
   ;; Create a two initial workspaces
   ;; This sets the current-root-window, and applies the keymap to it
-  (make-workspace "First" #:background-color (find-named-color "DarkSlateGray"))
+  (make-workspace "First"  #:background-color (find-named-color "DarkSlateGray"))
   (make-workspace "Second" #:background-color (find-named-color "DarkSlateBlue"))
-  (make-workspace "Third" #:background-color (find-named-color "Sienna"))
+  (make-workspace "Third"  #:background-color (find-named-color "Sienna"))
 
   (activate-workspace 0)
 
