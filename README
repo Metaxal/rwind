@@ -6,20 +6,27 @@ An extensible window manager aiming to be similar to Sawfish
 (http://sawfish.wikia.com), but written in the Racket programming language 
 (http://www.racket-lang.org).
 
-Warnings: 
+
+Warnings:
+---------
+
 - This package is under current development and is in no way stable, and
-is intended for testing purposes only. 
+  is intended for testing purposes only. 
 - No backward compatibility will be ensured in th 0.x branch
-- Due to a security issue, the current version should not be used on multiple user computers. Use at your own risk!
-- Keep your X11-Racket (via git pull) up to date since RWind's development depends on it.
+- Due to a security issue, the current version should not be used on multiple 
+  user computers. Use at your own risk!
+- Keep your X11-Racket (via git pull) up to date since RWind's development 
+  depends on it.
+
 
 Current features:
 -----------------
   - very little
-  - a client command line
+  - a client command line (repl)
   - customization of key bindings and mouse bindings
   - workspaces
-  - no frames (yet)
+  - no frame (yet)
+
 
 Installation:
 -------------
@@ -54,7 +61,7 @@ The file simple.rkt defines a number of default key and mouse bindings.
  - Super-F1-3 switches between workspaces
  - Shift-Super-F1-3 moves the current window to another workspace
 
-5a) In a login shell, in rwind directory, type the following:
+5a) In a login shell, in RWind's directory, type the following:
 
   xinit .xinitrc-rwind -- :1 &
 
@@ -64,12 +71,11 @@ available.
 Press Alt-Escape to quit the session.
 
 5b) You can also test with Xephyr (from the xserver-xephyr package), that 
-creates a nested X session (thanks to Asumu), in the rwind directory:
+creates a nested X session (thanks to Asumu), in RWind's directory:
  
   Xephyr -ac -noreset -screen 800x600 :1 &
   DISPLAY=:1.0 ./run.sh &
-
-
+  
 
 Installation for use in lightdm/gdm:
 ------------------------------------
@@ -83,6 +89,7 @@ Do steps 1-4) of the installation above.
 2) Copy the provided file rwind.desktop to /usr/share/xsessions/rwind.desktop
 
 3) Close your session, choose RWind in the session menu and open your session.
+
 
 The client:
 -----------
