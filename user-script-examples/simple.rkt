@@ -36,8 +36,9 @@
 
 (add-bindings
  window-keymap
- ;; Left-click to focus and raise window
- "Press1" (λ(ev)
+ ;; Shift-Left-click to focus and raise window
+ ;; Using shift is a bad workaround for Left-click because the latter does not propagate the click
+ "S-Press1" (λ(ev)
             (define w (keymap-event-window ev))
             (raise-window w)
             (set-input-focus w)
