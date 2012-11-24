@@ -287,8 +287,12 @@ since there is no fixed value for them."
   "Returns an empty keymap."
   make-hash)
 
+(define root-keymap
+  #;"Keymap for the root window. Should not be modified by the user."
+  (make-keymap))
+
 (define* global-keymap
-  "General keymap for all windows."
+  "General keymap for all windows. It is applied to the virtual roots, but not to the root window."
   (make-keymap))
 
 (define* window-keymap 
@@ -297,14 +301,14 @@ since there is no fixed value for them."
 
 (define* (keymap-set! keymap key proc)
   (when (hash-ref keymap key #f)
-    (printf "Warning: keybinding already defined ~a. Replacing old one.\n" 
+    (dprintf "Warning: keybinding already defined ~a. Replacing old one.\n" 
             key))
   (hash-set! keymap key proc))
 
 (define* (keymap-ref keymap key)
   (define res (hash-ref keymap key #f))
   (unless res
-    (printf "Binding ~a not found\n" key))
+    (dprintf "Binding ~a not found\n" key))
   res)
 
 (define* (call-binding keymap km-ev)
@@ -315,13 +319,16 @@ since there is no fixed value for them."
   (let* ([key (make-keymap-key key-code/button type modifiers)]
          [proc (keymap-ref keymap key)])
     (when proc
-      (printf "Binding ~a (~a) found, calling thunk\n" key-code/button modifiers)
+      (dprintf "Binding ~a (~a) found, calling thunk\n" key-code/button modifiers)
       (proc km-ev))
     (not (not proc))))
 
 (define* (call-keymaps-binding km-ev)
+  ; TODO: TO REVISE!
+  ; set window to input focus? or leave at pointer root?
   (define window (keymap-event-window km-ev))
-  (or (and window (call-binding window-keymap km-ev))
+  (or (call-binding root-keymap km-ev)
+      (and window (call-binding window-keymap km-ev))
       (begin
         ; if it is not called on a window, then the window value is meaningless
         (set-keymap-event-window! km-ev #f)
@@ -329,7 +336,7 @@ since there is no fixed value for them."
 
 (define (window-apply-keymap window keymap)
   ; TODO: First remove all grabbings?
-  (printf "window-apply-keymap ~a\n" window)
+  (dprintf "window-apply-keymap ~a\n" window)
   (for ([(k v) keymap])
     (define value (first k)) ; button-num or key-code
     (define type (second k))
@@ -346,7 +353,7 @@ since there is no fixed value for them."
        (grab-button window value modifiers pointer-grab-events)]
       [else (error "Event type not found in window-apply-keymap:" type)])))
 
-(define* (window-apply-keymaps window)
+(define* (virtual-root-apply-keymaps window)
   (window-apply-keymap window global-keymap)
   (window-apply-keymap window window-keymap))
 
@@ -470,11 +477,13 @@ Useful for 'MotionNotify events (where the button is not specified)."
                  (proc ev)
                  ; Warning: It may happen that if some call fails, the grab is not released!
                  (grab-pointer (current-root-window);(keymap-event-window ev)
-                               (list* motion-mask pointer-grab-events))
+                               (cons motion-mask pointer-grab-events))
                  ))
-  (bind-button keymap button-num 'ButtonMove modifiers
+  ; Use the global keymap to catch events event when the pointer is not in the window itself
+  ; Warning: This implies that the keymap-event-window is #f, and may be the cause of unintuitive behaviors?
+  (bind-button global-keymap button-num 'ButtonMove modifiers
                proc)
-  (bind-button keymap button-num 'ButtonRelease modifiers
+  (bind-button global-keymap button-num 'ButtonRelease modifiers
                (λ(ev)
                  (ungrab-pointer) ; before proc, in case it fails
                  (proc ev)))
@@ -483,7 +492,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
 ;;; To put in a separate file?
 
 (define* (motion-move-window)
-  "Returns a procedure to use with bind-motion."
+  "Returns a procedure to use with bind-motion or add-binding(s)."
   (let ([x-ini #f] [y-ini #f] [x #f] [y #f] [window #f])
     (λ(ev)
       (case (keymap-event-type ev)
@@ -491,7 +500,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
          (set! window (keymap-event-window ev))
          (set!-values (x-ini y-ini) (mouse-event-position ev))
          (set!-values (x y) (window-position window))
-         #;(printf "@ Start dragging window ~a\n" (window-name window))]
+         #;(printf "@ Start dragging window ~a (~a)\n" window (window-name window))]
         [(ButtonMove)
          (define-values (x-ev y-ev) (mouse-event-position ev))
          (define x-diff (- x-ev x-ini))
@@ -519,21 +528,23 @@ Useful for 'MotionNotify events (where the button is not specified)."
 (define* (init-keymap)
   ;; TODO: Make a "root" keymap, that remains on top of the global one, 
   ;; and that cannot be modified by the user?
-  (bind-key global-keymap "Escape" '(Mod1Mask) 
+  (bind-key root-keymap "Escape" '(Mod1Mask) 
             (thunk*
              (dprintf "Now exiting.\n")
              (exit-rwind? #t)))
-  #;(bind-key global-keymap "Escape" '(ControlMask Mod1Mask) 
+  #;(bind-key root-keymap "Escape" '(ControlMask Mod1Mask) 
               (thunk*
                (printf "Restarting...\n")
                (set! exit? #t)
                (set! restart? #t)))
   
+  (dprintf "root keymap:\n")
+  (pretty-print root-keymap)
   (dprintf "global keymap:\n")
   (pretty-print global-keymap)
   (dprintf "window keymap:\n")
-  (pretty-print window-keymap) ; not really used currently?
+  (pretty-print window-keymap)
   
-  (window-apply-keymap (true-root-window) global-keymap) 
+  (window-apply-keymap (true-root-window) root-keymap) 
   ; but not the window-keymap! (otherwise virtual roots will be considered as subwindows)
   )
