@@ -96,7 +96,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define*/contract (workspace-subwindow? wk window)
   (workspace? window? . -> . any/c)
-  "Returns #f if window is a mapped window of the specified workspace, or non-#f otherwise."
+  "Returns non-#f if window is a mapped window of the specified workspace, or #f otherwise."
   (member window (workspace-subwindows window)))
 
 (define* (valid-workspace-number? wkn)
@@ -104,6 +104,12 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define* workspace-ref?
   (or/c workspace? number? string?))
+
+(define*/contract (some-root-window? window)
+  (window? . -> . any/c)
+  "Returns #f if window is not a (virtual) root window, non-#f otherwise."
+  (or (find-root-window-workspace window)
+      (window=? window (true-root-window))))
 
 ;=================;
 ;=== Selectors ===;
@@ -227,10 +233,13 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (add-window-to-workspace window wk)
   (window? workspace? . -> . any)
   (dprintf "Adding window ~a to workspace ~a\n" window wk)
-  (define old-wk (find-window-workspace window))
-  (when old-wk
-    (remove-window-from-workspace window wk))
-  (reparent-window window (workspace-window wk)))
+  (if (some-root-window? window)
+      (printf "Warning: not a valid window (~a) to add to workspace\n" window)
+      (let ([old-wk (find-window-workspace window)])
+        (when old-wk
+          (remove-window-from-workspace window wk))
+        (reparent-window window (workspace-window wk)))))
+
 
 (define*/contract (move-window-to-workspace window wk/i/n)
   (window? workspace-ref? . -> . any)
