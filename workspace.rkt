@@ -15,6 +15,15 @@
          racket/contract
          )
 
+#| *** Workspace **** (aka desktops)
+
+The children of the root window are the workspace's virtual roots (one per workspace).
+The virtual root contains all the "top-level" windows of the clients.
+To switch between workspaces, it suffices to unmap the current workspace and map the new one
+(This is done by activate-workspace).
+
+|#
+
 #| 
 - See sawfish/lisp/sawfish/wm/workspaces.jl
 - evilwm, make-new-client
@@ -27,40 +36,33 @@ http://en.wikipedia.org/wiki/Root_window
 http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 |#
 
-#| *** Workspace **** (aka desktops)
-
-The children of the root window are the workspace's virtual roots (one per workspace).
-The virtual root contains all the "top-level" windows of the clients.
-To switch between workspaces, it suffices to unmap the current workspace and map the new one
-(This is done by activate-workspace).
-
+#| TODO
+- do not provide unnecessary procedures
 |#
 
+;=================;
+;=== Variables ===;
+;=================;
 
 (define* workspaces '())
 
-;(define current-workspace (make-fun-box #f))
+(define* workspace-warp? 
+  "Fun-box that holds whether moving after the last (first) workpsace returns to the first (last)."
+  (make-fun-box #f))
+
+(define*/contract current-workspace-number 
+  (or/c #f number?)
+  "Current workspace number"
+  #f)
+
+;====================;
+;=== Constructors ===;
+;====================;
 
 (struct workspace (id window)
   #:transparent
   #:mutable)
 (provide (struct-out workspace))
-
-(define* (find-root-window-workspace window)
-  (window? . -> . any/c)
-  "Returns the workspace for which window is the (virtual) root, or #f if none is found."
-  (findf (λ(wk)(window=? window (workspace-window wk))) 
-         workspaces))
-
-(define*/contract (workspace-subwindows wk)
-  (workspace? . -> . list?)
-  "Returns the list of windows that are mapped in the specified workspace."
-  (window-list (workspace-window wk)))
-
-(define* (workspace-subwindow? wk window)
-  (workspace? window? . -> . any/c)
-  "Returns #f if window is a mapped window of the specified workspace, or non-#f otherwise."
-  (member window (workspace-subwindows window)))
 
 (define*/contract (make-workspace [id #f]
                                   #:background-color [bk-color black-pixel])
@@ -83,24 +85,77 @@ To switch between workspaces, it suffices to unmap the current workspace and map
                    '(EventMask BackPixel) attrs))
   ;; Create the window, but don't map it yet.
   ;; Make sure we will see the keymap events
-  (window-apply-keymaps window)
+  (virtual-root-apply-keymaps window)
   (define wk (workspace id window))
   (insert-workspace wk)
   wk)
 
-(define* (count-workspaces)
-  (length workspaces))
+;==================;
+;=== Predicates ===;
+;==================;
+
+(define*/contract (workspace-subwindow? wk window)
+  (workspace? window? . -> . any/c)
+  "Returns #f if window is a mapped window of the specified workspace, or non-#f otherwise."
+  (member window (workspace-subwindows window)))
 
 (define* (valid-workspace-number? wkn)
   (and (>= wkn 0) (< wkn (count-workspaces))))
 
-(define*/contract current-workspace-number 
-  (or/c #f number?)
-  "Current workspace number"
-  #f)
+(define* workspace-ref?
+  (or/c workspace? number? string?))
+
+;=================;
+;=== Selectors ===;
+;=================;
+
+(define*/contract (find-root-window-workspace window)
+  (window? . -> . any/c)
+  "Returns the workspace for which window is the (virtual) root, or #f if none is found."
+  (findf (λ(wk)(window=? window (workspace-window wk))) 
+         workspaces))
+
+(define*/contract (workspace-subwindows wk)
+  (workspace? . -> . list?)
+  "Returns the list of windows that are mapped in the specified workspace."
+  (window-list (workspace-window wk)))
+
+(define* (count-workspaces)
+  (length workspaces))
+
+(define*/contract (number->workspace wkn)
+  (valid-workspace-number? . -> . workspace?)
+  "Returns the workspace of the associated number."
+  (list-ref workspaces wkn))
+
+(define*/contract (workspace->number wk)
+  (workspace? . -> . number?)
+  "Returns the workspace-number of the given workpsace."
+  (for/first ([w workspaces] [i (in-naturals)])
+    (and (eq? w wk) i)))
 
 (define* (current-workspace)
   (list-ref workspaces current-workspace-number))
+
+(define*/contract (find-workspace wk/i/n)
+  (workspace-ref? . -> . (or/c #f workspace?))
+  "Returns the workspace of the given workspace-id/workspace-number/workspace, or #f if none is found."
+  (cond [(workspace? wk/i/n) wk/i/n]
+        [(string? wk/i/n)
+         (findf (λ(wk)(string=? wk/i/n (workspace-id wk)))
+                workspaces)]
+        [(valid-workspace-number? (number->workspace wk/i/n))]
+        [else #f])
+  )
+
+(define*/contract (find-window-workspace window)
+  (window? . -> . (or/c #f workspace?))
+  (findf (λ(wk)(member window (workspace-subwindows wk)))
+         workspaces))
+
+;==================;
+;=== Operations ===;
+;==================;
 
 (define*/contract (insert-workspace wk [n (length workspaces)])
   (workspace? . -> . void?)
@@ -117,59 +172,54 @@ To switch between workspaces, it suffices to unmap the current workspace and map
   (define-values (left right) (split-at workspaces wkn))
   (set! workspaces (append left (rest right))))
 
-(define*/contract (find-workspace id)
-  (string? . -> . (or/c #f workspace?))
-  "Returns the workspace of the given workspace id, or false."
-  (findf (λ(wk)(string=? id (workspace-id wk)))
-         workspaces))
-
-(define*/contract (activate-workspace wkn)
+(define*/contract (activate-workspace wk/i/n)
   (valid-workspace-number? . -> . any)
   "Switches to workspace number wkn."
-  (dprintf "Activating workspace ~a\n" wkn)
-  (define wk-new (list-ref workspaces wkn))
+  (dprintf "Activating workspace ~a\n" wk/i/n)
+  (define wk-new (find-workspace wk/i/n))
   ; Hide the old workspace:
   (when (current-root-window)
     ; otherwise no workspace is active, we are at the root window
     (unmap-window (current-root-window)))
   ; change the current root:
   (current-root-window (workspace-window wk-new))
-  (set! current-workspace-number wkn)
+  (set! current-workspace-number (workspace->number wk-new))
   ; show the new workspace with all its windows:
   (map-window (current-root-window))
   ; The following may fail because the window may not yet be visible:
   ;(set-input-focus (current-root-window))
   (set-input-focus (true-root-window))
   )
+
+(define/contract (workspace-addn n0 inc warp?)
+  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
+  (define nmax (count-workspaces))
+  (define wkn (+ n0 inc))
+  (if warp? 
+      (modulo wkn nmax)
+      (min wkn (sub1 nmax))))
+
+(define/contract (workspace-subn n0 dec warp?)
+  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
+  (define nmax (count-workspaces))
+  (define wkn (- n0 dec))
+  (if warp? 
+      (modulo wkn nmax)
+      (max wkn 0)))
   
-(define*/contract (next-workspace! [inc 1] [warp? #f])
+(define*/contract (next-workspace! [inc 1] [warp? (workspace-warp?)])
   (() (number? any/c) . ->* . void?)
   "Switches to the next workspace by offset 'inc' in linear order and returns the new workspace number.
   If 'wrap?' is true, then the list is circular, otherwise it is bounded."
-  (define nmax (count-workspaces))
-  (define wkn (+ current-workspace-number inc))
-  (activate-workspace 
-   (if warp? 
-       (modulo wkn nmax)
-       (min wkn (sub1 nmax)))))
+  (activate-workspace (workspace-addn current-workspace-number inc warp?)))
 
-(define*/contract (previous-workspace! [dec 1] [warp? #f])
+(define*/contract (previous-workspace! [dec 1] [warp? (workspace-warp?)])
   (() (number? any/c) . ->* . void?)
   "Switches to the previous workspace by offest 'dec' in linear order and returns the new workspace number.
   If 'wrap?' is true, then the list is circular, otherwise it is bounded."
-  (define nmax (count-workspaces))
-  (define wkn (- current-workspace-number dec))
-  (activate-workspace 
-   (if warp? 
-       (modulo wkn nmax)
-       (max wkn 0))))
+  (activate-workspace (workspace-subn current-workspace-number dec warp?)))
 
-(define*/contract (find-window-workspace window)
-  (window? . -> . (or/c #f workspace?))
-  (findf (λ(wk)(member window (workspace-subwindows wk)))
-         workspaces))
-
-(define*/contract (remove-window-from-workspace w wk)
+(define*/contract (remove-window-from-workspace window wk)
   (window? workspace? . -> . void?)
   #f)
 
@@ -181,6 +231,17 @@ To switch between workspaces, it suffices to unmap the current workspace and map
     (remove-window-from-workspace window wk))
   (reparent-window window (workspace-window wk)))
 
+(define*/contract (move-window-to-workspace window wk/i/n)
+  (window? workspace-ref? . -> . any)
+  (add-window-to-workspace window (find-workspace wk/i/n)))
+
+(define*/contract (move-window-to-workspace/activate window wk/i/n)
+  (window? workspace-ref? . -> . any)
+  (define wk (find-workspace wk/i/n))
+  (add-window-to-workspace window wk)
+  (activate-workspace (workspace->number wk)))
+
+
 #;(module+ test
   (require rackunit)
   (init-workspaces)
@@ -190,6 +251,10 @@ To switch between workspaces, it suffices to unmap the current workspace and map
   (check = (next-workspace!) 1)
   (check = (next-workspace! 1 #t) 0)
   )
+
+;============;
+;=== Init ===;
+;============;
 
 (define* (init-workspaces)
   ; Wait for sync to be sure that all pending windows (not currently managed by us) are mapped:
