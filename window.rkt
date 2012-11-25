@@ -185,15 +185,21 @@ the visible name, the icon name and the visible icon name in order."
   ;(define event (make-XClientMessageEvent 
   )
 
-(define* (destroy-window window)
-  (XDestroyWindow (current-display) window))
+(define* (allow-events event-mode)
+  (XAllowEvents (current-display) event-mode CurrentTime))
 
-(define* (kill-client window)
+(define*/contract (destroy-window window)
+  (window? . -> . any)
+  (when window
+    (XDestroyWindow (current-display) window)))
+
+(define*/contract (kill-client window)
+  (window? . -> . any)
   (XKillClient (current-display) window))
 
 (define* (delete-window window)
   "Tries to gently close the window and client if possible, otherwise kills it."
-  (if (memq 'WM_DELETE_WINDOW (window-protocols window))
+  (if (member "WM_DELETE_WINDOW" (window-protocols window))
       (send-client-message window 'WM_PROTOCOLS 'WM_DELETE_WINDOW)
       (kill-client window)))
 
@@ -212,6 +218,15 @@ the visible name, the icon name and the visible icon name in order."
 ;=====================;
 ;=== Focus/Pointer ===;
 ;=====================;
+
+#| Resources
+click-to-focus:
+- http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/x-understanding.html
+- http://stackoverflow.com/questions/3528304/xlib-getting-events-of-a-child-window
+- potential solution (use XAllowEvents + ModeSync ?): http://code.google.com/p/xmonad/issues/detail?id=225
+- http://www.hioreanu.net/cs/ahwm/sloppy-focus.html
+- metacity/doc/how-to-get-focus-right.txt
+|#
 
 (define* (input-focus)
   (car (XGetInputFocus (current-display))))
@@ -285,7 +300,7 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (mapped-windows [parent (current-root-window)])
   "Returns the list of windows that are mapped but not necessarily viewable
-(i.e., the window is mapped but one ancester is unmapped)."
+(i.e., the window is mapped but one ancestor is unmapped)."
   (filter-windows (λ(w)(let ([s (window-map-state w)])
                          (and s (not (eq? 'IsUnmapped s)))))
                   parent))

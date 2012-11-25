@@ -117,6 +117,10 @@
      (define override? (XCreateWindowEvent-override-redirect event))
     ]
     
+    #;[(EnterNotify LeaveNotify) #f]
+    
+    #;[(FocusIn FocusOut) #f]
+    
     [(ClientMessage)
      (dprintf "Client message: window: ~a message-type: ~a format: ~a\n" 
               (XClientMessageEvent-window event)

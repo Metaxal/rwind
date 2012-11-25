@@ -45,6 +45,7 @@
 - wmctrl: a small software with which RWind should be made compliant
   http://en.wikipedia.org/wiki/Wmctrl
 - X Window Managers: http://en.wikipedia.org/wiki/X_window_manager
+- X11: http://www.freebsd.org/cgi/man.cgi?query=X&sektion=7&manpath=XFree86+4.7.0
 |#
 
 #|

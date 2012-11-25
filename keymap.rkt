@@ -299,11 +299,11 @@ since there is no fixed value for them."
   "Keymap for actions that may differ from window to window."
   (make-keymap))
 
-(define* (keymap-set! keymap key proc)
+(define* (keymap-set! keymap key proc #:grab-mode [grab-mode 'GrabModeAsync])
   (when (hash-ref keymap key #f)
     (dprintf "Warning: keybinding already defined ~a. Replacing old one.\n" 
             key))
-  (hash-set! keymap key proc))
+  (hash-set! keymap key (list grab-mode proc)))
 
 (define* (keymap-ref keymap key)
   (define res (hash-ref keymap key #f))
@@ -317,11 +317,11 @@ since there is no fixed value for them."
   (match-define (keymap-event window key-code/button type modifiers)
     km-ev)
   (let* ([key (make-keymap-key key-code/button type modifiers)]
-         [proc (keymap-ref keymap key)])
-    (when proc
-      (dprintf "Binding ~a (~a) found, calling thunk\n" key-code/button modifiers)
-      (proc km-ev))
-    (not (not proc))))
+         [mode/proc (keymap-ref keymap key)])
+    (when mode/proc
+      (dprintf "Binding ~a found, calling thunk\n" (cons key-code/button modifiers))
+      ((second mode/proc) km-ev))
+    (not (not mode/proc))))
 
 (define* (call-keymaps-binding km-ev)
   ; TODO: TO REVISE!
@@ -341,11 +341,13 @@ since there is no fixed value for them."
     (define value (first k)) ; button-num or key-code
     (define type (second k))
     (define modifiers (cddr k))
+    (define grab-mode (first v))
     (case type
       [(KeyPress KeyRelease)
        (grab-key window value modifiers)]
       [(ButtonPress ButtonRelease)
-       (grab-button window value modifiers '(ButtonPressMask ButtonReleaseMask))]
+       (grab-button window value modifiers '(ButtonPressMask ButtonReleaseMask)
+                    #:grab-mode grab-mode)]
       [(ButtonMove)
        ; It's not clear what InputMasks are required, 
        ; and I couldn't find the right smallest combination
@@ -358,14 +360,14 @@ since there is no fixed value for them."
   (window-apply-keymap window window-keymap))
 
 ;@@ add-binding 
-(define* (add-binding keymap str proc)
+(define* (add-binding keymap str proc #:grab-mode [grab-mode 'GrabModeAsync])
   (define l (string->key-list str))
   (define mods (rest l))
   (match (first l)
     [(list button-num 'ButtonMove)
      (bind-motion keymap button-num mods proc)]
     [(list button-num type)
-     (bind-button keymap button-num type mods proc)]
+     (bind-button keymap button-num type mods proc #:grab-mode grab-mode)]
     [keysym
      (bind-keycode keymap (keysym->keycode keysym) mods proc)]))
 
@@ -437,7 +439,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
 
 ;; http://tronche.com/gui/x/xlib/input/XGrabPointer.html
 (define* (grab-pointer [window (current-root-window)] [mask pointer-grab-events] [cursor None])
-  (XGrabPointer (current-display) window #t mask
+  (XGrabPointer (current-display) window #f mask
                 'GrabModeAsync 'GrabModeAsync None cursor CurrentTime))
 
 ;; Also ungrabs buttons
@@ -447,12 +449,12 @@ Useful for 'MotionNotify events (where the button is not specified)."
   
 ;; can also use AnyButton for button-num.
 ;; http://tronche.com/gui/x/xlib/input/XGrabButton.html
-(define* (grab-button window button-num modifiers mask)
+(define* (grab-button window button-num modifiers mask #:grab-mode [grab-mode 'GrabModeAsync])
   (for ([lock-mods all-lock-combinations])
     (XGrabButton (current-display) button-num 
                  (append modifiers lock-mods)
                  window #f mask
-                 'GrabModeAsync 'GrabModeAsync None None)))
+                 grab-mode 'GrabModeAsync None None)))
 
 ;; http://tronche.com/gui/x/xlib/input/XUngrabButton.html
 (define* (ungrab-button window button-num modifiers)
@@ -463,10 +465,9 @@ Useful for 'MotionNotify events (where the button is not specified)."
   (string->symbol (format "Button~aMask" button-num)))
 
 (define* (bind-button keymap button-num type modifiers proc
-                     [window (current-root-window)])
+                     #:grab-mode [grab-mode 'GrabModeAsync])
   (let ([key (make-keymap-key button-num type modifiers)])
-    (keymap-set! keymap key proc)
-    ))
+    (keymap-set! keymap key proc #:grab-mode grab-mode)))
   
 (define* (bind-motion keymap button-num modifiers proc)
   "Like bind-button, but for press, move and release events.

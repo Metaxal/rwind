@@ -36,15 +36,22 @@
 
 (add-bindings
  window-keymap
- ;; Shift-Left-click to focus and raise window
- ;; Using shift is a bad workaround for Left-click because the latter does not propagate the click
- "S-Press1" (λ(ev)
-            (define w (keymap-event-window ev))
-            (raise-window w)
-            (set-input-focus w)
-            )
  ;; Moving window with Ctrl-Button1
  "C-Move1" (motion-move-window)
  ;; Resizing window with Ctrl-Button3
  "C-Move3" (motion-resize-window))
 
+(add-binding
+ window-keymap
+ ;; Left-click to focus and raise window.
+ ;; We need to use the grab sync mode in order to be able to replay the event to the window
+ ;; after we have processsed it, using allow-events.
+ ;; (see http://tronche.com/gui/x/xlib/input/XGrabPointer.html)
+ ;; (see metacity/src/core/display.c around line 1728)
+ "Press1" (λ(ev)
+            (define w (keymap-event-window ev))
+            (raise-window w)
+            (set-input-focus w)
+            (allow-events 'ReplayPointer)
+            )
+ #:grab-mode 'GrabModeSync)
