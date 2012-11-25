@@ -124,7 +124,7 @@
     [(ClientMessage)
      (dprintf "Client message: window: ~a message-type: ~a format: ~a\n" 
               (XClientMessageEvent-window event)
-              (XClientMessageEvent-message-type event)
+              (atom->atom-name (XClientMessageEvent-message-type event))
               (XClientMessageEvent-format event))
      ]
     
@@ -153,7 +153,7 @@
                     (λ()(XLockDisplay (current-display)))
                     (λ()(handle-event event))
                     (λ()(XUnlockDisplay (current-display))))
-                   (unless (exit-rwind?) 
+                   (unless (exit-rwind?)
                      (server-loop))))))
   )
 

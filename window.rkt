@@ -72,6 +72,10 @@
   WM_DELETE_WINDOW
   )
 
+(define* (atom->atom-name atom)
+  (if (symbol? atom)
+      atom
+      (XGetAtomName (current-display) atom)))
 
 (define* (window-name window)
   ;(printf "net wm name: ~a\n" _NET_WM_NAME)
@@ -100,9 +104,7 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (window-protocols window)
   ; Use XGetAtomNames instead of XGetAtomName ?
-  (map (λ(v)(if (symbol? v)
-                v
-                (XGetAtomName (current-display) v)))
+  (map atom->atom-name
        (XGetWMProtocols (current-display) window)))
 
 (define* (window-attributes window)
@@ -243,7 +245,7 @@ click-to-focus:
     (raise-window window)))
 
 (define* (query-pointer)
-"Returns values:
+"Returns a list of the following values:
   win: the targeted window
   x: the x coordinate in the root window
   y: the y coordinate in the root window
