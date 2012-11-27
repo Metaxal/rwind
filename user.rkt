@@ -6,6 +6,7 @@
 (require rwind/base
          rwind/util
          rwind/doc-string
+         ;rwind/gui/base ; for error-message-box
          racket/file
          )
 
@@ -37,11 +38,10 @@
   ;; (a language might even be better, e.g., to redefine define (or just give a new 'define/doc'?)
   ;; It would be useless to thread it, as one would still need to call XLockDisplay
   (let ([user-f (rwind-user-config-file)])
-    (with-handlers ([exn:fail? (λ(e)(printf "Error while loading user config file ~a:\n~a\n"
+    (with-handlers ([exn:fail? #;error-message-box
+                               (λ(e)(printf "Error while loading user config file ~a:\n~a\n"
                                             user-f
                                             (exn-message e)))])
       (when (file-exists? user-f)
         (dynamic-require user-f #f))))
   )
-
-

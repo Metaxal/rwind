@@ -23,22 +23,24 @@
            (error "Wrong format in menu ~a\n" (cons k v))])))
 
 (define* (make-popup-menu dic)
-  (define fr (new frame% [label ""]
+  #;(define fr (new frame% [label ""]
                  [style '(no-resize-border no-caption no-system-menu hide-menu-bar float)]
                  [x 0] [y 0] [width 0 #;40] [height 0 #;20]))
   (define pm (new popup-menu%
                   [title "Some popup menu"]
-                  [popdown-callback (λ _ (printf "menu popped down\n")
-                                      (send fr show #f))]))
+                  [popdown-callback (L* (printf "menu popped down\n")
+                                        #;(send fr show #f))]))
+  #;(define bt (new button% [label "Menu"] [parent fr]
+                  [callback (λ _ (send fr popup-menu pm 0 0))]))
   (make-menu pm dic)
-  (list fr pm))
+  pm #;(list fr pm))
 
 (define* (show-popup-menu menu x y)
-  (define fr (car menu))
-  (define pm (cadr menu))
+  (define fr main-gui-frame #;(car menu))
+  (define pm menu #;(cadr menu))
   (dprint-wait "Showing frame")
-  (send fr move x y) ; so that it will be masked by the popup-menu
-  (send fr show #t)
+  #;(send fr move x y) ; so that it will be masked by the popup-menu
+  #;(send fr show #t)
   (dprint-ok)
   (dprint-wait "Showing menu")
   (send fr popup-menu pm 0 0)
