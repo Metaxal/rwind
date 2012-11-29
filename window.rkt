@@ -70,6 +70,7 @@
   _NET_WM_VISIBLE_ICON_NAME
   WM_TAKE_FOCUS
   WM_DELETE_WINDOW
+  WM_PROTOCOLS
   )
 
 (define* (atom->atom-name atom)
@@ -179,12 +180,18 @@ the visible name, the icon name and the visible icon name in order."
   (XReparentWindow (current-display) window new-parent
                    x y))
 
-(define* (send-event window event-mask event [propagate #t])
+(define* (send-event window event-mask event [propagate #f])
   (XSendEvent (current-display) window propagate event-mask event))
 
-(define* (send-client-message window msg-type msg-value)
-  (error "Not implemented.")
-  ;(define event (make-XClientMessageEvent 
+(define* (send-client-message window msg-type msg-values [format 32])
+  "Sends an XClientMessage event to window. 
+  msg-type must be an atom.
+  format must be either 8, 16 or 32, and is the size in bits of each sent value.
+  msg-values must be a list of at most 20 8bits or 10 16bits or 5 32bits values.
+  If msg-values is longer than this, only the first elements are considered."
+  (define event (make-ClientMessageEvent (current-display) window msg-type msg-values format))
+  (dprintf "Client-message: ~a\n" (XClientMessageEvent->list* event))
+  (send-event window '() event)
   )
 
 (define* (allow-events event-mode)
@@ -202,7 +209,7 @@ the visible name, the icon name and the visible icon name in order."
 (define* (delete-window window)
   "Tries to gently close the window and client if possible, otherwise kills it."
   (if (member "WM_DELETE_WINDOW" (window-protocols window))
-      (send-client-message window 'WM_PROTOCOLS 'WM_DELETE_WINDOW)
+      (send-client-message window WM_PROTOCOLS (list WM_DELETE_WINDOW CurrentTime))
       (kill-client window)))
 
 (define* (set-window-border-width window width)

@@ -31,6 +31,9 @@
 - evilwm: http://www.6809.org.uk/evilwm/
 - simplewm: http://sqizit.bartletts.id.au/2011/03/28/how-to-write-a-window-manager-in-python/
 - sawfish: http://sawfish.wikia.com/wiki/Main_Page
+  make the doc:
+    in sawfish/man: makeinfo --html -I . sawfish.texi
+    then: firefox sawfish/index.html
 - xlambda: https://github.com/kazzmir/x11-racket/blob/master/xlambda/xlambda.rkt
 - awesome: http://awesome.naquadah.org/download/
 - http://tronche.com/gui/x/xlib
@@ -134,7 +137,7 @@ to be able to use (require rwind/keymap) for example
          global-keymap
          "C-F1"
          (L* (queue-callback (λ();(printf "*** C-F1 callback in gui-eventspace? ~a\n" (in-gui-eventspace?))
-                                (send f popup-menu menu2 100 400))))
+                                (thread (λ()(send f popup-menu menu2 100 400))))))
          ;(L* (thread (λ()(match (query-pointer) [(list w x y m) (show-popup-menu menu2 x y)]))))
          "C-F2"
          ; needs a thread, otherwise it freezes the main thread, since it's a dialog box that

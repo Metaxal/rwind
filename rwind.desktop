@@ -1,7 +1,0 @@
-[Desktop Entry]
-Name=RWind
-Comment=Window manager in Racket
-TryExec=/usr/bin/rwind
-Exec=rwind
-Type=XSession
-
