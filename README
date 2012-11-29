@@ -57,6 +57,7 @@ The file simple.rkt defines a number of default key and mouse bindings.
  - Control-left-button to move a window around
  - Control-right-button to resize the window
  - Control-Alt-t to open xterm
+ - Alt-F4 to close a window
  - Alt-F12 opens the client 
  - Super-F1-3 switches between workspaces
  - Shift-Super-F1-3 moves the current window to another workspace

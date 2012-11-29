@@ -23,13 +23,14 @@
  "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -e \"(require rwind/client)\"'"))
  ;; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
  "M-F10" (L* (open-user-config-file))
+ ;; Close window gracefully if possible, otherwise kill the client
  "M-F4"  (L* (delete-window (input-focus)))
  )
 
 (for ([i 3])
   (add-bindings
    global-keymap
-   ;; Switch to the first workspace
+   ;; Switch to the ith workspace
    (format "Super-F~a" (add1 i)) (L* (activate-workspace i))
    ;; Move window to workspace and activate
    (format "S-Super-F~a" (add1 i)) (L* (move-window-to-workspace/activate (input-focus) i))
