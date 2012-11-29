@@ -25,7 +25,7 @@ do not get frozen.")
 
 (define* main-gui-frame
   (new frame% [label "Main Gui Frame"]
-       [x 10] [y 10] [width 10] [height 10]))
+       [x 10] [y 10] [width 0] [height 0]))
 
 (define* (error-message-box e)
   (message-box "Error from RWind"

@@ -83,8 +83,8 @@ to be able to use (require rwind/keymap) for example
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
          )
 
-; TEST
-(require racket/gui/base rwind/test/popup-menu)
+; for testing the popup-menu bug:
+;(require racket/gui/base rwind/test/popup-menu)
 
 
 (debug-prefix "RW: ")
@@ -124,7 +124,7 @@ to be able to use (require rwind/keymap) for example
         
         (init-keymap)
 
-        
+        #| For testing
         (define f (new frame% [label "auie"]))
         (define cb (new button% [parent f] [label "Menu"] 
                         [callback (λ(cb ev)
@@ -146,6 +146,7 @@ to be able to use (require rwind/keymap) for example
          "C-F3" 
          (L* (send f show #t))
          )
+|#
         
         ; This adds all mapped windows to the first workspace:
         (init-workspaces)

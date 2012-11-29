@@ -29,6 +29,10 @@
   (when window (map-window window))
   window)
 
+(define* (create-simple-window x y w h [border-width 1])
+  (XCreateSimpleWindow (current-display) (current-root-window)
+                       x y w h border-width 0 0))
+
 ;========================;
 ;=== Window Accessors ===;
 ;========================;
