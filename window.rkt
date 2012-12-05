@@ -305,7 +305,9 @@ click-to-focus:
 
 (define* (find-windows rx [parent (current-root-window)])
   "Returns the list of windows that matches the regexp rx."
-  (filter-windows (λ(w)(regexp-match rx (window-name w))) parent))
+  (filter-windows (λ(w)(let ([n (window-name w)])
+                         (and n (regexp-match rx n))))
+                  parent))
 
 (define* (find-windows-by-class rx [parent (current-root-window)])
   "Returns the list of windows for which one of the window's classes matches the regexp rx."

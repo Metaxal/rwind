@@ -20,8 +20,10 @@
 
 (doc with-gui
      "Use this form to surround any code that deals with racket/gui code inside RWind. 
-It paramaterizes the current event space to a dedicated one so that Racket gui calls
-do not get frozen.")
+It paramaterizes the current event space to a dedicated one so that Racket GUI calls
+do not get frozen.
+
+See Racket documentation: doc/gui/windowing-overview.html")
 
 (define* main-gui-frame
   (new frame% [label "Main Gui Frame"]

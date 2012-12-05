@@ -69,3 +69,9 @@
 (define* (exit-display)
   (XCloseDisplay (current-display))
   )
+
+(define* (grab-server)
+  (XGrabServer (current-display)))
+
+(define* (ungrab-server)
+  (XUngrabServer (current-display)))

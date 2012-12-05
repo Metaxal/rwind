@@ -6,7 +6,6 @@
 #| TODO
 - security: 
   - verify that the user is the same as the owner of the root window
-  - accept only localhost connections
 - module->namespace with a separate module instead of an anchor?
 
 |#

@@ -26,6 +26,7 @@
   instead of needing to call (keymap-event-window ev) 
   (that's because mouse-event derives from keymap-event)
   Not sure how to do it tough.
+- add FocusIn, FocusOut, PointerIn, PointerOut? (or not as keybindings but as other callbacks?)
 |#
 
 ;; WARNING: Apparently, the button modifiers must NOT appear in the modifiers list,
