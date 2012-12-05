@@ -25,7 +25,7 @@ Current features:
   - a client command line (repl)
   - customization of key bindings and mouse bindings
   - workspaces
-  - no frame (yet)
+  - very simple frames (not activated by default)
 
 
 Installation:
