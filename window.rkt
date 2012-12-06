@@ -6,6 +6,7 @@
 (require rwind/base
          rwind/doc-string
          rwind/util
+         rwind/display
          x11-racket/x11
          racket/list
          racket/contract
@@ -176,6 +177,27 @@ the visible name, the icon name and the visible icon name in order."
 (define* (iconify-window window)
   (XIconifyWindow (current-display) window))
 
+(define* (h-maximize-window window)
+  "Maximizes window horizontally."
+  (define-values (w h) (window-dimensions window))
+  (define-values (x y) (window-position window))
+  (define wmax (display-width))
+  (move-resize-window window 0 y wmax h))
+
+(define* (v-maximize-window window)
+  "Maximizes window vertically."
+  (define-values (w h) (window-dimensions window))
+  (define-values (x y) (window-position window))
+  (define hmax (display-height))
+  (move-resize-window window x 0 w hmax))
+
+(define* (maximize-window window)
+  "Maximizes window horizontally and vertically."
+  (define-values (w h) (window-dimensions window))
+  (define-values (x y) (window-position window))
+  (define-values (wmax hmax) (display-dimensions))
+  (move-resize-window window 0 0 wmax hmax))
+
 ;(define (uniconify-window window)(void))
 
 (define* (reparent-window window new-parent)
@@ -342,6 +364,7 @@ click-to-focus:
 - Resources:
   http://awesome.naquadah.org/wiki/Using_Multiple_Screens
   (fr) http://doc.ubuntu-fr.org/multi-ecran
+- see (get-display-count)
 |#
 
 #;(define* (monitor-dimensions m)
