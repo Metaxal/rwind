@@ -25,9 +25,7 @@
   (unless (current-display)
     (error "Cannot open display.")
     (exit))
-  
-  (current-root-window (XDefaultRootWindow (current-display)))
-  
+    
   (define (client-loop)
     (display rwind-prompt) (flush-output)
     (XSync (current-display) #f) ; sync and wait for sync'ed state

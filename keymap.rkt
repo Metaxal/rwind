@@ -439,9 +439,11 @@ Useful for 'MotionNotify events (where the button is not specified)."
       [else #f])))
 
 ;; http://tronche.com/gui/x/xlib/input/XGrabPointer.html
-(define* (grab-pointer [window (current-root-window)] [mask pointer-grab-events] [cursor None])
+(define* (grab-pointer window [mask pointer-grab-events] 
+                       #:cursor [cursor None]
+                       #:confine-to [confine-to None])
   (XGrabPointer (current-display) window #f mask
-                'GrabModeAsync 'GrabModeAsync None cursor CurrentTime))
+                'GrabModeAsync 'GrabModeAsync confine-to cursor CurrentTime))
 
 ;; Also ungrabs buttons
 ;; http://tronche.com/gui/x/xlib/input/XUngrabPointer.html
@@ -478,8 +480,12 @@ Useful for 'MotionNotify events (where the button is not specified)."
                (λ(ev)
                  (proc ev)
                  ; Warning: It may happen that if some call fails, the grab is not released!
-                 (grab-pointer (current-root-window);(keymap-event-window ev)
-                               (cons motion-mask pointer-grab-events))
+                 (let ([root (pointer-root-window)] )
+                   (grab-pointer root;(keymap-event-window ev)
+                                 (cons motion-mask pointer-grab-events)
+                                 ; do not let the pointer get out of the window, 
+                                 ; avoids losing windows by dragging them
+                                 #:confine-to root)) 
                  ))
   ; Use the global keymap to catch events event when the pointer is not in the window itself
   ; Warning: This implies that the keymap-event-window is #f, and may be the cause of unintuitive behaviors?

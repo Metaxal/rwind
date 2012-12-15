@@ -19,19 +19,20 @@
 (define* window? exact-nonnegative-integer?)
 
 (define*/contract (window=? w1 w2)
-  (window? window? . -> . boolean?)
-  (eq? w1 w2))
+  ((or/c #f window?) (or/c #f window?) . -> . boolean?)
+  "Returns #t if w1 and w2 are the same non-#f windows, #f otherwise."
+  (and w1 w2 (eq? w1 w2)))
 
 ;; TEST: for testing
 (define* (create-test-window [x 100] [y 100])
   "Creates a simple window under the root and maps it."
-  (define window (XCreateSimpleWindow (current-display) (current-root-window)
+  (define window (XCreateSimpleWindow (current-display) (pointer-root-window)
                                       x y 100 100 2 0 0))
   (when window (map-window window))
   window)
 
 (define* (create-simple-window x y w h [border-width 1])
-  (XCreateSimpleWindow (current-display) (current-root-window)
+  (XCreateSimpleWindow (current-display) (pointer-root-window)
                        x y w h border-width 0 0))
 
 ;========================;
@@ -115,6 +116,14 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (window-attributes window)
   (XGetWindowAttributes (current-display) window))
+
+(define* (window-bounds window)
+  "Returns the values (x y w h) of the attributes of window."
+  (define attr (window-attributes window))
+  (values (XWindowAttributes-x attr)
+          (XWindowAttributes-y attr)
+          (XWindowAttributes-width attr)
+          (XWindowAttributes-height attr)))
 
 (define* (window-dimensions window)
   (define attr (window-attributes window))
@@ -284,12 +293,13 @@ click-to-focus:
   y: the y coordinate in the root window
   mask: the modifier mask"
   (define-values (rc root win x y win-x win-y mask)
-    (XQueryPointer (current-display) (current-root-window)))
-  (list win x y mask))
+    (XQueryPointer (current-display) (true-root-window)))
+  (values win x y mask))
 
 (define* (pointer-focus)
   "Returns the window that is below the mouse pointer."
-  (car (query-pointer)))
+  (define-values (win x y mask) (query-pointer))
+  win)
 
 ;; Replace the global keymap by an empty one
 ;; with only one binding: Button1Press
@@ -317,42 +327,44 @@ click-to-focus:
 ;=== Window Lists Operations ===;
 ;===============================;
 
-(define* (window-list [parent (current-root-window)])
+(define* (window-list [parent (focus-root-window)])
   "Returns the list of windows."
   (filter values (XQueryTree (current-display) parent)))
 
-(define* (filter-windows proc [parent (current-root-window)])
+(define* (filter-windows proc [parent (focus-root-window)])
   "Maps proc to the list of windows."
   (filter (λ(w)(and w (proc w))) (window-list parent)))
 
-(define* (find-windows rx [parent (current-root-window)])
+(define* (find-windows rx [parent (focus-root-window)])
   "Returns the list of windows that matches the regexp rx."
   (filter-windows (λ(w)(let ([n (window-name w)])
                          (and n (regexp-match rx n))))
                   parent))
 
-(define* (find-windows-by-class rx [parent (current-root-window)])
+(define* (find-windows-by-class rx [parent (focus-root-window)])
   "Returns the list of windows for which one of the window's classes matches the regexp rx."
   (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w))) parent))
 
-(define* (mapped-windows [parent (current-root-window)])
+(define* (mapped-windows [parent (focus-root-window)])
   "Returns the list of windows that are mapped but not necessarily viewable
 (i.e., the window is mapped but one ancestor is unmapped)."
   (filter-windows (λ(w)(let ([s (window-map-state w)])
                          (and s (not (eq? 'IsUnmapped s)))))
                   parent))
 
-(define* (viewable-windows [parent (current-root-window)])
+(define* (viewable-windows [parent (focus-root-window)])
   (filter-windows (λ(w)(eq? 'IsViewable (window-map-state w))) parent))
 
 
 ;; todo: send window to left/right/up/down, etc.
 
-;================;
-;=== Monitors ===;
-;================;
+;===========================================;
+;=== Heads / Monitors / Physical Screens ===;
+;===========================================;
+
 
 #| Ideas
+- sawfish/src/functions.c
 - The best and simplest way may be to consider one desktop per monitor.
   (this however requires to resize the windows and positions according to each monitor?)
 - to test monitors on a single screen, I could set up "virtual" monitors, 
@@ -367,16 +379,154 @@ click-to-focus:
 - see (get-display-count)
 |#
 
-#;(define* (monitor-dimensions m)
-  #f)
+(require x11-racket/xinerama racket/match)
 
-#;(define* (monitor-offset m)
-  #f)
+(define xinerama-head-infos #f)
 
+(struct head-info
+  (screen root-window x y w h)
+  #:transparent
+  #:mutable)
+(provide (struct-out head-info))
+(doc head-info
+     "Structure holding information about heads (monitors, screens).
+   `screen' is the physical head on which the (possibly virtual) head is mapped.
+   It may be different from the position of the head in the xinerama-screen-infos vector
+   in the case a screen has been split.")
+
+(define (heads-intersect? hd1 hd2)
+  (with-head-info
+   hd1 (s1 win1 x1 y1 w1 h1)
+   (with-head-info
+    hd2 (s2 win2 x2 y2 w2 h2)
+    ; rectangle empty intersection:
+    (not (or (> x1 (+ x2 w2))
+             (> x2 (+ x1 w1))
+             (> y1 (+ y2 h2))
+             (> y2 (+ y1 w1)))))))
+
+(define* (xinerama-update-infos)
+  (define infos (XineramaQueryScreens (current-display)))
+  (set! xinerama-head-infos 
+        (if infos
+            (for/vector ([inf infos])
+              (match inf
+                [(XineramaScreenInfo screen x y w h)
+                 (head-info screen #f x y w h)]))
+            ; otherwise create a single head with the display dimensions
+            (vector (head-info 0 #f 0 0 (display-width) (display-height))))))
+
+(define* (get-head-info hd)
+  (and xinerama-head-infos
+       (>= hd 0)
+       (< hd (head-count))
+       (vector-ref xinerama-head-infos hd)))
+
+(define* (head-count)
+  "Returns the number of (virtual) heads."
+  (max 1 (vector-length xinerama-head-infos)))
+
+(provide with-head-info)
+(define-syntax-rule (with-head-info hd (screen win x y w h) body ...)
+  ; input: hd 
+  ; output: screen win x y w h
+  (let ([info (get-head-info hd)])
+    (and info
+         (match info
+           [(head-info screen win x y w h)
+            body ...]))))
+
+(define* (head-dimensions hd)
+  "Returns the dimensions of the given head number."
+  (with-head-info
+   hd (s win x y w h)
+   (values w h)))
+
+(define* (head-position hd)
+  "Returns the x and y offset of the given head number."
+  (with-head-info
+   hd (s win x y w h)
+   (values x y)))
+
+(define* (head-bounds hd)
+  "Returns the (x y w h) values of the specified head number."
+  (with-head-info
+   hd (s win x y w h)
+  (values x y w h)))
+
+(define* (head-root-window hd)
+  "Returns the (current) root window of the specified head number."
+  (with-head-info
+   hd (s win x y w h)
+   win))
+
+(define* (find-root-window-head win)
+  "Returns the head number that has win as its root window, or #f if none is found."
+  (for/or ([hd-info xinerama-head-infos]
+           [i (in-naturals)])
+    (and (window=? win (head-info-root-window hd-info)) i)))
+
+(define* (find-head px py)
+  "Returns the number of the first head that contains the point (px, py), or #f if not found."
+  (for/or ([info xinerama-head-infos] [i (in-naturals)])
+    (match info 
+      [(head-info s win x y w h)
+       (and (>= px x) (< px (+ x w))
+            (>= py y) (< py (+ y h))
+            i)])))
+
+(define* (v-split-head)
+  "Splits the current head vertically to make two virtual heads.
+Only for single monitors."
+  (define-values (w h) (display-dimensions))
+  (define xmid (quotient w 2))
+  (set! xinerama-head-infos
+        (vector (head-info 0 #f 0 0 xmid h)
+                (head-info 0 #f xmid 0 (- w xmid) h))))
+
+(define* (pointer-head)
+  "Returns the head number that contains the mouse pointer."
+  (define-values (win x y mask) (query-pointer))
+  (find-head x y))
+
+(define* (find-window-head win)
+  "Returns the head number that contains one of the corners or the center 
+of the window that has the input focus. 
+Returns #f if no corner and center is contained in any head
+(which should be rare if the window is visible)."
+  (and win
+       (let-values ([(x y w h)(window-bounds win)])
+         (or (find-head x y)
+             (find-head (+ x w) y)
+             (find-head x (+ y h))
+             (find-head (+ x w) (+ y h))
+             (find-head (+ x (quotient w 2)) (+ y (quotient h 2)))))))
+
+(define* (focus-head)
+  "Returns the head number that contains the input focus window, 
+in the sense of `find-window-head'."
+  (find-window-head (input-focus)))
+
+(module+ main
+  (require racket/vector)
+  (init-display)
+  (v-split-head)
+  xinerama-head-infos
+  (head-dimensions 0)
+  (find-head 0 0)
+  (find-head 1000 1000)
+  (exit-display))
 
 ;===================;
 ;=== Root Window ===;
 ;===================;
+
+(define* (pointer-root-window)
+  "Returns the root-window that contains the pointer."
+  (and=> (pointer-head) head-root-window))
+
+(define* (focus-root-window)
+  (and=> (focus-head) head-root-window))
 
 (define* (init-root-window)
   (true-root-window (XDefaultRootWindow (current-display)))
@@ -384,14 +534,6 @@ click-to-focus:
   ;; (Q: is it useful if we use virtual roots?)
   (define attrs (make-XSetWindowAttributes #:event-mask '(SubstructureRedirectMask)))
   (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask) attrs)
+  
+  (xinerama-update-infos)
   )
-
-(define* (with-root-window/proc new-root proc)
-  (let ([old-root (current-root-window)])
-    (dynamic-wind
-     (λ()(current-root-window new-root))
-     proc
-     (λ()(current-root-window old-root)))))
-
-
-

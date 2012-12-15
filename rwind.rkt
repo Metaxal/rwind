@@ -6,6 +6,9 @@
 ;;; Note that client.rkt is in GPL, because it uses readline, but rwind does not depend on it.
 
 #| TODO: 
+- hot recompile&restart, like xmonad
+  Should ease development
+
 - security of the server: make sure the user at the other end of the tcp connection 
   is the same as the one running the server!
   Use Unix uid's? ask for password?
@@ -13,7 +16,6 @@
 - (select-window)
   plus look at all the window utilities in Sawfish (lisp/sawfish/wm/windows.jl)
 - shutdown more gracefully?
-- contracts? types?
 - time-stamps are quite probably not handled properly
 
 - viewports?
@@ -22,6 +24,7 @@
 - GUI. Started, but problem, conflict with Racket's gui?
 
 - grab the server here and there to speed up things
+  Warning: Beware of deadlocks, especially with the gui thread
 
 - Planet 2 packaging
 |#
@@ -138,7 +141,7 @@ to be able to use (require rwind/keymap) for example
          "C-F1"
          (L* (queue-callback (λ();(printf "*** C-F1 callback in gui-eventspace? ~a\n" (in-gui-eventspace?))
                                 (thread (λ()(send f popup-menu menu2 100 400))))))
-         ;(L* (thread (λ()(match (query-pointer) [(list w x y m) (show-popup-menu menu2 x y)]))))
+         ;(L* (thread (λ()(define-values (w x y m) (query-pointer)) (show-popup-menu menu2 x y))))
          "C-F2"
          ; needs a thread, otherwise it freezes the main thread, since it's a dialog box that
          ; requires to be mapped by the main thread
@@ -166,14 +169,9 @@ to be able to use (require rwind/keymap) for example
         
         (exit-server)
         
-        ; Not sure I should call that if the user wants to replace the current wm by some other
-        ; without logging out.
-        ;(XDestroySubwindows (current-display) (current-root-window)) ; useful?
-        
         (exit-display)
-        ))); log to file
-  
-  
+        
+        ))); log to file  
   
   ; Broken
   #;(when restart?

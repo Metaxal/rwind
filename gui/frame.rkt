@@ -10,6 +10,13 @@
          racket/runtime-path
          )
 
+#| Resources
+- How to make a button with no rectangular border (image only):
+  http://www.pygtk.org/pygtk2tutorial/sec-Images.html#wheelbarrowfig
+  http://stackoverflow.com/questions/2846390/remove-border-of-a-gtk-button
+  http://stackoverflow.com/questions/2869823/remove-gtkbuttons-image-padding-inner-border
+|#
+
 (define bitmap-dict (make-weak-hash))
 
 ; Should probably use define-runtime-path?
@@ -121,25 +128,33 @@ Window can be either the window of the application, or the 'outside' window of t
       (set! title-height (send bt-close get-height))
       (send this resize (+ horiz-margin w horiz-margin) (+ title-height vert-margin h vert-margin))
       (send this show #t)
-      
-      ; Register the window and the frame-window
-      (add-framed-window window this)
+      ; This will call on-superwindow-show
       
       ; TODO:
       ; Here, we should need to make sure that the frame is shown.
-      ; But since it is processed in a different thread, we should need to wait.
+      ; But since it is processed in a different thread, we need to wait.
       ; Use events and sync between threads?
-      (sleep 1)
+      ;(sleep 1)
       
-      (define f-window (widget-x11-window this #t))
-      ;(define vp-client-window (widget-x11-window p-client)) ; needs a panel% to have a window
-      
-      (grab-server) ; to avoid drawing to the screen
-      ; or reparent it to the panel below?
-      (move-window window horiz-margin (+ title-height vert-margin))
-      (reparent-window window f-window)
-      (ungrab-server)
       )
+    
+    (define new-window #t)
+    (define/override (on-superwindow-show shown?)
+      (when new-window
+        (set! new-window #f)
+        ; Register the window and the frame-window
+        (add-framed-window window this)
+        
+        (define f-window (widget-x11-window this #t))
+        ;(define vp-client-window (widget-x11-window p-client)) ; needs a panel% to have a window
+        
+        ; Warning: grabing the server makes it freeze!
+        ;(grab-server) ; to avoid drawing to the screen
+        ; or reparent it to the panel below?
+        (move-window window horiz-margin (+ title-height vert-margin))
+        (reparent-window window f-window)
+        ;(ungrab-server)
+        ))
     
     (init win)
     ; set the window only at the end, so that it is not troubled 
@@ -167,8 +182,9 @@ Window can be either the window of the application, or the 'outside' window of t
         (resize-window window ww wh)))
     
     (define/public (unframe)
-      (reparent-window window (current-root-window))
-      (remove-framed-window window (send this window-frame))
+      (reparent-window window (pointer-root-window))
+      (move-window window (send this get-x) (send this get-y))
+      (remove-framed-window window (send this get-frame-window))
       ; We should also destroy the window. How do we do this nicely?
       (send this on-exit))
     

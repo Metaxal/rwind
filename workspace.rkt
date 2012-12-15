@@ -13,6 +13,7 @@
          x11-racket/x11
          racket/list
          racket/contract
+         rackunit
          )
 
 #| *** Workspace **** (aka desktops)
@@ -50,7 +51,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   "Fun-box that holds whether moving after the last (first) workpsace returns to the first (last)."
   (make-fun-box #f))
 
-(define*/contract current-workspace-number 
+#;(define*/contract current-workspace-number 
   (or/c #f number?)
   "Current workspace number"
   #f)
@@ -59,7 +60,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;=== Constructors ===;
 ;====================;
 
-(struct workspace (id window)
+;; window is the virtual root window of the workspace
+(struct workspace (id root-window)
   #:transparent
   #:mutable)
 (provide (struct-out workspace))
@@ -74,7 +76,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
                  #:event-mask '(SubstructureRedirectMask)
                  #:background-pixel bk-color
                  ))
-  (define window
+  (define root-window
     (XCreateWindow (current-display) (true-root-window)
                    0 0
                    (display-width) (display-height)
@@ -85,8 +87,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
                    '(EventMask BackPixel) attrs))
   ;; Create the window, but don't map it yet.
   ;; Make sure we will see the keymap events
-  (virtual-root-apply-keymaps window)
-  (define wk (workspace id window))
+  (virtual-root-apply-keymaps root-window)
+  (define wk (workspace id root-window))
   (insert-workspace wk)
   wk)
 
@@ -115,16 +117,28 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;=== Selectors ===;
 ;=================;
 
+(define*/contract (workspace-dimensions wk)
+  (workspace? . -> . (values number? number?))
+  "Returns the dimensions of the virtual root window of the specified workspace."
+  (window-dimensions (workspace-root-window wk)))
+
 (define*/contract (find-root-window-workspace window)
   (window? . -> . any/c)
   "Returns the workspace for which window is the (virtual) root, or #f if none is found."
-  (findf (λ(wk)(window=? window (workspace-window wk))) 
+  (findf (λ(wk)(window=? window (workspace-root-window wk))) 
          workspaces))
+
+(define*/contract (find-head-workspace hd)
+  (number? . -> . workspace?)
+  "Returns the (current) root-window of the given head."
+  (and=> (head-root-window hd)
+         find-root-window-workspace))
 
 (define*/contract (workspace-subwindows wk)
   (workspace? . -> . list?)
-  "Returns the list of windows that are mapped in the specified workspace."
-  (window-list (workspace-window wk)))
+  "Returns the list of windows that are managed by the specified workspace, 
+in the sense of `window-list'."
+  (window-list (workspace-root-window wk)))
 
 (define* (count-workspaces)
   (length workspaces))
@@ -140,9 +154,6 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (for/or ([w workspaces] [i (in-naturals)])
     (and (eq? w wk) i)))
 
-(define* (current-workspace)
-  (list-ref workspaces current-workspace-number))
-
 (define*/contract (find-workspace wk/i/n)
   (workspace-ref? . -> . (or/c #f workspace?))
   "Returns the workspace of the given workspace-id/workspace-number/workspace, or #f if none is found."
@@ -157,8 +168,20 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define*/contract (find-window-workspace window)
   (window? . -> . (or/c #f workspace?))
+  "Returns the workspace that contains window, or #f if none is found."
   (findf (λ(wk)(member window (workspace-subwindows wk)))
          workspaces))
+
+(define*/contract (guess-window-workspace window)
+  (window? . -> . (or/c #f workspace?))
+  "Returns the workspace that /should/ contain the window based on the window position, 
+but that does not currently contain it.
+This is mainly meant to be used to restore windows to their proper workspaces."
+  (call/debug find-head-workspace (find-window-head window)))
+
+(define* (pointer-workspace)
+  "Returns the workspace that contains the pointer or #f if none is found."
+  (find-head-workspace (pointer-head)))
 
 ;==================;
 ;=== Operations ===;
@@ -174,29 +197,11 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
          (error "Cannot insert workspace: Invalid number:" n)]))
 
 ;; TODO: what to do about the windows contained in the current workspace?
+;; (currently they are plain lost!)
 (define*/contract (remove-workspace wkn)
   (valid-workspace-number? . -> . void?)
   (define-values (left right) (split-at workspaces wkn))
   (set! workspaces (append left (rest right))))
-
-(define*/contract (activate-workspace wk/i/n)
-  (valid-workspace-number? . -> . any)
-  "Switches to workspace number wkn."
-  (dprintf "Activating workspace ~a\n" wk/i/n)
-  (define wk-new (find-workspace wk/i/n))
-  ; Hide the old workspace:
-  (when (current-root-window)
-    ; otherwise no workspace is active, we are at the root window
-    (unmap-window (current-root-window)))
-  ; change the current root:
-  (current-root-window (workspace-window wk-new))
-  (set! current-workspace-number (workspace->number wk-new))
-  ; show the new workspace with all its windows:
-  (map-window (current-root-window))
-  ; The following may fail because the window may not yet be visible:
-  ;(set-input-focus (current-root-window))
-  (set-input-focus (true-root-window))
-  )
 
 (define/contract (workspace-addn n0 inc warp?)
   (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
@@ -214,13 +219,15 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
       (modulo wkn nmax)
       (max wkn 0)))
   
-(define*/contract (next-workspace! [inc 1] [warp? (workspace-warp?)])
+; current-workspace-number is obsolete. Must use heads to know the current workspace
+#;(define*/contract (next-workspace! [inc 1] [warp? (workspace-warp?)])
   (() (number? any/c) . ->* . void?)
   "Switches to the next workspace by offset 'inc' in linear order and returns the new workspace number.
   If 'wrap?' is true, then the list is circular, otherwise it is bounded."
   (activate-workspace (workspace-addn current-workspace-number inc warp?)))
 
-(define*/contract (previous-workspace! [dec 1] [warp? (workspace-warp?)])
+; current-workspace-number is obsolete. Must use heads to know the current workspace
+#;(define*/contract (previous-workspace! [dec 1] [warp? (workspace-warp?)])
   (() (number? any/c) . ->* . void?)
   "Switches to the previous workspace by offest 'dec' in linear order and returns the new workspace number.
   If 'wrap?' is true, then the list is circular, otherwise it is bounded."
@@ -238,7 +245,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
       (let ([old-wk (find-window-workspace window)])
         (when old-wk
           (remove-window-from-workspace window wk))
-        (reparent-window window (workspace-window wk)))))
+        (reparent-window window (workspace-root-window wk)))))
 
 
 (define*/contract (move-window-to-workspace window wk/i/n)
@@ -249,7 +256,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (window? workspace-ref? . -> . any)
   (define wk (find-workspace wk/i/n))
   (add-window-to-workspace window wk)
-  (activate-workspace (workspace->number wk)))
+  (activate-workspace wk))
 
 
 #;(module+ test
@@ -262,6 +269,105 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (check = (next-workspace! 1 #t) 0)
   )
 
+;; TODO: Adapt for multiple heads
+(define*/contract (activate-workspace wk/i/n [head (pointer-head)])
+  ((workspace-ref?) (number?) . ->* . any)
+  "Switches to workspace number wkn."
+  (dprintf "Activating workspace ~a\n" wk/i/n)
+  
+  (define new-wk (find-workspace wk/i/n))
+  (check-not-false new-wk)
+  
+  (define hd-info (get-head-info head))
+  (check-not-false hd-info)
+  
+  (define old-root (head-info-root-window hd-info))
+  (define new-root (workspace-root-window new-wk))
+  (define other-head (find-root-window-head new-root))
+  
+  (cond [(window=? new-root old-root)
+         (dprintf "Trying to activate the current workspace.\n")
+         ; We are trying to activate the current-workspace -> no change
+         #f]
+        [other-head
+         ; The new workspace is already mapped in another head, so we swap the workspaces instead
+         (dprintf "New workspace already mapped in head ~a.\n" other-head)
+         (define old-wk (find-root-window-workspace old-root))
+         (define other-head-info (get-head-info other-head))
+         
+         (set-head-info-root-window! other-head-info old-root)
+         (set-head-info-root-window! hd-info new-root)
+         
+         ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed.
+         (workspace-fit-to-head old-wk other-head)
+         (workspace-fit-to-head new-wk head)
+         ]
+        [else
+         ; We replace the current workspace by the new one in the specified head
+         (dprintf "Normal replacement of current workspace.\n")
+         
+         ; Hide the old workspace:
+         (when old-root
+           (unmap-window old-root))
+         
+         ; Change the current root:
+         (set-head-info-root-window! hd-info new-root)
+         
+         ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed.
+         (workspace-fit-to-head new-wk head)
+         
+         ; show the new workspace with all its windows:
+         (map-window new-root)
+         
+         ; The following may fail because the window may not yet be visible:
+         ;(set-input-focus new-root)
+         ; TODO: Add a callback for when the window is visible?
+         (set-input-focus (true-root-window))]
+    ))
+
+(define*/contract (workspace-fit-to-head wk hd [move? #f] [resize? move?])
+  ((workspace? number?) (any/c any/c) . ->* . any)
+  "Moves and resizes the workspace to the size of the head.
+  If move? is not #f, all top-level windows of the workspace are moved proportionally to the resizing ratio.
+  If resize? is not #f, they are resized proportionally."
+  (define window (workspace-root-window wk))
+  (define-values (w-old h-old) (window-dimensions window))
+  (with-head-info
+   hd (s win hx hy hw hh)
+   ; make the virtual root fit to the head
+   (move-resize-window window hx hy hw hh)
+   (define (scale-w wi)
+     (round (/ (* wi hw) w-old)))
+   (define (scale-h hi)
+     (round (/ (* hi hh) h-old)))
+   (when (or move? resize?)
+     (for ([win (workspace-subwindows wk)])
+       (define-values (x y w h) (window-bounds win))
+       (move-resize-window win 
+                           (if move? (scale-w x) x)
+                           (if move? (scale-h y) y)
+                           (if resize? (scale-w w) w)
+                           (if resize? (scale-h h) h)
+                           )))))
+
+
+(define* (update-workspaces)
+  "Updates the informations about the screens and maps one workspace in each screen."
+  ; First make sure that all root windows are unmapped
+  (for ([wk workspaces])
+    (unmap-window (workspace-root-window wk)))
+  ;; Warning (TODO): What happens if there aren't enough workspaces? (should create it)
+  (for ([hd (head-count)])
+    ; Place a workspace on a head 
+    ; Warning (TODO): We should not do that if they are superimposed!
+    (activate-workspace hd hd))
+  )
+
+(define* (v-split-workspace)
+  "For testing only."
+  (v-split-head)
+  (update-workspaces))
+
 ;============;
 ;=== Init ===;
 ;============;
@@ -270,17 +376,24 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   ; Wait for sync to be sure that all pending windows (not currently managed by us) are mapped:
   (XSync (current-display) #f)
   
+  ;; Get the window list *before* creating the workspace windows...
   (define existing-windows (window-list (true-root-window)))
-  ;; Create a two initial workspaces
-  ;; This sets the current-root-window, and applies the keymap to it
-  (make-workspace "First"  #:background-color (find-named-color "DarkSlateGray"))
-  (make-workspace "Second" #:background-color (find-named-color "DarkSlateBlue"))
-  (make-workspace "Third"  #:background-color (find-named-color "Sienna"))
+    
+  (define color-list 
+    '("DarkSlateGray" "DarkSlateBlue" "Sienna"))
+  
+  ;; Create at least one workspace per head
+  (for ([i 3]
+        [color (in-cycle color-list)])
+    ; Create a workspace and apply the keymap to it
+    (make-workspace (number->string i)  #:background-color (find-named-color color)))
 
-  (activate-workspace 0)
+  ;; Make the workspaces fit to their heads
+  (update-workspaces)
 
-  ;; Put all mapped windows in the activated worskpace
-  (for-each (λ(w)(add-window-to-workspace w (current-workspace)))
+  ;; Put all mapped windows in the workspace it belongs to,
+  ;; depending on its position
+  (for-each (λ(w)(add-window-to-workspace w (guess-window-workspace w)))
             existing-windows)
   )
 

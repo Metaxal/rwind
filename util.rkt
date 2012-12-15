@@ -124,6 +124,18 @@
     (display (debug-prefix))
     (print-ok)))
 
+;; I tried to use (call/debug proc . args) instead, 
+;; so that keyword arguments could be dealt with, but did not succeed.
+(define-syntax-rule (call/debug proc args ...)
+  (let ([largs (list args ...)])
+    (dprintf "Call: ~a\n" (list* 'proc largs))
+    (apply proc largs)))
+(provide call/debug)
+(doc call/debug
+     "(call/debug proc args ...
+Prints (proc args ...) before calling it."
+     )
+
 (define* (write-data/flush data [out (current-output-port)])
   "'write's the data to the output port, and flushes it.
 To ensure that the data is really sent as is, a space is added before flushing.
@@ -175,3 +187,22 @@ waits for the delimiter to be read, and would thus hang)."
 (define-syntax-rule (L* body ...)
   (thunk* body ...))
 (doc L* "Synonym for thunk*.")
+
+;; Returns #f if:
+;; - the result of obj is #f, 
+;; - or any test applied to this result is #f
+;; Otherwise returns the result of the last test applied to obj.
+;; The `test's must be arity-1 predicates.
+;; Usefull for struct attributes on objects that may be #f
+(provide and=>)
+(define-syntax-rule (and=> obj test ...)
+  (let ([v obj])
+    (and v (test obj) ...)))
+
+(module+ main
+  (struct foo (x y))
+  (define bar (foo 'a 8))
+  (and=> bar foo-x) ; -> 'a
+  (and=> #f foo-x) ; -> #f
+  (and=> 'a foo? foo-x)) ; -> #f
+

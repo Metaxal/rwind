@@ -8,7 +8,13 @@
          racket/class
          )
 
-; http://developer.gnome.org/gtk/2.24/GtkWidget.html
+#| Resources
+- GtkWidget: http://developer.gnome.org/gtk/2.24/GtkWidget.html
+- Extending the Racket GUI with native widgets: 
+  - https://groups.google.com/d/topic/racket-users/cduCU_kiY-w/discussion
+    + see misc/test-gtk-Crust.rkt
+  - https://groups.google.com/d/topic/racket-users/T2OHHz7Im48/discussion
+|#
 
 
 ;(define-gtk gtk_widget_get_root_window (_fun _GtkWidget -> _GdkWindow))

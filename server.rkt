@@ -8,6 +8,7 @@
   - verify that the user is the same as the owner of the root window
 - module->namespace with a separate module instead of an anchor?
 
+- see graphical-read-eval-print-loop
 |#
 
 (require x11-racket/x11

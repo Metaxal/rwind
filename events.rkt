@@ -98,7 +98,7 @@
             ; Apply the keymap to it
             ;(window-apply-keymap window window-keymap) ; no, only (virtual) root windows have keymaps?
             ; add it to the current workspace
-            (add-window-to-workspace window (current-workspace))
+            (add-window-to-workspace window (pointer-workspace))
             (show/raise-window window)
             ])
      ; give the window the input focus (if viewable)

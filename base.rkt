@@ -16,7 +16,7 @@
 
 (define* true-root-window     (make-fun-box #f))
 (define* current-display      (make-fun-box #f))
-(define* current-root-window  (make-fun-box #f))
+#;(define* current-root-window  (make-fun-box #f))
 (define* rwind-debug          (make-fun-box #f))
 ;(define current-display (make-parameter #f))
 ;(define current-root-window (make-parameter #f))
