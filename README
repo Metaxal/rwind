@@ -19,14 +19,16 @@ Warnings:
   depends on it.
 
 
-Current features:
------------------
-  - very little
+Current features/lacks:
+-----------------------
+  - no ICCCM/EWMH compliance
   - a client command line (repl)
   - customization of key bindings and mouse bindings
   - workspaces
+  - xinerama support
   - very simple frames (not activated by default)
 
+All these features may still currently be very buggy.
 
 Installation:
 -------------

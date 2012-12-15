@@ -476,7 +476,8 @@ click-to-focus:
             i)])))
 
 (define* (v-split-head)
-  "Splits the current head vertically to make two virtual heads.
+  "Currently for testing purposes only (but may be useful in practice).
+Splits the current head vertically to make two virtual heads.
 Only for single monitors."
   (define-values (w h) (display-dimensions))
   (define xmid (quotient w 2))
