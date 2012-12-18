@@ -77,6 +77,7 @@
   WM_TAKE_FOCUS
   WM_DELETE_WINDOW
   WM_PROTOCOLS
+  __SWM_VROOT
   )
 
 (define* (atom->atom-name atom)
@@ -259,6 +260,10 @@ the visible name, the icon name and the visible icon name in order."
 (define* (clear-window window)
   (XClearWindow (current-display) window))
 
+(define* (change-window-property window ...)
+  
+  #f)
+
 ;=====================;
 ;=== Focus/Pointer ===;
 ;=====================;
@@ -286,14 +291,19 @@ click-to-focus:
     (set-input-focus window)
     (raise-window window)))
 
-(define* (query-pointer)
+(define* (query-pointer [root (pointer-root-window)])
 "Returns a list of the following values:
   win: the targeted window
   x: the x coordinate in the root window
   y: the y coordinate in the root window
-  mask: the modifier mask"
-  (define-values (rc root win x y win-x win-y mask)
-    (XQueryPointer (current-display) (true-root-window)))
+  mask: the modifier mask.
+root is the window relative to which the query is made, and the child window win is returned.
+By default it is the virtual-root under the pointer."
+  (define-values (rc _root win x y win-x win-y mask)
+    (XQueryPointer (current-display) 
+                   ;(true-root-window)
+                   root
+                   ))
   (values win x y mask))
 
 (define* (pointer-focus)
@@ -485,11 +495,6 @@ Only for single monitors."
         (vector (head-info 0 #f 0 0 xmid h)
                 (head-info 0 #f xmid 0 (- w xmid) h))))
 
-(define* (pointer-head)
-  "Returns the head number that contains the mouse pointer."
-  (define-values (win x y mask) (query-pointer))
-  (find-head x y))
-
 (define* (find-window-head win)
   "Returns the head number that contains one of the corners or the center 
 of the window that has the input focus. 
@@ -502,6 +507,11 @@ Returns #f if no corner and center is contained in any head
              (find-head x (+ y h))
              (find-head (+ x w) (+ y h))
              (find-head (+ x (quotient w 2)) (+ y (quotient h 2)))))))
+
+(define* (pointer-head)
+  "Returns the head number that contains the mouse pointer."
+  (define-values (win x y mask) (query-pointer (true-root-window)))
+  (find-head x y))
 
 (define* (focus-head)
   "Returns the head number that contains the input focus window, 
