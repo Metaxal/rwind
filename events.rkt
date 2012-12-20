@@ -72,6 +72,16 @@
      (XConfigureWindow (current-display) window value-mask 
                        (make-XWindowChanges x y width height border-width above stack-mode))]
     
+    [(ConfigureNotify)
+     (match-define 
+       (XConfigureEvent type serial send-event _display event-window window
+                               x y width height border-width above override-redirect)
+       event)
+     (unless override-redirect
+       (cond [(true-root-window? window)
+              (dprintf "Configuring root window\n")
+              #;(call-hooks 'configure-notify-true-root-window event)]))]
+    
     #;[(Expose)
      (define window (XExposeEvent-window event))
      ; give the input focus to the window that appears?

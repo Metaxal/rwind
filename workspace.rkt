@@ -13,15 +13,9 @@
          x11-racket/x11
          racket/list
          racket/contract
+         racket/match
          rackunit
          )
-
-#| TODO
-- add the __SWM_VROOT atom property to the virtual roots, so that xwininfo, xkill 
-  and others can handle the client windows properly.
-  http://xscreensaver.sourcearchive.com/documentation/4.24/xscreensaver_8c-source.html
-  also see xlambda.rkt
-|#
 
 #| *** Workspace **** (aka desktops)
 
@@ -283,7 +277,6 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (check = (next-workspace! 1 #t) 0)
   )
 
-;; TODO: Adapt for multiple heads
 (define*/contract (activate-workspace wk/i/n [head (pointer-head)])
   ((workspace-ref?) (number?) . ->* . any)
   "Switches to workspace number wkn."
@@ -298,16 +291,13 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (define old-root (head-info-root-window hd-info))
   (define new-root (workspace-root-window new-wk))
   (define other-head (find-root-window-head new-root))
-  
-  ;; Add the "virtual-root" property
-  ;; TODO:  This property should be set to the true root window when the workspace is set
-  ;; Problem: I may have several root windows, so that I can map one per (virtual) screen...
-  ;(ChangeProperty (current-display) (true-root-window) __SWM_VROOT 'XA_WINDOW 'PropModeReplace (list root-window) 32)
-  
+    
   (cond [(window=? new-root old-root)
-         (dprintf "Trying to activate the current workspace.\n")
          ; We are trying to activate the current-workspace -> no change
-         #f]
+         (dprintf "Trying to activate the current workspace.\n")
+         ; in case it is not already mapped:
+         (map-window new-root)
+         ]
         [other-head
          ; The new workspace is already mapped in another head, so we swap the workspaces instead
          (dprintf "New workspace already mapped in head ~a.\n" other-head)
@@ -317,9 +307,13 @@ This is mainly meant to be used to restore windows to their proper workspaces."
          (set-head-info-root-window! other-head-info old-root)
          (set-head-info-root-window! hd-info new-root)
          
-         ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed.
-         (workspace-fit-to-head old-wk other-head)
-         (workspace-fit-to-head new-wk head)
+         ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed
+         (workspace-fit-to-heads old-wk (list other-head))
+         (workspace-fit-to-heads new-wk (list head))
+
+         ; just in case they are not mapped:
+         (map-window old-root)
+         (map-window new-root)
          ]
         [else
          ; We replace the current workspace by the new one in the specified head
@@ -329,11 +323,13 @@ This is mainly meant to be used to restore windows to their proper workspaces."
          (when old-root
            (unmap-window old-root))
          
-         ; Change the current root:
-         (set-head-info-root-window! hd-info new-root)
+         ; List of heads that contain the old-root
+         (define heads (if old-root
+                           (find-root-window-heads old-root)
+                           (list head)))
          
-         ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed.
-         (workspace-fit-to-head new-wk head)
+         ; Reconfigure the workspace to span over all the heads the old workspace was in
+         (workspace-fit-to-heads new-wk heads)
          
          ; show the new workspace with all its windows:
          (map-window new-root)
@@ -344,48 +340,71 @@ This is mainly meant to be used to restore windows to their proper workspaces."
          (set-input-focus (true-root-window))]
     ))
 
-(define*/contract (workspace-fit-to-head wk hd [move? #f] [resize? move?])
-  ((workspace? number?) (any/c any/c) . ->* . any)
-  "Moves and resizes the workspace to the size of the head.
+(define* (workspace-fit-to wk hx hy hw hh [move? #t] [resize? move?])
+  "Moves and resizes the workspace to the given dimensions.
   If move? is not #f, all top-level windows of the workspace are moved proportionally to the resizing ratio.
   If resize? is not #f, they are resized proportionally."
   (define window (workspace-root-window wk))
   (define-values (w-old h-old) (window-dimensions window))
-  (with-head-info
-   hd (s win hx hy hw hh)
-   ; make the virtual root fit to the head
-   (move-resize-window window hx hy hw hh)
-   (define (scale-w wi)
-     (round (/ (* wi hw) w-old)))
-   (define (scale-h hi)
-     (round (/ (* hi hh) h-old)))
-   (when (or move? resize?)
-     (for ([win (workspace-subwindows wk)])
-       (define-values (x y w h) (window-bounds win))
-       (move-resize-window win 
-                           (if move? (scale-w x) x)
-                           (if move? (scale-h y) y)
-                           (if resize? (scale-w w) w)
-                           (if resize? (scale-h h) h)
-                           )))))
+  (move-resize-window window hx hy hw hh)
+  (define (scale-w wi)
+    (round (/ (* wi hw) w-old)))
+  (define (scale-h hi)
+    (round (/ (* hi hh) h-old)))
+  (when (or move? resize?)
+    (for ([win (workspace-subwindows wk)])
+      (define-values (x y w h) (window-bounds win))
+      (move-resize-window win 
+                          (if move? (scale-w x) x)
+                          (if move? (scale-h y) y)
+                          (if resize? (scale-w w) w)
+                          (if resize? (scale-h h) h)
+                          ))))
 
+(define*/contract (workspace-fit-to-heads wk [heads #f] [move? #t] [resize? move?])
+  ([workspace?] [(or/c #f (listof number?)) any/c any/c] . ->* . any)
+  "Like workspace-fit-to, but fits to a given list of heads, i.e., 
+the workspace window will then span over all the given heads.
+If heads is #f, then all heads are considered.
+Furthermore, it also changes the root-windows of the heads."
+  (define-values (gx gy gw gh) (head-list-bounds heads))
+  ; make the virtual root fit to the head
+  (workspace-fit-to wk gx gy gw gh move? resize?)
+  (define wk-root (workspace-root-window wk))
+  ; Change the current root of all the containing heads:
+  (for ([hd heads])
+    (set-head-info-root-window! (get-head-info hd) wk-root)))
 
-(define* (update-workspaces)
-  "Updates the informations about the screens and maps one workspace in each screen."
+;; TODO: finish work for 'single mode
+(define*/contract (update-workspaces [mode 'multi])
+  ([] [(one-of/c 'single 'multi)] . ->* . any)
+  "Updates the information about the screens and maps one workspace in each screen.
+If mode is 'single, only one workspace is mapped over all heads.
+If mode is 'multi, one workspace is mapped per head."
   ; First make sure that all root windows are unmapped
   (for ([wk workspaces])
     (unmap-window (workspace-root-window wk)))
+  
   ;; Warning (TODO): What happens if there aren't enough workspaces? (should create it)
-  (for ([hd (head-count)])
-    ; Place a workspace on a head 
-    ; Warning (TODO): We should not do that if they are superimposed!
-    (activate-workspace hd hd))
+  
+  (case mode
+    [(single)
+     ;; Place the first workspace over all heads
+     ;; TODO: Adapt for 'single mode!
+     #;(for ([hd (head-count)])
+       (activate-workspace 0 hd))
+     #f]
+    [(multi)
+     (for ([hd (head-count)])
+       ; Place a workspace on a head 
+       ; Warning (TODO): We should not do that if they are superimposed!
+       (activate-workspace hd hd))])
   )
 
 (define* (v-split-workspace)
   "For testing only."
   (v-split-head)
-  (update-workspaces))
+  (update-workspaces 'multi))
 
 ;============;
 ;=== Init ===;
@@ -405,7 +424,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
     '("DarkSlateGray" "DarkSlateBlue" "Sienna"))
   
   ;; Create at least one workspace per head
-  (for ([i 3]
+  (for ([i (max (head-count) 3)]
         [color (in-cycle color-list)])
     ; Create a workspace and apply the keymap to it
     (make-workspace (number->string i)  #:background-color (find-named-color color)))

@@ -411,9 +411,10 @@ By default it is the virtual-root under the pointer."
 (provide (struct-out head-info))
 (doc head-info
      "Structure holding information about heads (monitors, screens).
-   `screen' is the physical head on which the (possibly virtual) head is mapped.
-   It may be different from the position of the head in the xinerama-screen-infos vector
-   in the case a screen has been split.")
+  `screen' is the physical head on which the (possibly virtual) head is mapped.
+  It may be different from the position of the head in the xinerama-screen-infos vector
+  in the case a screen has been split.
+  `root-window' may be shared among several heads and thus may not have the same dimensions as the head.")
 
 (define (heads-intersect? hd1 hd2)
   (with-head-info
@@ -487,6 +488,14 @@ By default it is the virtual-root under the pointer."
            [i (in-naturals)])
     (and (window=? win (head-info-root-window hd-info)) i)))
 
+(define* (find-root-window-heads win)
+  "Returns the list of heads that has win as its root window."
+  (filter 
+   values
+   (for/list ([hd-info xinerama-head-infos]
+              [i (in-naturals)])
+     (and (window=? win (head-info-root-window hd-info)) i))))
+
 (define* (find-head px py)
   "Returns the number of the first head that contains the point (px, py), or #f if not found."
   (for/or ([info xinerama-head-infos] [i (in-naturals)])
@@ -505,6 +514,21 @@ Only for single monitors."
   (set! xinerama-head-infos
         (vector (head-info 0 #f 0 0 xmid h)
                 (head-info 0 #f xmid 0 (- w xmid) h))))
+
+(define* (head-list-bounds [heads #f])
+  "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
+If `heads' is #f, all heads are considered."
+  (define (app1 op a b) 
+    (if a (op a b) b))
+  (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers 
+    (define-values (x1 y1 x2 y2)
+      (for/fold ([x1 #f] [y1 #f] [x2 #f] [y2 #f])
+        ([hd heads])
+        (match (get-head-info hd)
+          [(head-info s win x y w h)
+           (values (app1 min x1 x) (app1 min y1 y)
+                   (app1 max x2 (+ x w)) (app1 max y2 (+ y h)))])))
+    (values x1 y1 (- x2 x1) (- y2 y1))))
 
 (define* (find-window-head win)
   "Returns the head number that contains one of the corners or the center 
@@ -543,19 +567,28 @@ in the sense of `find-window-head'."
 ;=== Root Window ===;
 ;===================;
 
+(define* true-root-window (make-fun-box #f))
+
+(define* (true-root-window? win)
+  (window=? win (true-root-window)))
+
 (define* (pointer-root-window)
-  "Returns the root-window that contains the pointer."
+  "Returns the virtual root-window that contains the pointer."
   (and=> (pointer-head) head-root-window))
 
 (define* (focus-root-window)
+  "Returns the virtual root window that has the keyboard focus."
   (and=> (focus-head) head-root-window))
 
 (define* (init-root-window)
   (true-root-window (XDefaultRootWindow (current-display)))
   ;; Ask the root window to send us any event
   ;; (Q: is it useful if we use virtual roots?)
-  (define attrs (make-XSetWindowAttributes #:event-mask '(SubstructureRedirectMask)))
-  (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask) attrs)
+  (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask) 
+                           (make-XSetWindowAttributes 
+                            #:event-mask '(SubstructureRedirectMask 
+                                           SubstructureRedirectMask
+                                           StructureNotifyMask)))
   
   (xinerama-update-infos)
   )
