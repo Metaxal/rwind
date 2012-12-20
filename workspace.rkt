@@ -96,7 +96,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   
   ;; Add the window to the list of supported virtual roots
   ;; Does this work?? Not sure it really appends...
-  (change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window) 32)
+  (change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window))
   
   ;; Make sure we will see the keymap events
   (virtual-root-apply-keymaps root-window)
@@ -394,6 +394,9 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 (define* (init-workspaces)
   ; Wait for sync to be sure that all pending windows (not currently managed by us) are mapped:
   (XSync (current-display) #f)
+  
+  (change-window-property (true-root-window) _NET_SUPPORTED 'XA_WINDOW 'PropModeAppend (list _NET_VIRTUAL_ROOTS))
+
   
   ;; Get the window list *before* creating the workspace windows...
   (define existing-windows (window-list (true-root-window)))

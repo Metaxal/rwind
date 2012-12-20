@@ -19,16 +19,18 @@ Warnings:
   depends on it.
 
 
-Current features/lacks:
------------------------
-  - no ICCCM/EWMH compliance
-  - a client command line (repl)
-  - customization of key bindings and mouse bindings
-  - workspaces
-  - xinerama support
-  - very simple frames (not activated by default)
+Current features:
+-----------------
 
-All these features may still currently be very buggy.
+  - Client command line (repl)
+  - Customization of key bindings and mouse bindings
+  - Workspaces
+  - xinerama support (currently only through repl)
+  - Very simple frames (currently only through repl)
+  - Very little ICCCM/EWMH compliance 
+    - _NET_VIRTUAL_ROOTS
+
+All these features are in development stage.
 
 Installation:
 -------------
@@ -79,6 +81,7 @@ creates a nested X session (thanks to Asumu), in RWind's directory:
   Xephyr -ac -noreset -screen 800x600 :1 &
   DISPLAY=:1.0 ./run.sh &
   
+However it may not support RWind properly.
 
 Installation for use in lightdm/gdm:
 ------------------------------------
@@ -113,4 +116,11 @@ All bindings of '#lang racket' are available too.
 You can get help on a known identifier with:
 > (describe 'window-list)
 
+Debugging:
+----------
+
+An easy way to enable debugging is to type in a login shell (in RWind's
+directory):
+
+  ./compile-debug.sh && xinit .xinit-rwind-debug -- :1
 
