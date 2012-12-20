@@ -74,6 +74,7 @@
   _NET_WM_VISIBLE_NAME
   _NET_WM_ICON_NAME
   _NET_WM_VISIBLE_ICON_NAME
+  _NET_VIRTUAL_ROOTS
   WM_TAKE_FOCUS
   WM_DELETE_WINDOW
   WM_PROTOCOLS
@@ -260,9 +261,18 @@ the visible name, the icon name and the visible icon name in order."
 (define* (clear-window window)
   (XClearWindow (current-display) window))
 
-(define* (change-window-property window ...)
-  
-  #f)
+(define* (change-window-property window property type mode data-list [format 32])
+  (ChangeProperty (current-display) window property type mode data-list format))
+
+(define* (window-properties window)
+  (XListProperties (current-display) window))
+
+(define* (get-window-property window property type data-type)
+  "Returns a list of elements corresponding to property, or #f.
+  property: Atom
+  type: Atom
+  data-type: any; Type of the elements of the data list to be returned."
+  (GetWindowProperty (current-display) window property type data-type))
 
 ;=====================;
 ;=== Focus/Pointer ===;

@@ -16,6 +16,13 @@
          rackunit
          )
 
+#| TODO
+- add the __SWM_VROOT atom property to the virtual roots, so that xwininfo, xkill 
+  and others can handle the client windows properly.
+  http://xscreensaver.sourcearchive.com/documentation/4.24/xscreensaver_8c-source.html
+  also see xlambda.rkt
+|#
+
 #| *** Workspace **** (aka desktops)
 
 The children of the root window are the workspace's virtual roots (one per workspace).
@@ -76,6 +83,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
                  #:event-mask '(SubstructureRedirectMask)
                  #:background-pixel bk-color
                  ))
+  ;; Create the window, but don't map it yet.
   (define root-window
     (XCreateWindow (current-display) (true-root-window)
                    0 0
@@ -84,8 +92,12 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
                    CopyFromParent/int
                    'InputOutput
                    #f
-                   '(EventMask BackPixel) attrs))
-  ;; Create the window, but don't map it yet.
+                   '(EventMask BackPixel) attrs))  
+  
+  ;; Add the window to the list of supported virtual roots
+  ;; Does this work?? Not sure it really appends...
+  (change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window) 32)
+  
   ;; Make sure we will see the keymap events
   (virtual-root-apply-keymaps root-window)
   (define wk (workspace id root-window))
@@ -235,6 +247,8 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 
 (define*/contract (remove-window-from-workspace window wk)
   (window? workspace? . -> . any/c)
+  ;; TODO: Remove the workspace-window from the list of _NET_VIRTUAL_ROOTS
+  ;(change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window) 32)
   #f)
 
 (define*/contract (add-window-to-workspace window wk)
@@ -284,6 +298,11 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (define old-root (head-info-root-window hd-info))
   (define new-root (workspace-root-window new-wk))
   (define other-head (find-root-window-head new-root))
+  
+  ;; Add the "virtual-root" property
+  ;; TODO:  This property should be set to the true root window when the workspace is set
+  ;; Problem: I may have several root windows, so that I can map one per (virtual) screen...
+  ;(ChangeProperty (current-display) (true-root-window) __SWM_VROOT 'XA_WINDOW 'PropModeReplace (list root-window) 32)
   
   (cond [(window=? new-root old-root)
          (dprintf "Trying to activate the current workspace.\n")
