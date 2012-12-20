@@ -12,11 +12,9 @@ Warnings:
 
 - This package is under current development and is in no way stable, and
   is intended for testing purposes only. 
-- No backward compatibility will be ensured in th 0.x branch
+- No backward compatibility will be ensured in the 0.x branch
 - Due to a security issue, the current version should not be used on multiple 
   user computers. Use at your own risk!
-- Keep your X11-Racket (via git pull) up to date since RWind's development 
-  depends on it.
 
 
 Current features:
@@ -122,5 +120,6 @@ Debugging:
 An easy way to enable debugging is to type in a login shell (in RWind's
 directory):
 
-  ./compile-debug.sh && xinit .xinit-rwind-debug -- :1
+  ./compile-debug.sh
+  xinit .xinit-rwind-debug -- :1
 
