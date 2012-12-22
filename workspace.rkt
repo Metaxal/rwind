@@ -308,6 +308,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
          (set-head-info-root-window! hd-info new-root)
          
          ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed
+         ; TODO: use find-root-window-heads ?
          (workspace-fit-to-heads old-wk (list other-head))
          (workspace-fit-to-heads new-wk (list head))
 

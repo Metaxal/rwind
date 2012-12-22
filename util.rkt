@@ -206,3 +206,7 @@ waits for the delimiter to be read, and would thus hang)."
   (and=> #f foo-x) ; -> #f
   (and=> 'a foo? foo-x)) ; -> #f
 
+
+(define* (bound-value val lower-bound upper-bound)
+  "Returns `val' if it is in [lower-bound upper-bound], or the nearest bound otherwise."
+  (max lower-bound (min upper-bound val)))

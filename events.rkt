@@ -70,7 +70,8 @@
                                x y width height border-width above stack-mode value-mask)
        event)
      (XConfigureWindow (current-display) window value-mask 
-                       (make-XWindowChanges x y width height border-width above stack-mode))]
+                       (make-XWindowChanges x y (bound-value width 1 10000) (bound-value height 1 10000)
+                                            border-width above stack-mode))]
     
     [(ConfigureNotify)
      (match-define 

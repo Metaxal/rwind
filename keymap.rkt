@@ -510,11 +510,12 @@ Useful for 'MotionNotify events (where the button is not specified)."
          (set!-values (x y) (window-position window))
          #;(printf "@ Start dragging window ~a (~a)\n" window (window-name window))]
         [(ButtonMove)
-         (define-values (x-ev y-ev) (mouse-event-position ev))
-         (define x-diff (- x-ev x-ini))
-         (define y-diff (- y-ev y-ini))
-         #;(printf "@ Dragging window ~a...\n" (window-name (keymap-event-window ev)))
-         (move-window window (+ x x-diff) (+ y y-diff))]
+         (when window
+           (define-values (x-ev y-ev) (mouse-event-position ev))
+           (define x-diff (- x-ev x-ini))
+           (define y-diff (- y-ev y-ini))
+           #;(printf "@ Dragging window ~a...\n" (window-name (keymap-event-window ev)))
+           (move-window window (+ x x-diff) (+ y y-diff)))]
         #;[(ButtonRelease)
          (printf "@ Stop dragging window ~a.\n" (window-name (keymap-event-window ev)))]))))
 
@@ -528,10 +529,14 @@ Useful for 'MotionNotify events (where the button is not specified)."
          (set!-values (x-ini y-ini) (mouse-event-position ev))
          (set!-values (w h) (window-dimensions window))]
         [(ButtonMove)
-         (define-values (x-ev y-ev) (mouse-event-position ev))
-         (define x-diff (- x-ev x-ini))
-         (define y-diff (- y-ev y-ini))
-         (resize-window window (max 1 (+ w x-diff)) (max 1 (+ h y-diff)))]))))
+         (when window
+           (define-values (x-ev y-ev) (mouse-event-position ev))
+           (define x-diff (- x-ev x-ini))
+           (define y-diff (- y-ev y-ini))
+           (define new-w (max 1 (+ w x-diff)))
+           (define new-h (max 1 (+ h y-diff)))
+           (dprintf "Resizing window to ~a\n" (list window new-w new-h))
+           (resize-window window new-w new-h))]))))
 
 (define* (init-keymap)
   ;; TODO: Make a "root" keymap, that remains on top of the global one, 

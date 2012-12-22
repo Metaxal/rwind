@@ -19,7 +19,6 @@
 - time-stamps are quite probably not handled properly
 
 - viewports?
-- monitors / heads
 
 - GUI. Started, but problem, conflict with Racket's gui?
 
@@ -69,8 +68,9 @@ to be able to use (require rwind/keymap) for example
 
 (require ;"base.rkt" "window-util.rkt" "keymap.rkt" "util.rkt"
          ;; WARNING! Requiring the files via a raco link or via relative file does not require it in the same "namespace" (or something)!!
-         ;; Further requirement for the bug to appear: it must started with xinit
+         ;; Further requirement for the bug to appear: it must be started with xinit
          ;; see https://groups.google.com/forum/?fromgroups=#!topic/racket-users/jEXWq_24cOU
+         ;; (is this still true today?)
          rwind/base
          rwind/color
          rwind/display
@@ -85,10 +85,6 @@ to be able to use (require rwind/keymap) for example
          x11-racket/x11 ; needs raco link x11-racket
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
          )
-
-; for testing the popup-menu bug:
-;(require racket/gui/base rwind/test/popup-menu)
-
 
 (debug-prefix "RW: ")
 
@@ -126,30 +122,6 @@ to be able to use (require rwind/keymap) for example
         (init-user)
         
         (init-keymap)
-
-        #| For testing
-        (define f (new frame% [label "auie"]))
-        (define cb (new button% [parent f] [label "Menu"] 
-                        [callback (λ(cb ev)
-                                    (printf "*** button callback in gui-eventspace? ~a\n" (in-gui-eventspace?))
-                                    (send f popup-menu menu2 100 150))]))
-        ;(define cb2 (new button% [parent f] [label "Hide Me"] [callback (λ _ (send f show #f))]))
-        ;(send f show #t)
-        ; TEST
-        (add-bindings 
-         global-keymap
-         "C-F1"
-         (L* (queue-callback (λ();(printf "*** C-F1 callback in gui-eventspace? ~a\n" (in-gui-eventspace?))
-                                (thread (λ()(send f popup-menu menu2 100 400))))))
-         ;(L* (thread (λ()(define-values (w x y m) (query-pointer)) (show-popup-menu menu2 x y))))
-         "C-F2"
-         ; needs a thread, otherwise it freezes the main thread, since it's a dialog box that
-         ; requires to be mapped by the main thread
-         (L* (thread (λ()(message-box "Title" "Message"))))
-         "C-F3" 
-         (L* (send f show #t))
-         )
-|#
         
         ; This adds all mapped windows to the first workspace:
         (init-workspaces)
@@ -159,7 +131,8 @@ to be able to use (require rwind/keymap) for example
         ;==================;
         ;=== Event loop ===;
         ;==================;
-        (with-handlers ([exn:fail? (λ(e)(thread (λ()(error-message-box e))))])
+        (with-handlers ([exn:fail? (λ(e)(dprintf (exn-message e))
+                                     (thread (λ()(error-message-box e))))])
           (run-event-loop))
 
         (dprintf "Terminating... ")
