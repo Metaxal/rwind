@@ -72,6 +72,7 @@ Window can be either the window of the application, or the 'outside' window of t
   "Creates a frame% for the window, and return it, or #f if the window is already framed."
   (and
    (not (find-window-frame window))
+   (window-viewable? window)
    (new client-frame% [window window])))
 
 (define* (unframe-window window)
