@@ -10,12 +10,11 @@
          racket/string
          racket/file
          racket/function
+         compiler/compiler
          )
 
-(define* (path-string->string ps)
-  (if (path? ps)
-      (path->string ps)
-      ps))
+(module+ test
+  (require rackunit))
 
 (define* (rwind-system . args)
   "Runs a command asynchronously."
@@ -23,30 +22,6 @@
            (string-join (map path-string->string args))
            " &")))
   
-(define (all-combinations-elt e cbs)
-  (append cbs
-          (map (λ(cb)(cons e cb))
-               cbs)))
-
-;; l: list
-;; Returns the list of all the combinations of the elements of l, 
-;; including the empty list.
-(define* (all-combinations l)
-  "Returns the partition list of list l."
-  (if (empty? l)
-      '(())
-      (all-combinations-elt (first l)
-                            (all-combinations (rest l)))))
-
-
-(module+ test
-  (require rackunit)
-  (check-equal? (all-combinations '()) '(()))
-  (check-equal? (all-combinations '(a b c))
-                '(() (c) (b) (b c) (a) (a c) (a b) (a b c)))
-  #;(all-combinations '(a b c d))
-  )
-
 ;; Todo: for macos, it should be a different path?
 ;; app-name: string?
 (define* (find-user-config-dir app-name)
@@ -75,20 +50,9 @@
                    => (λ(e)(rwind-system e "-L" "-n" file))]
                   )]))
 
-(define* (call/values->list proc . args)
-  "Calls proc on args and turns the returned (multiple) values into a list."
-  (call-with-values (λ()(apply proc args)) list))
-
-(more-doc 
- call/values->list
- "Example:
-> (call/values->list values 1 2 3)
-'(1 2 3)")
-
-(define* cvl
-  "Same as 'call/values->list'. Convenience procedure for the command line."
-  call/values->list)
-
+;=================;
+;=== Debugging ===;
+;=================;
 
 (define* (print-wait msg . args)
   "Prints a message followed by '...'"
@@ -124,6 +88,10 @@
     (display (debug-prefix))
     (print-ok)))
 
+(define-syntax-rule (debug-var var)
+  (dprintf "Var ~a: ~v\n" 'var var))
+(provide debug-var)
+
 ;; I tried to use (call/debug proc . args) instead, 
 ;; so that keyword arguments could be dealt with, but did not succeed.
 (define-syntax-rule (call/debug proc args ...)
@@ -136,29 +104,56 @@
 Prints (proc args ...) before calling it."
      )
 
-(define* (write-data/flush data [out (current-output-port)])
-  "'write's the data to the output port, and flushes it.
-To ensure that the data is really sent as is, a space is added before flushing.
-(otherwise non-self-delimited data is not 'read' correctly, as the reader 
-waits for the delimiter to be read, and would thus hang)."
-  (write data out)
-  (display "  " out)
-  (flush-output out))
+;===================;
+;=== Compilation ===;
+;===================;
 
-#| write and non-delimited data
-> (with-input-from-string
-      (with-output-to-string (λ() (write 'x) (write 'y)))
-    read)
-'xy
-> (with-input-from-string
-      (with-output-to-string (λ() (write 'x) (print " ")(write 'y)))
-    (λ() (list (read) (read) (read))))
-'(x " " y)
-> (with-input-from-string
-      (with-output-to-string (λ() (write 'x) (display " ")(write 'y)))
-    (λ() (list (read) (read) (read))))
-'(x y #<eof>)
-|#
+(define* (compile-collection . collections)
+  (dprint-wait (string-append* "Recompiling " (add-between collections "/")))
+  (apply compile-collection-zos collections)
+  (dprint-ok))
+
+(define* (recompile-rwind)
+  (with-handlers ([exn:fail? 
+                     (λ(e)
+                       (dprintf "Something went wrong during compilation:\n")
+                       (displayln (exn-message e))
+                       (dprintf "Aborting procedure.\n"))])
+      (compile-collection "x11-racket")
+      (compile-collection "rwind")
+      ))
+
+(define* (full-command-line-arguments)
+  "Returns the list of all the command line arguments that were used to start the current process.
+(Currently Linux-specific)."
+  ;; TODO: Use, through FFI:
+  ;; GetCommandLineW() for Windows, and _NSGetArgc() and _NSGetArgv() for MacOS X.
+  (string-split (file->string "/proc/self/cmdline") "\u0000"))
+
+(define* (start-rwind-process)
+  "Starts a new instance of the rwind process.
+Warning: This assumes the process is started in the same working directory as the parent process."
+  (dprint-wait "Running child")
+  (define full-cmd-line (full-command-line-arguments))
+  (debug-var full-cmd-line)
+  (define-values (sp a b c)
+    (call/debug 
+     apply subprocess 
+     (current-output-port) (current-input-port) (current-error-port)
+     ;(find-executable-path (find-system-path 'exec-file))
+     ;this-file-string
+     (find-executable-path (first full-cmd-line))
+     (rest full-cmd-line)
+     ))
+  (dprint-ok))
+
+;============;
+;=== Misc ===;
+;============;
+
+(define* (bound-value val lower-bound upper-bound)
+  "Returns `val' if it is in [lower-bound upper-bound], or the nearest bound otherwise."
+  (max lower-bound (min upper-bound val)))
 
 (provide ++ -- += -=)
 
@@ -207,6 +202,69 @@ waits for the delimiter to be read, and would thus hang)."
   (and=> 'a foo? foo-x)) ; -> #f
 
 
-(define* (bound-value val lower-bound upper-bound)
-  "Returns `val' if it is in [lower-bound upper-bound], or the nearest bound otherwise."
-  (max lower-bound (min upper-bound val)))
+(define* (call/values->list proc . args)
+  "Calls proc on args and turns the returned (multiple) values into a list."
+  (call-with-values (λ()(apply proc args)) list))
+
+(more-doc 
+ call/values->list
+ "Example:
+> (call/values->list values 1 2 3)
+'(1 2 3)")
+
+(define* cvl
+  "Same as 'call/values->list'. Convenience procedure for the command line."
+  call/values->list)
+
+(define* (write-data/flush data [out (current-output-port)])
+  "'write's the data to the output port, and flushes it.
+To ensure that the data is really sent as is, a space is added before flushing.
+(otherwise non-self-delimited data is not 'read' correctly, as the reader 
+waits for the delimiter to be read, and would thus hang)."
+  (write data out)
+  (display "  " out)
+  (flush-output out))
+
+#| write and non-delimited data
+> (with-input-from-string
+      (with-output-to-string (λ() (write 'x) (write 'y)))
+    read)
+'xy
+> (with-input-from-string
+      (with-output-to-string (λ() (write 'x) (print " ")(write 'y)))
+    (λ() (list (read) (read) (read))))
+'(x " " y)
+> (with-input-from-string
+      (with-output-to-string (λ() (write 'x) (display " ")(write 'y)))
+    (λ() (list (read) (read) (read))))
+'(x y #<eof>)
+|#
+
+(define (all-combinations-elt e cbs)
+  (append cbs
+          (map (λ(cb)(cons e cb))
+               cbs)))
+
+;; l: list
+;; Returns the list of all the combinations of the elements of l, 
+;; including the empty list.
+(define* (all-combinations l)
+  "Returns the partition list of list l."
+  (if (empty? l)
+      '(())
+      (all-combinations-elt (first l)
+                            (all-combinations (rest l)))))
+
+
+(module+ test
+  (check-equal? (all-combinations '()) '(()))
+  (check-equal? (all-combinations '(a b c))
+                '(() (c) (b) (b c) (a) (a c) (a b) (a b c)))
+  #;(all-combinations '(a b c d))
+  )
+
+(define* (path-string->string ps)
+  (if (path? ps)
+      (path->string ps)
+      ps))
+

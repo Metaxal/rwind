@@ -545,11 +545,11 @@ Useful for 'MotionNotify events (where the button is not specified)."
             (thunk*
              (dprintf "Now exiting.\n")
              (exit-rwind? #t)))
-  #;(bind-key root-keymap "Escape" '(ControlMask Mod1Mask) 
+  (bind-key root-keymap "Escape" '(ControlMask Mod1Mask) 
               (thunk*
                (printf "Restarting...\n")
-               (set! exit? #t)
-               (set! restart? #t)))
+               (exit-rwind? #t)
+               (restart-rwind? #t)))
   
   (dprintf "root keymap:\n")
   (pretty-print root-keymap)

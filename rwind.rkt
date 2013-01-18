@@ -87,9 +87,13 @@ to be able to use (require rwind/keymap) for example
          )
 
 (debug-prefix "RW: ")
+;; Backup the current ports handlers
+(define-values (out0 in0 err0) 
+  (values (current-output-port) (current-input-port) (current-error-port)))
 
-#;(define restart? #f)
-
+;===========;
+;=== Run ===;
+;===========;
 (define (run)
   (with-output-to-file (build-path (find-system-path 'home-dir) "rwind.log")
     #:exists 'replace
@@ -142,22 +146,25 @@ to be able to use (require rwind/keymap) for example
         
         (exit-server)
         
+        (exit-workspaces)
+        
         (exit-display)
         
         ))); log to file  
   
-  ; Broken
-  #;(when restart?
-      (dprintf "Restarting... ")
-      ; Run another process without killing this one, 
-      ; otherwise the Xserver may terminate
-      (define l (cons  (path->string (find-system-path 'run-file))
-                       (vector->list (current-command-line-arguments))))
-      (dprintf "Command-line:~a\n" l)
-      (apply system* l))
+  ;===============;
+  ;=== Restart ===;
+  ;===============;
+  (when (restart-rwind?)
+    (start-rwind-process))
   
-  (dprintf "Finished.\n"))
+  (dprintf "Ending RWind process.\n")
+  ; Make sure to exit the process, e.g., in case somethings hangs, like gui frames
+  (exit))
 
+;============;
+;=== Main ===;
+;============;
 (module+ main
   (require racket/match)
   

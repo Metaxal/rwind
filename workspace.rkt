@@ -183,7 +183,8 @@ in the sense of `window-list'."
   "Returns the workspace that /should/ contain the window based on the window position, 
 but that does not currently contain it.
 This is mainly meant to be used to restore windows to their proper workspaces."
-  (call/debug find-head-workspace (find-window-head window)))
+  (and=> (find-window-head window)
+         find-head-workspace))
 
 (define* (pointer-workspace)
   "Returns the workspace that contains the pointer or #f if none is found."
@@ -407,6 +408,14 @@ If mode is 'multi, one workspace is mapped per head."
   (v-split-head)
   (update-workspaces 'multi))
 
+(define*/contract (exit-workspace wk)
+  (workspace? . -> . any)
+  "Reparents all sub-windows of the specified workspace to the true root."
+  ;; This is necessary to avoid killing the windows when RWind quits.
+  (define root (true-root-window))
+  (for ([w (workspace-subwindows wk)])
+    (reparent-window w root)))
+
 ;============;
 ;=== Init ===;
 ;============;
@@ -435,7 +444,15 @@ If mode is 'multi, one workspace is mapped per head."
 
   ;; Put all mapped windows in the workspace it belongs to,
   ;; depending on its position
-  (for-each (λ(w)(add-window-to-workspace w (guess-window-workspace w)))
+  (for-each (λ(w)(let ([wk (guess-window-workspace w)])
+                   (if wk
+                       (add-window-to-workspace w wk)
+                       (dprintf "Warning: Could not guess workspace for window ~a\n" w))))
             existing-windows)
   )
 
+(define* (exit-workspaces)
+  "Reparents all sub-windows to the true root-window."
+  ;; TODO: unmap all workspace virtual-root-windows?
+  (for-each exit-workspace workspaces)
+  )

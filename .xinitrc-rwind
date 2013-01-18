@@ -9,11 +9,13 @@ xsetroot -cursor_name top_left_arrow
 
 xclock -g 50x50-0+0 -bw 0 &
 xload -g 50x50-50+0 -bw 0 &
-xterm -g 80x24-0-0 &
 xterm -g 80x24+0-0 &
 
 # The window manager
-exec ./run.sh
+exec ./run.sh &
 # Or debug mode:
-#X11_RACKET_DEBUG=1 exec ./run-debug.sh
+#X11_RACKET_DEBUG=1 exec ./run-debug.sh &
+
+# Close this to end the session
+xterm -g 80x24-0-0
 
