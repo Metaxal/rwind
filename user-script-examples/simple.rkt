@@ -2,7 +2,8 @@
 
 ;;; User configuration file
 
-(require rwind/keymap
+(require rwind/base
+         rwind/keymap
          rwind/window
          rwind/util
          rwind/user
@@ -13,35 +14,38 @@
 
 (add-bindings 
  global-keymap
- ;; Open xterm
- "A-C-t" (L* (rwind-system "xterm"))
- ;; Open xclock
+ ; Open xterm with Alt/Meta-Control-t
+ "M-C-t" (L* (rwind-system "xterm"))
+ ; Open xclock
  "M-C-c" (L* (rwind-system "xclock -digital -update 1"))
- ;; Open gmrun (requires it to be installed)
+ ; Open gmrun (requires it to be installed)
  "M-F2"  (L* (rwind-system "gmrun"))
- ;; Opens the client of rwind for console interaction
+ ; Opens the client of rwind for console interaction
  "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -e \"(require rwind/client)\"'"))
- ;; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
+ ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
  "M-F10" (L* (open-user-config-file))
- ;; Close window gracefully if possible, otherwise kill the client
+ ; Close window gracefully if possible, otherwise kill the client
  "M-F4"  (L* (delete-window (input-focus)))
+ ; Give keyboard focus to the next window
+ "M-Tab" (L* (focus-next!))
  )
 
 (for ([i 3])
   (add-bindings
    global-keymap
-   ;; Switch to the ith workspace
+   ; Switch to the i-th workspace
    (format "Super-F~a" (add1 i)) (L* (activate-workspace i))
-   ;; Move window to workspace and activate
+   ; Move window to workspace and activate
    (format "S-Super-F~a" (add1 i)) (L* (move-window-to-workspace/activate (input-focus) i))
    ))
 
 (add-bindings
  window-keymap
- ;; Moving window with Ctrl-Button1
- "C-Move1" (motion-move-window)
- ;; Resizing window with Ctrl-Button3
- "C-Move3" (motion-resize-window))
+ ; Moving window with Meta-Button1
+ "M-Move1" (motion-move-window)
+ ; Resizing window with Meta-Button3
+ "M-Move3" (motion-resize-window)
+ )
 
 (add-binding
  window-keymap
@@ -57,3 +61,15 @@
             (allow-events 'ReplayPointer)
             )
  #:grab-mode 'GrabModeSync)
+
+(add-bindings 
+ root-keymap 
+ ; Quit RWind (but may not quit the session)
+ "M-Escape" (L* (dprintf "Now exiting.\n")
+                (exit-rwind? #t))
+ ; Recompile RWind, quit and restart
+ "M-C-Escape" (L* (when (recompile-rwind)
+                    (dprintf "Restarting...\n")
+                    (restart-rwind? #t)
+                    (exit-rwind? #t)))
+ )

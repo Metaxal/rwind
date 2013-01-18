@@ -113,15 +113,18 @@ Prints (proc args ...) before calling it."
   (apply compile-collection-zos collections)
   (dprint-ok))
 
+;; Tries to recompile RWind.
+;; Returns #t on success, #f otherwise (+ logging)
 (define* (recompile-rwind)
   (with-handlers ([exn:fail? 
                      (λ(e)
-                       (dprintf "Something went wrong during compilation:\n")
+                       (dprintf "Error: Something went wrong during compilation:\n")
                        (displayln (exn-message e))
-                       (dprintf "Aborting procedure.\n"))])
+                       (dprintf "Aborting procedure.\n")
+                       #f)])
       (compile-collection "x11-racket")
       (compile-collection "rwind")
-      ))
+      #t))
 
 (define* (full-command-line-arguments)
   "Returns the list of all the command line arguments that were used to start the current process.

@@ -288,8 +288,8 @@ since there is no fixed value for them."
   "Returns an empty keymap."
   make-hash)
 
-(define root-keymap
-  #;"Keymap for the root window. Should not be modified by the user."
+(define* root-keymap
+  "Keymap for the true root window."
   (make-keymap))
 
 (define* global-keymap
@@ -297,7 +297,7 @@ since there is no fixed value for them."
   (make-keymap))
 
 (define* window-keymap 
-  "Keymap for actions that may differ from window to window."
+  "Keymap for actions that depend on the window."
   (make-keymap))
 
 (define* (keymap-set! keymap key proc #:grab-mode [grab-mode 'GrabModeAsync])
@@ -539,17 +539,6 @@ Useful for 'MotionNotify events (where the button is not specified)."
            (resize-window window new-w new-h))]))))
 
 (define* (init-keymap)
-  ;; TODO: Make a "root" keymap, that remains on top of the global one, 
-  ;; and that cannot be modified by the user?
-  (bind-key root-keymap "Escape" '(Mod1Mask) 
-            (thunk*
-             (dprintf "Now exiting.\n")
-             (exit-rwind? #t)))
-  (bind-key root-keymap "Escape" '(ControlMask Mod1Mask) 
-              (thunk*
-               (printf "Restarting...\n")
-               (exit-rwind? #t)
-               (restart-rwind? #t)))
   
   (dprintf "root keymap:\n")
   (pretty-print root-keymap)
