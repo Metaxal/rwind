@@ -81,6 +81,10 @@
      (unless override-redirect
        (cond [(true-root-window? window)
               (dprintf "Configuring root window\n")
+              (dprintf "Updating workspaces\n")
+              (xinerama-update-infos)
+              (update-workspaces)
+              ; TODO: Add workspace hook to update them
               #;(call-hooks 'configure-notify-true-root-window event)]))]
     
     #;[(Expose)

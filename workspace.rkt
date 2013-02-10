@@ -439,20 +439,19 @@ Furthermore, it also changes the root-windows of the heads."
   (for ([hd heads])
     (set-head-info-root-window! (get-head-info hd) wk-root)))
 
-;; TODO: finish work for 'single mode
 (define* (update-workspaces)
   "Updates the information about the screens and maps one workspace in each screen.
 See change-workspace-mode for more information on the different modes."
   
   ; First make sure that all root windows are unmapped
   (for-each unmap-workspace workspaces)
-  
-  ;; Warning (TODO): What happens if there aren't enough workspaces? (should create it)
-  
+    
   (case (workspace-mode)
     [(single)
      (activate-workspace/single (first workspaces))]
     [(multi)
+     ; WARNING: We should check that no root-window are overlapping, 
+     ; otherwise we should fall back to 'single mode!
      (for ([hd (head-count)])
        (define wk (or (find-workspace hd)
                       (make-workspace (number->string hd))))
