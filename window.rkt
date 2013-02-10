@@ -403,6 +403,10 @@ By default it is the virtual-root under the pointer."
 (require x11-racket/xinerama racket/match)
 
 (define xinerama-head-infos #f)
+(define* (head-infos) xinerama-head-infos)
+(define* (head-count)
+  "Returns the number of (virtual) heads."
+  (max 1 (vector-length (head-infos))))
 
 (struct head-info
   (screen root-window x y w h)
@@ -443,10 +447,6 @@ By default it is the virtual-root under the pointer."
        (>= hd 0)
        (< hd (head-count))
        (vector-ref xinerama-head-infos hd)))
-
-(define* (head-count)
-  "Returns the number of (virtual) heads."
-  (max 1 (vector-length xinerama-head-infos)))
 
 (provide with-head-info)
 (define-syntax-rule (with-head-info hd (screen win x y w h) body ...)

@@ -3,12 +3,9 @@
 
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
-;;; Note that client.rkt is in GPL, because it uses readline, but rwind does not depend on it.
+;;; Note that the standalone client.rkt is in GPL, because it uses readline, but rwind does not depend on it.
 
 #| TODO: 
-- hot recompile&restart, like xmonad
-  Should ease development
-
 - security of the server: make sure the user at the other end of the tcp connection 
   is the same as the one running the server!
   Use Unix uid's? ask for password?
@@ -97,7 +94,7 @@ to be able to use (require rwind/keymap) for example
 (define (run)
   (with-output-to-file (build-path (find-system-path 'home-dir) "rwind.log")
     #:exists 'replace
-    ; For logging purposes, also see racket's logging facility search for "logging")
+    ; For logging purposes, also see racket's logging facility (search for "logging")
     (λ()
       (parameterize ([current-error-port (current-output-port)]
                      ;; Set the current directory to the user's dir
@@ -135,9 +132,7 @@ to be able to use (require rwind/keymap) for example
         ;==================;
         ;=== Event loop ===;
         ;==================;
-        (with-handlers ([exn:fail? (λ(e)(dprintf (exn-message e))
-                                     (thread (λ()(error-message-box e))))])
-          (run-event-loop))
+        (run-event-loop)
 
         (dprintf "Terminating... ")
         

@@ -33,7 +33,7 @@
 (for ([i 3])
   (add-bindings
    global-keymap
-   ; Switch to the i-th workspace
+   ; Switch to the i-th workspace with Super-F1, Super-F2, etc.
    (format "Super-F~a" (add1 i)) (L* (activate-workspace i))
    ; Move window to workspace and activate
    (format "S-Super-F~a" (add1 i)) (L* (move-window-to-workspace/activate (input-focus) i))

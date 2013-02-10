@@ -35,7 +35,7 @@
   (make-menu pm dic)
   pm #;(list fr pm))
 
-(define* (show-popup-menu menu x y)
+#;(define* (show-popup-menu menu x y)
   (define fr main-gui-frame #;(car menu))
   (define pm menu #;(cadr menu))
   (dprint-wait "Showing frame")

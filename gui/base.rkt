@@ -13,6 +13,8 @@
   (eq? (current-thread) (eventspace-handler-thread gui-eventspace)))
 ;  (eq? (current-eventspace) gui-eventspace))
 
+
+#|
 (provide with-gui)
 (define-syntax-rule (with-gui body ...)
   (parameterize ([current-eventspace gui-eventspace])
@@ -24,8 +26,9 @@ It paramaterizes the current event space to a dedicated one so that Racket GUI c
 do not get frozen.
 
 See Racket documentation: doc/gui/windowing-overview.html")
+|#
 
-(define* main-gui-frame
+#;(define* main-gui-frame
   (new frame% [label "Main Gui Frame"]
        [x 10] [y 10] [width 0] [height 0]))
 
@@ -40,5 +43,6 @@ See Racket documentation: doc/gui/windowing-overview.html")
   ;; since the main loop is what would show it, freezing everything.
   ;; (And it's useless to run the main loop in a separate thread, since keybindings 
   ;; are run from that loop)
-  (send main-gui-frame show #t)
+  #;(send main-gui-frame show #t)
+  #t
   )

@@ -270,4 +270,3 @@ waits for the delimiter to be read, and would thus hang)."
   (if (path? ps)
       (path->string ps)
       ps))
-

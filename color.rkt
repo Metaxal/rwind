@@ -40,3 +40,13 @@
   (set! white-pixel (WhitePixel disp screen))  
   )
   
+
+;; Not yet conform to XAllocColor...
+#;(define* (random-dark-color)
+  (define disp (current-display))
+  (define screen (DefaultScreen disp))
+  (define cmap (DefaultColorMap disp screen))
+  (XAllocColor disp cmap
+               (shuffle (list (random 64)
+                              (+ 64 (random 64))
+                              (+ 64 (random 64))))))

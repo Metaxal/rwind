@@ -15,6 +15,12 @@
   http://www.pygtk.org/pygtk2tutorial/sec-Images.html#wheelbarrowfig
   http://stackoverflow.com/questions/2846390/remove-border-of-a-gtk-button
   http://stackoverflow.com/questions/2869823/remove-gtkbuttons-image-padding-inner-border
+
+For beautiful widgets, don't forget to run:
+$ gnome-settings-daemon
+
+There already exist window decorators (Emerald, gtk-window-decorator, etc.).
+Can we use them directly instead?
 |#
 
 (define bitmap-dict (make-weak-hash))

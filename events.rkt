@@ -175,17 +175,19 @@
   (define x11-port (open-fd-input-port (XConnectionNumber (current-display))
                                        #;'x11-connection))
   (let loop ()
-    (sync/enable-break
-     (handle-evt x11-port 
-                 (lambda (_in)
-                   (let loop2 ()
-                     (unless (zero? (XPending (current-display)))
-                       (handle-event (XNextEvent* (current-display)))
-                       (loop2)))
-                   ))
-     ; This could be used by the server instead of creating a thread?
-     #;(handle-evt (current-input-port)
-                   (lambda (e)
-                     (printf "INPUT ~a ~a\n" e (read-line e)))))
-    (unless (exit-rwind?)
-      (loop))))
+    (with-handlers ([exn:fail? (λ(e)(dprintf (exn-message e))
+                                 #;(thread (λ()(error-message-box e))))])
+      (sync/enable-break
+       (handle-evt x11-port 
+                   (lambda (_in)
+                     (let loop2 ()
+                       (unless (zero? (XPending (current-display)))
+                         (handle-event (XNextEvent* (current-display)))
+                         (loop2)))
+                     ))
+       ; This could be used by the server instead of creating a thread?
+       #;(handle-evt (current-input-port)
+                     (lambda (e)
+                       (printf "INPUT ~a ~a\n" e (read-line e)))))
+      (unless (exit-rwind?)
+        (loop)))))
