@@ -28,6 +28,10 @@
  "M-F4"  (L* (delete-window (input-focus)))
  ; Give keyboard focus to the next window
  "M-Tab" (L* (focus-next!))
+ ; Place one workspace over all heads (monitors)
+ "M-Super-F5" (L* (change-workspace-mode 'single))
+ ; Place one workspace per head
+ "M-Super-F6" (L* (change-workspace-mode 'multi))
  )
 
 (for ([i 3])

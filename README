@@ -22,9 +22,12 @@ Current features:
 
   - Client command line (repl)
   - Customization of key bindings and mouse bindings
-  - Workspaces
+  - Workspaces 
+  - Multiple workspace modes
+    - single mode: one workspace over all monitors
+    - multi mode: one workspace per monitor
   - xinerama support (currently only through repl)
-  - Very simple frames (currently only through repl)
+  - Very simple frames (currently only through repl, and buggy)
   - Very little ICCCM/EWMH compliance 
     - _NET_VIRTUAL_ROOTS
 
