@@ -1,3 +1,4 @@
 #!/bin/sh
 export PLTCOMPILEDROOTS='compiled/debug:'
-racket -t rwind.rkt -- --debug --config user-script-examples/simple.rkt
+# WARNING: Docs say we should throw away .zo files!
+racket --no-jit -l errortrace -t rwind.rkt -- --debug --config user-script-examples/simple.rkt

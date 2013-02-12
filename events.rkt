@@ -79,12 +79,12 @@
                                x y width height border-width above override-redirect)
        event)
      (unless override-redirect
+       ;; TODO: Seems to be called twice. -> Call only if there are changes?
        (cond [(true-root-window? window)
               (dprintf "Configuring root window\n")
               (dprintf "Updating workspaces\n")
               (xinerama-update-infos)
               (update-workspaces)
-              ; TODO: Add workspace hook to update them
               #;(call-hooks 'configure-notify-true-root-window event)]))]
     
     #;[(Expose)

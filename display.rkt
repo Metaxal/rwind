@@ -10,8 +10,10 @@
          racket/date
          )
 
+;; TODO: update when xrandr is invoked (ConfigureNotify)
 (define* (display-dimensions [screen 0])
-  "Returns the values of width and height of the given screen."
+  "Returns the values of width and height of the given screen.
+Warning: These values may not reflect the current screen widths if they have changed?!"
   (values (XDisplayWidth (current-display) screen)
           (XDisplayHeight (current-display) screen)))
 

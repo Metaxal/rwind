@@ -461,8 +461,11 @@ See change-workspace-mode for more information on the different modes."
 
 (define* (v-split-workspace)
   "For testing only."
-  (v-split-head)
-  (update-workspaces 'multi))
+  (if (eq? (workspace-mode) 'multi)
+      (begin
+        (v-split-head)
+        (update-workspaces))
+      (dprintf "v-split-workspace: Must be in 'multi mode (use change-workspace-mode)")))
 
 (define*/contract (exit-workspace wk)
   (workspace? . -> . any)

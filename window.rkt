@@ -509,7 +509,7 @@ By default it is the virtual-root under the pointer."
   "Currently for testing purposes only (but may be useful in practice).
 Splits the current head vertically to make two virtual heads.
 Only for single monitors."
-  (define-values (w h) (display-dimensions))
+  (define-values (w h) (head-dimensions (pointer-head))#;(display-dimensions))
   (define xmid (quotient w 2))
   (set! xinerama-head-infos
         (vector (head-info 0 #f 0 0 xmid h)
