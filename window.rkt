@@ -505,15 +505,20 @@ By default it is the virtual-root under the pointer."
             (>= py y) (< py (+ y h))
             i)])))
 
-(define* (v-split-head)
+(define* (v-split-head [hd (pointer-head)])
   "Currently for testing purposes only (but may be useful in practice).
-Splits the current head vertically to make two virtual heads.
-Only for single monitors."
-  (define-values (w h) (head-dimensions (pointer-head))#;(display-dimensions))
-  (define xmid (quotient w 2))
-  (set! xinerama-head-infos
-        (vector (head-info 0 #f 0 0 xmid h)
-                (head-info 0 #f xmid 0 (- w xmid) h))))
+Splits the current head vertically to make two virtual heads."
+  (with-head-info
+   hd (s win x y w h)
+   (define xmid (quotient w 2))
+   (define l (vector->list xinerama-head-infos))
+   (define-values (left right) (split-at l hd))
+   (set! xinerama-head-infos
+         (list->vector
+          (append left
+                  (list (head-info win #f x y xmid h)
+                        (head-info s #f (+ x xmid) y (- w xmid) h))
+                  (rest right))))))
 
 (define* (head-list-bounds [heads #f])
   "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
