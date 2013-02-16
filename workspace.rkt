@@ -134,6 +134,11 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   "Returns the dimensions of the virtual root window of the specified workspace."
   (window-dimensions (workspace-root-window wk)))
 
+(define*/contract (workspace-position wk)
+  (workspace? . -> . (values number? number?))
+  "Returns the position of the virtual root window of the specified workspace."
+  (window-position (workspace-root-window wk)))
+
 (define*/contract (find-root-window-workspace window)
   (window? . -> . any/c)
   "Returns the workspace for which window is the (virtual) root, or #f if none is found."
@@ -459,13 +464,16 @@ See change-workspace-mode for more information on the different modes."
        (activate-workspace/multi wk hd))])
   )
 
-(define* (v-split-workspace)
-  "For testing only."
+(define*/contract (split-workspace [style 'horiz])
+  ([] [(one-of/c 'horiz 'vert)] . ->* . any)
+  "Splits the current workspace horizontally or vertically.
+This allows for multiple workspaces on a single monitor.
+See also `split-head'."
   (if (eq? (workspace-mode) 'multi)
       (begin
-        (v-split-head)
+        (split-head #:style style)
         (update-workspaces))
-      (dprintf "v-split-workspace: Must be in 'multi mode (use change-workspace-mode)")))
+      (dprintf "split-workspace: Must be in 'multi mode (use change-workspace-mode)")))
 
 (define*/contract (exit-workspace wk)
   (workspace? . -> . any)
@@ -474,6 +482,10 @@ See change-workspace-mode for more information on the different modes."
   (define root (true-root-window))
   (for ([w (workspace-subwindows wk)])
     (reparent-window w root)))
+
+(define* (reset-workspaces)
+  (xinerama-update-infos)
+  (update-workspaces))
 
 ;============;
 ;=== Init ===;

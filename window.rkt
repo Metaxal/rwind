@@ -13,8 +13,10 @@
          )
 
 #| TODO
-- contracts
+- contracts and tests
 |#
+
+(module+ test (require rackunit))
 
 (define* window? exact-nonnegative-integer?)
 
@@ -402,8 +404,7 @@ By default it is the virtual-root under the pointer."
 
 (require x11-racket/xinerama racket/match)
 
-(define xinerama-head-infos #f)
-(define* (head-infos) xinerama-head-infos)
+(define* head-infos (make-fun-box #f))
 (define* (head-count)
   "Returns the number of (virtual) heads."
   (max 1 (vector-length (head-infos))))
@@ -433,20 +434,20 @@ By default it is the virtual-root under the pointer."
 
 (define* (xinerama-update-infos)
   (define infos (XineramaQueryScreens (current-display)))
-  (set! xinerama-head-infos 
-        (if infos
-            (for/vector ([inf infos])
-              (match inf
-                [(XineramaScreenInfo screen x y w h)
-                 (head-info screen #f x y w h)]))
-            ; otherwise create a single head with the display dimensions
-            (vector (head-info 0 #f 0 0 (display-width) (display-height))))))
+  (head-infos 
+   (if infos
+       (for/vector ([inf infos])
+         (match inf
+           [(XineramaScreenInfo screen x y w h)
+            (head-info screen #f x y w h)]))
+       ; otherwise create a single head with the display dimensions
+       (vector (head-info 0 #f 0 0 (display-width) (display-height))))))
 
 (define* (get-head-info hd)
-  (and xinerama-head-infos
+  (and (head-infos)
        (>= hd 0)
        (< hd (head-count))
-       (vector-ref xinerama-head-infos hd)))
+       (vector-ref (head-infos) hd)))
 
 (provide with-head-info)
 (define-syntax-rule (with-head-info hd (screen win x y w h) body ...)
@@ -484,7 +485,7 @@ By default it is the virtual-root under the pointer."
 
 (define* (find-root-window-head win)
   "Returns the head number that has win as its root window, or #f if none is found."
-  (for/or ([hd-info xinerama-head-infos]
+  (for/or ([hd-info (head-infos)]
            [i (in-naturals)])
     (and (window=? win (head-info-root-window hd-info)) i)))
 
@@ -492,33 +493,50 @@ By default it is the virtual-root under the pointer."
   "Returns the list of heads that has win as its root window."
   (filter 
    values
-   (for/list ([hd-info xinerama-head-infos]
+   (for/list ([hd-info (head-infos)]
               [i (in-naturals)])
      (and (window=? win (head-info-root-window hd-info)) i))))
 
 (define* (find-head px py)
   "Returns the number of the first head that contains the point (px, py), or #f if not found."
-  (for/or ([info xinerama-head-infos] [i (in-naturals)])
+  (for/or ([info (head-infos)] [i (in-naturals)])
     (match info 
       [(head-info s win x y w h)
        (and (>= px x) (< px (+ x w))
             (>= py y) (< py (+ y h))
             i)])))
 
-(define* (v-split-head [hd (pointer-head)])
-  "Currently for testing purposes only (but may be useful in practice).
-Splits the current head vertically to make two virtual heads."
+(define*/contract (split-head [fraction 1/2] [hd (pointer-head)] #:style [style 'horiz])
+  ([] [(real-in 0 1) natural-number/c #:style (one-of/c 'horiz 'vert)] . ->* . any)
+  "Splits the specified head in two new heads, vertically or horizontally depending on the specified style.
+This can be used to simulate several heads on a single monitor."
   (with-head-info
    hd (s win x y w h)
-   (define xmid (quotient w 2))
-   (define l (vector->list xinerama-head-infos))
+   (define w1 (* w fraction))
+   (define h1 (* h fraction))
+   (define l (vector->list (head-infos)))
    (define-values (left right) (split-at l hd))
-   (set! xinerama-head-infos
-         (list->vector
-          (append left
-                  (list (head-info win #f x y xmid h)
-                        (head-info s #f (+ x xmid) y (- w xmid) h))
-                  (rest right))))))
+   (head-infos
+    (list->vector
+     (append left
+             (if (eq? style 'horiz)
+                 (list (head-info s #f x         y         w1        h)
+                       (head-info s #f (+ x w1)  y         (- w w1)  h))
+                 (list (head-info s #f x         y         w         h1)
+                       (head-info s #f x         (+ y h1)  w         (- h h1))))
+             (rest right))))))
+
+(module+ test
+  (define hds (vector (head-info 0 #f 100 200 800 400)))
+  (head-infos hds)
+  (split-head 1/4 0 #:style 'horiz)
+  (check-equal? (head-infos) (vector (head-info 0 #f 100 200 200 400)
+                                     (head-info 0 #f 300 200 600 400)))
+  (head-infos hds)
+  (split-head 1/4 0 #:style 'vert)
+  (check-equal? (head-infos) (vector (head-info 0 #f 100 200 800 100)
+                                     (head-info 0 #f 100 300 800 300)))
+  )
 
 (define* (head-list-bounds [heads #f])
   "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
@@ -542,11 +560,11 @@ Returns #f if no corner and center is contained in any head
 (which should be rare if the window is visible)."
   (and win
        (let-values ([(x y w h)(window-bounds win)])
-         (or (find-head x y)
-             (find-head (+ x w) y)
-             (find-head x (+ y h))
-             (find-head (+ x w) (+ y h))
-             (find-head (+ x (quotient w 2)) (+ y (quotient h 2)))))))
+         (or (find-head x                     y)
+             (find-head (+ x w)               y)
+             (find-head x                     (+ y h))
+             (find-head (+ x w)               (+ y h))
+             (find-head (+ x (quotient w 2))  (+ y (quotient h 2)))))))
 
 (define* (pointer-head)
   "Returns the head number that contains the mouse pointer."
@@ -558,11 +576,11 @@ Returns #f if no corner and center is contained in any head
 in the sense of `find-window-head'."
   (find-window-head (input-focus)))
 
-(module+ main
+#;(module+ main
   (require racket/vector)
   (init-display)
-  (v-split-head)
-  xinerama-head-infos
+  (split-head)
+  (head-infos)
   (head-dimensions 0)
   (find-head 0 0)
   (find-head 1000 1000)
