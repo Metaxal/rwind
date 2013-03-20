@@ -6,8 +6,7 @@ An extensible window manager aiming to be similar to Sawfish
 (http://sawfish.wikia.com), but written in the Racket programming language 
 (http://www.racket-lang.org).
 
-RWind mailing list:
-https://groups.google.com/forum/?fromgroups#!forum/rwind
+[RWind mailing list](https://groups.google.com/forum/?fromgroups#!forum/rwind)
 
 
 Warnings:
