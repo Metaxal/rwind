@@ -48,10 +48,7 @@ Installation:
   raco link --name rwind RWind
   raco setup x11-racket rwind
 
-3) Copy the provided .xinitrc-rwind file in your home directory, and modify its
-contents according to your installation.
-
-4) Optional, but recommended:
+3) Optional, but recommended:
 
 Copy (or link) and rename one of the files in the user-script-examples directory
 to $XDG_CONFIG_HOME/rwind/config.rkt (or to $HOME/.config/rwind/config.rkt if
@@ -69,7 +66,7 @@ The file simple.rkt defines a number of default key and mouse bindings.
  - Super-F1-3 switches between workspaces
  - Shift-Super-F1-3 moves the current window to another workspace
 
-5a) In a login shell, in RWind's directory, type the following:
+4a) In a login shell, in RWind's directory, type the following:
 
   xinit .xinitrc-rwind -- :1 &
 
@@ -78,7 +75,7 @@ available.
 
 Press Alt-Escape to quit the session.
 
-5b) You can also test with Xephyr (from the xserver-xephyr package), that 
+4b) You can also test with Xephyr (from the xserver-xephyr package), that 
 creates a nested X session (thanks to Asumu), in RWind's directory:
  
   Xephyr -ac -noreset -screen 800x600 :1 &
