@@ -42,11 +42,10 @@ Installation:
 2) Create a directory where to place Racket projects (e.g., 
 /home/me/Programming/Racket), then do, in this directory:
 
-  git clone http://github.com/kazzmir/x11-racket.git
+  raco pkg install x11
   git clone http://github.com/Metaxal/RWind.git
-  raco link x11-racket
   raco link --name rwind RWind
-  raco setup x11-racket rwind
+  raco setup x11 rwind
 
 3) Optional, but recommended:
 
