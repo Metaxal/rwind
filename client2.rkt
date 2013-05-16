@@ -1,6 +1,6 @@
 #lang racket ; to load all useful procedures for evaling the client commands
 
-(require x11-racket/x11
+(require x11/x11
          rwind/base
          rwind/util
          rwind/window

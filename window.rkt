@@ -7,7 +7,7 @@
          rwind/doc-string
          rwind/util
          rwind/display
-         x11-racket/x11
+         x11/x11
          racket/list
          racket/contract
          )
@@ -68,6 +68,7 @@
            ...)
          ))
 
+;@@ Atoms
 (provide intern-atoms)
 ;; (intern-atoms) must be called on init.
 (define-atoms intern-atoms
@@ -76,6 +77,9 @@
   _NET_WM_VISIBLE_NAME
   _NET_WM_ICON_NAME
   _NET_WM_VISIBLE_ICON_NAME
+  _NET_WM_STATE ; http://developer.gnome.org/wm-spec/#id2551694
+  _NET_WM_WINDOW_TYPE ; http://developer.gnome.org/wm-spec/#id2551529
+  _NET_WM_ALLOWED_ACTIONS ; http://developer.gnome.org/wm-spec/#id2551927
   _NET_SUPPORTED
   _NET_VIRTUAL_ROOTS
   WM_TAKE_FOCUS
@@ -179,14 +183,14 @@ the visible name, the icon name and the visible icon name in order."
 (define* (raise-window window)
   (XRaiseWindow (current-display) window))
 
+(define* (lower-window window)
+  (XLowerWindow (current-display) window))
+
 (define* (map-window window)
   (XMapWindow (current-display) window))
 
 (define* (unmap-window window)
   (XUnmapWindow (current-display) window))
-
-(define* (lower-window window)
-  (XLowerWindow (current-display) window))
 
 (define* (iconify-window window)
   (XIconifyWindow (current-display) window))
@@ -276,6 +280,22 @@ the visible name, the icon name and the visible icon name in order."
   type: Atom
   data-type: any; Type of the elements of the data list to be returned."
   (GetWindowProperty (current-display) window property type data-type))
+
+(define* (get-window-property-atoms window property)
+  "Returns a list of Atoms for the given property and window."
+  (or (get-window-property window property 'XA_ATOM Atom) #f))
+
+; For information on all the window types, see http://developer.gnome.org/wm-spec/#id2551529
+; (use it with (map atom->atom-name ...) for better reading)
+(define* (get-window-type window)
+  "Returns a list of types as atoms for the specified window."
+  (get-window-property-atoms window _NET_WM_WINDOW_TYPE))
+
+(define* (get-window-state window)
+  (get-window-property-atoms window _NET_WM_STATE))
+
+(define* (get-window-allowed-actions window)
+  (get-window-property-atoms window _NET_WM_ALLOWED_ACTIONS))
 
 ;=====================;
 ;=== Focus/Pointer ===;
@@ -402,7 +422,7 @@ By default it is the virtual-root under the pointer."
 - see (get-display-count)
 |#
 
-(require x11-racket/xinerama racket/match)
+(require x11/xinerama racket/match)
 
 (define* head-infos (make-fun-box #f))
 (define* (head-count)
@@ -601,7 +621,9 @@ in the sense of `find-window-head'."
 
 (define* (focus-root-window)
   "Returns the virtual root window that has the keyboard focus."
-  (and=> (focus-head) head-root-window))
+  (XWindowAttributes-root (window-attributes (input-focus)))
+  #;(workspace-root-window (find-window-workspace (input-focus)))
+  #;(and=> (focus-head) head-root-window))
 
 (define* (init-root-window)
   (true-root-window (XDefaultRootWindow (current-display)))

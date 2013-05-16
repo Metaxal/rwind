@@ -11,6 +11,7 @@
          )
 
 (define* cmd-line-config-file (make-fun-box #f))
+(define* rwind-uds-socket (make-fun-box (find-user-config-file rwind-dir-name "rwind-socket")))
 
 (define* (rwind-user-config-file)
   "Returns the configuration-file path for rwind (and may create the directory)."

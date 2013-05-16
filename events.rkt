@@ -9,8 +9,8 @@
          rwind/keymap
          rwind/window
          rwind/workspace
-         x11-racket/x11
-         x11-racket/fd
+         x11/x11
+         x11/fd
          racket/match
          )
 

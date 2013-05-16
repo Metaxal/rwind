@@ -6,7 +6,7 @@
 (require rwind/base 
          rwind/doc-string
          rwind/util
-         x11-racket/x11
+         x11/x11
          racket/date
          )
 
@@ -39,7 +39,7 @@ Warning: These values may not reflect the current screen widths if they have cha
     (x11-debug-prefix "  X: ")
     
     ; For debugging purposes only, because very slow!
-    (XSynchronize (current-display) #t)
+    #;(XSynchronize (current-display) #t)
     
     ; TODO: set _XDebug to #t !
     #;(XSetAfterFunction (current-display)

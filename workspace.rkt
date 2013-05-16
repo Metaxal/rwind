@@ -10,7 +10,7 @@
          rwind/keymap
          rwind/window
          rwind/color
-         x11-racket/x11
+         x11/x11
          racket/list
          racket/contract
          racket/match

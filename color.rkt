@@ -5,7 +5,7 @@
 
 (require rwind/base
          rwind/doc-string
-         x11-racket/x11
+         x11/x11
          racket/dict
          )
 

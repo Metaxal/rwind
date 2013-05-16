@@ -122,7 +122,7 @@ Prints (proc args ...) before calling it."
                        (displayln (exn-message e))
                        (dprintf "Aborting procedure.\n")
                        #f)])
-      (compile-collection "x11-racket")
+      (compile-collection "x11")
       (compile-collection "rwind")
       #t))
 

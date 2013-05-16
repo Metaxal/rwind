@@ -6,12 +6,19 @@
 #| TODO
 - security: 
   - verify that the user is the same as the owner of the root window
+  - see https://github.com/Metaxal/RWind/issues/4
+  - and maybe scheme_make_fd_output_port
+  - unix-socket-connect in collects/db/private/... or in unstable
+    (but requires that another software opens the socket for writing?)
+    - http://www.thomasstover.com/uds.html
+    - Use the new PLaneT package:
+      http://planet.racket-lang.org/display.ss?package=racket-unix-sockets.plt&owner=shawnpresser
 - module->namespace with a separate module instead of an anchor?
 
 - see graphical-read-eval-print-loop
 |#
 
-(require x11-racket/x11
+(require x11/x11
          rwind/base
          rwind/util
          rwind/window

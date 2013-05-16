@@ -6,6 +6,11 @@
 ;;; Note that the standalone client.rkt is in GPL, because it uses readline, but rwind does not depend on it.
 
 #| TODO: 
+PRIORITIES:
+- *** make the basis so that extending and debugging is easy! ***
+- make sure Racket's GUI works... (problems with the event-spaces)
+
+Other:
 - security of the server: make sure the user at the other end of the tcp connection 
   is the same as the one running the server!
   Use Unix uid's? ask for password?
@@ -52,7 +57,7 @@
 
 #|
 - compilation and launch:
-X11_RACKET_DEBUG=1 raco setup x11-racket rwind && xinit .xinit-rwind -- :1 &
+X11_RACKET_DEBUG=1 raco setup x11 rwind && xinit .xinit-rwind -- :1 &
 
 - In rwind's directory: raco link rwind
 to be able to use (require rwind/keymap) for example
@@ -79,7 +84,7 @@ to be able to use (require rwind/keymap) for example
          rwind/window
          rwind/workspace
          rwind/gui/base
-         x11-racket/x11 ; needs raco link x11-racket
+         x11/x11 ; needs raco pkg install x11
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
          )
 

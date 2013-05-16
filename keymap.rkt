@@ -8,9 +8,9 @@
          rwind/util
          rwind/window
          rwind/doc-string
-         x11-racket/x11
-         ;x11-racket/keysym-util
-         x11-racket/keysymdef
+         x11/x11
+         ;x11/keysym-util
+         x11/keysymdef
          ;"../racket/common/debug.rkt"
          racket/list
          racket/match
