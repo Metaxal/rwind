@@ -259,14 +259,17 @@ Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
                       (truncate (* frac-x (- wmax new-w))) (truncate (* frac-y (- hmax new-h)))
                       new-w new-h))
 
-(define*/contract (move-resize-window-grid window win-col win-row cols [rows cols])
-  ((window? (integer-in 0 99) (integer-in 0 99) (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
-  "Places window in the grid of size (rows, cols) at the cell (row, col).
+(define*/contract (move-resize-window-grid window cols win-col win-row col-span [row-span col-span]
+                                           #:rows [rows cols])
+  ((window? (integer-in 1 100) (integer-in 0 99) (integer-in 0 99) (integer-in 0 99))
+   ((integer-in 1 100) #:rows (integer-in 0 99))
+   . ->* . any/c)
+  "Places window in the grid of size (rows, cols) at the cell (row, col) spanning over col-span and row-span cells.
 Row and col range from 0 to rows-1 and cols-1."
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define cell-w (truncate (/ wmax cols)))
   (define cell-h (truncate (/ hmax rows)))
-  (move-resize-window window (* win-col cell-w) (* win-row cell-h) cell-w cell-h))
+  (move-resize-window window (* win-col cell-w) (* win-row cell-h) (* col-span cell-w) (* row-span cell-h)))
 
 (define*/contract (move-resize-window-grid-auto window cols [rows cols])
   ((window? (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
@@ -277,7 +280,7 @@ Ex: (for ([w (viewable-windows)]) (move-resize-window-grid-auto w 3))"
   (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))
   (define win-col (truncate (/ (* cols xc) wmax)))
   (define win-row (truncate (/ (* rows yc) hmax)))
-  (move-resize-window-grid window win-col win-row cols rows))
+  (move-resize-window-grid window cols #:rows rows win-col win-row 1))
 
 ;(define (uniconify-window window)(void))
 
