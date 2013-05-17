@@ -198,8 +198,16 @@ Like define* but with a contract right after the header (if a procedure) or the 
   (filter (λ(s)(regexp-match rx (symbol->string s)))
           (known-identifiers)))
 
+(define* (help)
+  "Displays some help."
+  (displayln "
+Use (describe symbol) to get some information about the identifier/procedure/form named symbol.
+For example: (describle 'help)
+Use (known-identifiers) to fetch the list of all known identifiers.
+Use (search-identifiers rx) to fetch the list of identifiers matching the specified regular expression.
+"))
 
-(module+ test
+(module+ main
   (require racket/contract)
   
   (define*/contract (foo x y)

@@ -219,23 +219,19 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (h-maximize-window window)
   "Maximizes window horizontally."
-  (define-values (w h) (window-dimensions window))
-  (define-values (x y) (window-position window))
-  (define wmax (display-width))
+  (define-values (x y w h) (window-bounds window))
+  (define-values (wmax hmax) (head-dimensions (find-window-head window)))
   (move-resize-window window 0 y wmax h))
 
 (define* (v-maximize-window window)
   "Maximizes window vertically."
-  (define-values (w h) (window-dimensions window))
-  (define-values (x y) (window-position window))
-  (define hmax (display-height))
+  (define-values (x y w h) (window-bounds window))
+  (define-values (wmax hmax) (head-dimensions (find-window-head window)))
   (move-resize-window window x 0 w hmax))
 
 (define* (maximize-window window)
   "Maximizes window horizontally and vertically."
-  (define-values (w h) (window-dimensions window))
-  (define-values (x y) (window-position window))
-  (define-values (wmax hmax) (display-dimensions))
+  (define-values (wmax hmax) (head-dimensions (find-window-head window)))
   (move-resize-window window 0 0 wmax hmax))
 
 ;(define (uniconify-window window)(void))
