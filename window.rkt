@@ -643,9 +643,9 @@ in the sense of `find-window-head'."
 
 (define* (focus-root-window)
   "Returns the virtual root window that has the keyboard focus."
-  (XWindowAttributes-root (window-attributes (input-focus)))
+  #;(XWindowAttributes-root (window-attributes (input-focus))) ; nope, gives the true root
   #;(workspace-root-window (find-window-workspace (input-focus)))
-  #;(and=> (focus-head) head-root-window))
+  (and=> (focus-head) head-root-window))
 
 (define* (init-root-window)
   (true-root-window (XDefaultRootWindow (current-display)))
