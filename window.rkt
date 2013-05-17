@@ -78,7 +78,11 @@
   _NET_WM_ICON_NAME
   _NET_WM_VISIBLE_ICON_NAME
   _NET_WM_STATE ; http://developer.gnome.org/wm-spec/#id2551694
+  
   _NET_WM_WINDOW_TYPE ; http://developer.gnome.org/wm-spec/#id2551529
+  _NET_WM_WINDOW_TYPE_NORMAL
+  _NET_WM_WINDOW_TYPE_DESKTOP
+  
   _NET_WM_ALLOWED_ACTIONS ; http://developer.gnome.org/wm-spec/#id2551927
   _NET_SUPPORTED
   _NET_VIRTUAL_ROOTS
@@ -181,7 +185,9 @@ the visible name, the icon name and the visible icon name in order."
   (XUnmapWindow (current-display) window))
 
 (define* (raise-window window)
-  (XRaiseWindow (current-display) window))
+  (define type (get-window-type window)) ; may be a list of types
+  (unless (window-has-type? window _NET_WM_WINDOW_TYPE_DESKTOP)
+    (XRaiseWindow (current-display) window)))
 
 (define* (lower-window window)
   (XLowerWindow (current-display) window))
@@ -290,6 +296,11 @@ the visible name, the icon name and the visible icon name in order."
 (define* (get-window-type window)
   "Returns a list of types as atoms for the specified window."
   (get-window-property-atoms window _NET_WM_WINDOW_TYPE))
+
+(define* (window-has-type? window type)
+  "Returns non-#f if the window has the specified type, #f otherwise."
+  (define types (get-window-type window))
+  (and types (memq type types)))
 
 (define* (get-window-state window)
   (get-window-property-atoms window _NET_WM_STATE))
