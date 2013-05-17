@@ -217,19 +217,19 @@ the visible name, the icon name and the visible icon name in order."
 (define* (iconify-window window)
   (XIconifyWindow (current-display) window))
 
-(define (window-head-bounds window)
+(define (window+head-bounds window)
   (define-values (x y w h) (window-bounds window))
   (define-values (wmax hmax) (head-dimensions (find-window-head window)))
   (values x y w h wmax hmax))
 
 (define* (h-maximize-window window)
   "Maximizes window horizontally."
-  (define-values (x y w h wmax hmax) (window-head-bounds window))
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
   (move-resize-window window 0 y wmax h))
 
 (define* (v-maximize-window window)
   "Maximizes window vertically."
-  (define-values (x y w h wmax hmax) (window-head-bounds window))
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
   (move-resize-window window x 0 w hmax))
 
 (define* (maximize-window window)
@@ -245,31 +245,39 @@ the visible name, the icon name and the visible icon name in order."
   (window? (real-in 0 1) (real-in 0 1) . -> . any/c)
   "Places the window at a fraction of its head.
 Ex: (move-window (pointer-head) 1/4 3/4)"
-  (define-values (x y w h wmax hmax) (window-head-bounds window))
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
   (move-window window (truncate (* frac-x (- wmax w))) (truncate (* frac-y (- hmax h)))))
 
 (define*/contract (move-resize-window-frac window frac-x frac-y frac-w [frac-h frac-w])
   ((window? (real-in 0 1) (real-in 0 1) (real-in 0 1)) ((real-in 0 1)) . ->* . any/c)
   "Places the window at a fraction of its head.
 Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
-  (define-values (x y w h wmax hmax) (window-head-bounds window))
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define new-w (truncate (* frac-w wmax)))
   (define new-h (truncate (* frac-h hmax)))
   (move-resize-window window
                       (truncate (* frac-x (- wmax new-w))) (truncate (* frac-y (- hmax new-h)))
                       new-w new-h))
 
-(define*/contract (move-resize-window-grid-auto window rows [cols rows])
-  ((window? (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
-  "Places window in the grid in the row and column depending on its gravity center."
-  (define-values (x y w h wmax hmax) (window-head-bounds window))
-  (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
-  (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))
+(define*/contract (move-resize-window-grid window win-col win-row cols [rows cols])
+  ((window? (integer-in 0 99) (integer-in 0 99) (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
+  "Places window in the grid of size (rows, cols) at the cell (row, col).
+Row and col range from 0 to rows-1 and cols-1."
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define cell-w (truncate (/ wmax cols)))
   (define cell-h (truncate (/ hmax rows)))
+  (move-resize-window window (* win-col cell-w) (* win-row cell-h) cell-w cell-h))
+
+(define*/contract (move-resize-window-grid-auto window cols [rows cols])
+  ((window? (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
+  "Places window in the grid in the row and column of its gravity center.
+Ex: (for ([w (viewable-windows)]) (move-resize-window-grid-auto w 3))"
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
+  (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
+  (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))
   (define win-col (truncate (/ (* cols xc) wmax)))
   (define win-row (truncate (/ (* rows yc) hmax)))
-  (move-resize-window window (* win-col cell-w) (* win-row cell-h) cell-w cell-h))
+  (move-resize-window-grid window win-col win-row cols rows))
 
 ;(define (uniconify-window window)(void))
 

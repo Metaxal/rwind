@@ -516,6 +516,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
            #;(printf "@ Dragging window ~a...\n" (window-name (keymap-event-window ev)))
            (move-window window (+ x x-diff) (+ y y-diff)))]
         #;[(ButtonRelease)
+           ; If the grid mode was activated, here we could automatically re-arrange the window on the grid
          (printf "@ Stop dragging window ~a.\n" (window-name (keymap-event-window ev)))]))))
 
 (define* (motion-resize-window)
