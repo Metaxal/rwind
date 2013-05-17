@@ -37,9 +37,9 @@
   (XCreateSimpleWindow (current-display) (pointer-root-window)
                        x y w h border-width 0 0))
 
-;========================;
-;=== Window Accessors ===;
-;========================;
+;=================;
+;=== Selectors ===;
+;=================;
 
 #;(define* (window-name/class window)
   (define-values (status hint) (XGetClassHint (current-display) window))
@@ -82,6 +82,7 @@
   _NET_WM_WINDOW_TYPE ; http://developer.gnome.org/wm-spec/#id2551529
   _NET_WM_WINDOW_TYPE_NORMAL
   _NET_WM_WINDOW_TYPE_DESKTOP
+  _NET_WM_WINDOW_TYPE_DOCK
   
   _NET_WM_ALLOWED_ACTIONS ; http://developer.gnome.org/wm-spec/#id2551927
   _NET_SUPPORTED
@@ -159,12 +160,26 @@ the visible name, the icon name and the visible icon name in order."
   (define attrs (and window (XGetWindowAttributes (current-display) window)))
   (and attrs (XWindowAttributes-map-state attrs)))
 
+(define* (window-has-type? window type)
+  "Returns non-#f if the window has the specified type, #f otherwise."
+  (define types (get-window-type window))
+  (and types (memq type types)))
+
 (define* (window-viewable? window)
   (eq? 'IsViewable (window-map-state window)))
 
-;========================;
-;=== Window Modifiers ===;
-;========================;
+(define* (window-user-movable? window)
+  (define types (or (get-window-type window) '()))
+  (not (ormap (λ(t)(memq t types))
+              (list _NET_WM_WINDOW_TYPE_DESKTOP
+                    _NET_WM_WINDOW_TYPE_DOCK))))
+
+(define* (window-user-resizable? window)
+  (window-user-movable? window))
+
+;==================;
+;=== Operations ===;
+;==================;
 
 (define* (move-window window x y)
   (XMoveWindow (current-display) window x y))
@@ -185,6 +200,7 @@ the visible name, the icon name and the visible icon name in order."
   (XUnmapWindow (current-display) window))
 
 (define* (raise-window window)
+  "Raises window to top, unless it has type _NET_WM_WINDOW_TYPE_DESKTOP."
   (define type (get-window-type window)) ; may be a list of types
   (unless (window-has-type? window _NET_WM_WINDOW_TYPE_DESKTOP)
     (XRaiseWindow (current-display) window)))
@@ -296,11 +312,6 @@ the visible name, the icon name and the visible icon name in order."
 (define* (get-window-type window)
   "Returns a list of types as atoms for the specified window."
   (get-window-property-atoms window _NET_WM_WINDOW_TYPE))
-
-(define* (window-has-type? window type)
-  "Returns non-#f if the window has the specified type, #f otherwise."
-  (define types (get-window-type window))
-  (and types (memq type types)))
 
 (define* (get-window-state window)
   (get-window-property-atoms window _NET_WM_STATE))

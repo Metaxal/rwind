@@ -509,7 +509,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
          (set!-values (x y) (window-position window))
          #;(printf "@ Start dragging window ~a (~a)\n" window (window-name window))]
         [(ButtonMove)
-         (when (and window (not (window-has-type? window _NET_WM_WINDOW_TYPE_DESKTOP)))
+         (when (and window (window-user-movable? window))
            (define-values (x-ev y-ev) (mouse-event-position ev))
            (define x-diff (- x-ev x-ini))
            (define y-diff (- y-ev y-ini))
@@ -528,7 +528,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
          (set!-values (x-ini y-ini) (mouse-event-position ev))
          (set!-values (w h) (window-dimensions window))]
         [(ButtonMove)
-         (when (and window (not (window-has-type? window _NET_WM_WINDOW_TYPE_DESKTOP)))
+         (when (and window (window-user-resizable? window))
            (define-values (x-ev y-ev) (mouse-event-position ev))
            (define x-diff (- x-ev x-ini))
            (define y-diff (- y-ev y-ini))
