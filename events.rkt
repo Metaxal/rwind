@@ -43,16 +43,17 @@
        (XButtonEvent type serial send-event display window root subwindow
                      time x y x-root y-root modifiers button same-screen)
        event)
-     (dprintf "~a x: ~a y: ~a x-root: ~a y-root: ~a button: ~a modifiers: ~a window: ~a subwindow: ~a\n"
+     (dprintf "~a x: ~a y: ~a x-root: ~a y-root: ~a button: ~a modifiers: ~a window: ~a (~a) subwindow: ~a (~a)\n"
               event-type
               x y x-root y-root button modifiers
-              (window-name window) (window-name subwindow))
-     (define mouse-ev (mouse-event subwindow button event-type modifiers x-root y-root))
+              (window-name window) window (window-name subwindow) subwindow)
+     (define mouse-ev (mouse-event (or subwindow window) button event-type modifiers x-root y-root))
      (call-keymaps-binding mouse-ev)]
     
     [(MotionNotify)
      ; Consume all pending 'MotionNotify events
-     (for/and () (XCheckTypedEvent (current-display) 'MotionNotify event))
+     (while (XCheckTypedEvent (current-display) 'MotionNotify event))
+     ;(for/and () (XCheckTypedEvent (current-display) 'MotionNotify event))
      (match-define 
        (XMotionEvent type serial send-event display window root subwindow time
                      x y x-root y-root modifiers is-hint same-screen)
@@ -132,7 +133,10 @@
      (define override? (XCreateWindowEvent-override-redirect event))
     ]
     
-    #;[(EnterNotify LeaveNotify) #f]
+    #;[(EnterNotify LeaveNotify) 
+       ; for enternotify, compress the event queue with XCheckTypedEvent, as for MotionNotify:
+       ; http://incise.org/tinywm.html 
+       #f]
     
     #;[(FocusIn FocusOut) #f]
     
@@ -148,6 +152,7 @@
      ]))
 
 (provide run-event-loop)
+
 #;(define (run-event-loop)
   ; Jon Rafkind's version
   (define events (make-channel))
@@ -174,7 +179,7 @@
 
 (define (run-event-loop)
   (XFlush (current-display))
-  ; Kevin Tew's version (unfortunately, it does not seem that it can used
+  ; Kevin Tew's version (unfortunately, it does not seem that it can be used
   ; to avoid using other threads, although I think it should)
   (define x11-port (open-fd-input-port (XConnectionNumber (current-display))
                                        #;'x11-connection))
@@ -192,6 +197,6 @@
        ; This could be used by the server instead of creating a thread?
        #;(handle-evt (current-input-port)
                      (lambda (e)
-                       (printf "INPUT ~a ~a\n" e (read-line e)))))
-      (unless (exit-rwind?)
-        (loop)))))
+                       (printf "INPUT ~a ~a\n" e (read-line e))))))
+    (unless (exit-rwind?)
+      (loop))))

@@ -186,6 +186,14 @@ Warning: This assumes the process is started in the same working directory as th
   (thunk* body ...))
 (doc L* "Synonym for thunk*.")
 
+(provide while)
+(define-syntax-rule (while test body ...)
+  (let loop ()
+    (when test
+      body ...
+      (loop))))
+(doc while "(while test body ...)")
+
 ;; Returns #f if:
 ;; - the result of obj is #f, 
 ;; - or any test applied to this result is #f

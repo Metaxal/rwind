@@ -329,11 +329,8 @@ since there is no fixed value for them."
   ; set window to input focus? or leave at pointer root?
   (define window (keymap-event-window km-ev))
   (or (call-binding root-keymap km-ev)
-      (and window (call-binding window-keymap km-ev))
-      (begin
-        ; if it is not called on a window, then the window value is meaningless
-        (set-keymap-event-window! km-ev #f)
-        (call-binding global-keymap km-ev))))
+      (and window (call-binding window-keymap km-ev)) ; window can be the virtual root or the window (what about the true root?)
+      (call-binding global-keymap km-ev)))
 
 (define (window-apply-keymap window keymap)
   ; TODO: First remove all grabbings?
@@ -481,6 +478,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
                  (proc ev)
                  ; Warning: It may happen that if some call fails, the grab is not released!
                  (let ([root (pointer-root-window)] )
+                   (dprintf "Grabbing pointer by ~a\n" root)
                    (grab-pointer root;(keymap-event-window ev)
                                  (cons motion-mask pointer-grab-events)
                                  ; do not let the pointer get out of the window, 
@@ -493,6 +491,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
                proc)
   (bind-button global-keymap button-num 'ButtonRelease modifiers
                (λ(ev)
+                 (dprintf "Ungrabbing-pointer in bind-motion")
                  (ungrab-pointer) ; before proc, in case it fails
                  (proc ev)))
   )
