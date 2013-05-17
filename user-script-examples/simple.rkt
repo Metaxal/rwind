@@ -19,7 +19,7 @@
  ; Open xclock
  "M-C-c" (L* (rwind-system "xclock -digital -update 1"))
  ; Open gmrun (requires it to be installed)
- ;"M-F2"  (L* (displayln "Running gm-run")(rwind-system "gmrun"))
+ "M-F2"  (L* (displayln "Running gm-run")(rwind-system "gmrun"))
  ; Opens the client of rwind for console interaction
  "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -e \"(require rwind/client)\"'"))
  ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
