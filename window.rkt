@@ -170,9 +170,10 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (window-user-movable? window)
   (define types (or (get-window-type window) '()))
-  (not (ormap (λ(t)(memq t types))
+  (not (or (ormap (λ(t)(memq t types))
               (list _NET_WM_WINDOW_TYPE_DESKTOP
-                    _NET_WM_WINDOW_TYPE_DOCK))))
+                    _NET_WM_WINDOW_TYPE_DOCK))
+           (find-root-window-head window))))
 
 (define* (window-user-resizable? window)
   (window-user-movable? window))
