@@ -14,14 +14,14 @@
 - List of existing colors:
   $ tail /etc/X11/rgb.txt -n +2 | sed -e 's/^\s*//' -e 's/\s\s*/ /g'| cut -d' ' -f4,5
   (colors are case insensitive)
-  - see also color-database<%> in Racket's help, but not all colors may be supported by default 
+  - see also color-database<%> in Racket's help, but not all colors may be supported by default
 |#
 
 (define* black-pixel #f)
 (define* white-pixel #f)
 
 ;; Cache the colors in a dictionary.
-;; Maybe it would be a better idea to use Racket's own database... 
+;; Maybe it would be a better idea to use Racket's own database...
 ;; (but not sure how to deal with that)
 (define color-database (make-hash))
 
@@ -37,9 +37,9 @@
   (define screen (DefaultScreen disp))
 
   (set! black-pixel (BlackPixel disp screen))
-  (set! white-pixel (WhitePixel disp screen))  
+  (set! white-pixel (WhitePixel disp screen))
   )
-  
+
 
 ;; Not yet conform to XAllocColor...
 #;(define* (random-dark-color)

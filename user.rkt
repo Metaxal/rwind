@@ -22,7 +22,7 @@
   "Tries to open the user configuration file for edition, using the system default editor."
   (define f (rwind-user-config-file))
   (unless (file-exists? f)
-    (display-to-file 
+    (display-to-file
      "#lang racket/base
 ;;; User configuration file
 

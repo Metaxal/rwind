@@ -5,13 +5,13 @@
 ;;; License: LGPL
 ;;; Note that the standalone client.rkt is in GPL, because it uses readline, but rwind does not depend on it.
 
-#| TODO: 
+#| TODO:
 PRIORITIES:
 - *** make the basis so that extending and debugging is easy! ***
 - make sure Racket's GUI works... (problems with the event-spaces)
 
 Other:
-- security of the server: make sure the user at the other end of the tcp connection 
+- security of the server: make sure the user at the other end of the tcp connection
   is the same as the one running the server!
   Use Unix uid's? ask for password?
 
@@ -78,7 +78,7 @@ to be able to use (require rwind/keymap) for example
          rwind/display
          rwind/events
          rwind/keymap
-         rwind/server 
+         rwind/server
          rwind/user
          rwind/util
          rwind/window
@@ -86,88 +86,92 @@ to be able to use (require rwind/keymap) for example
          rwind/gui/base
          x11/x11 ; needs raco pkg install x11
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
+
+         racket/match
          )
+
+(provide main)
 
 (debug-prefix "RW: ")
 ;; Backup the current ports handlers
-(define-values (out0 in0 err0) 
+(define-values (out0 in0 err0)
   (values (current-output-port) (current-input-port) (current-error-port)))
 
 ;===========;
 ;=== Run ===;
 ;===========;
 (define (run)
-  (with-output-to-file (build-path (find-system-path 'home-dir) "rwind.log")
+  (with-output-to-file rwind-log-file
     #:exists 'replace
     ; For logging purposes, also see racket's logging facility (search for "logging")
     (λ()
       (parameterize ([current-error-port (current-output-port)]
                      ;; Set the current directory to the user's dir
                      [current-directory (find-user-config-dir rwind-dir-name)])
-        
+
         ;; Initialize thread support
         ;; This must be the first X procedure to call
         (XInitThreads)
-        
+
         (init-display)
         (init-debug)
-        
+
         (XLockDisplay (current-display))
-        
+
         (init-root-window)
-        
+
         (init-colors)
-        
+
         ;; Find which ModMask are the *-Lock modifiers
         (find-modifiers)
-        
+
         (intern-atoms)
-        
+
         (init-gui)
-        
+
         (init-user)
-        
+
         (init-keymap)
-        
+
         ; This adds all mapped windows to the first workspace:
         (init-workspaces)
-        
+
         (init-server)
-        
+
         ;==================;
         ;=== Event loop ===;
         ;==================;
         (run-event-loop)
 
         (dprintf "Terminating... ")
-        
+
         ; Need to unlock to avoid deadlock with the server-thread break
         (XUnlockDisplay (current-display))
-        
+
         (exit-server)
-        
+
         (exit-workspaces)
-        
+
         (exit-display)
-        
-        ))); log to file  
-  
+
+        ))); log to file
+
   ;===============;
   ;=== Restart ===;
   ;===============;
-  (when (restart-rwind?)
+  #;(when (restart-rwind?)
     (start-rwind-process))
-  
-  (dprintf "Ending RWind process.\n")
+
+  (dprintf "RWind terminated.\n")
   ; Make sure to exit the process, e.g., in case somethings hangs, like gui frames
-  (exit))
+  #;(exit)
+  (restart-rwind?))
 
 ;============;
 ;=== Main ===;
 ;============;
-(module+ main
-  (require racket/match)
-  
+(define (main)
+
   ;; take the config file from the environment
   (let ([config-file (getenv "RWIND_CONFIG_FILE")])
     (when (and config-file (file-exists? config-file))
@@ -199,5 +203,4 @@ Arguments:
          (arg-loop arg-rest)]
         [else
          (printf "Warning: Unused arguments ~a\n" args)])))
-  (run)
-  )
+  (run))

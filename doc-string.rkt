@@ -52,7 +52,7 @@ that can be loaded only on demand (or reconstructed if outdated).
 (define-syntax-rule (define/doc name loc header doc-string . body)
   (begin (define header . body)
          ;(printf "~a\n" 'name)
-         (let* (; work around for some strange heisenbug (or mandelbug?) in Racket 
+         (let* (; work around for some strange heisenbug (or mandelbug?) in Racket
                 ; (not reported yet)
                 ; that sometimes generates pairs and sometimes not (with the same code!)
                 [n (try-unpair 'name)]
@@ -86,7 +86,7 @@ that can be loaded only on demand (or reconstructed if outdated).
 (define-syntax-rule (define/doc/contract name loc header contract doc-string . body)
   (begin (define/contract header contract . body)
          ;(printf "~a\n" 'name)
-         (let* (; work around for some strange heisenbug (or mandelbug?) in Racket 
+         (let* (; work around for some strange heisenbug (or mandelbug?) in Racket
                 ; (not reported yet)
                 ; that sometimes generates pairs and sometimes not (with the same code!)
                 [n (try-unpair 'name)]
@@ -116,7 +116,7 @@ that can be loaded only on demand (or reconstructed if outdated).
 (define* (doc-proc sym-name str)
   "Sets (or replaces) some documentation about sym-name."
   (let ([res (dict-ref doc-dict 'name #f)])
-    (dict-set! doc-dict sym-name 
+    (dict-set! doc-dict sym-name
                (list (if res (car res) #f) str))))
 
 (provide doc)
@@ -138,7 +138,7 @@ Macro to add some documentation on a provided form.")
 (provide more-doc)
 (doc more-doc
      "(more-doc name str)
-Adds (appends) some documentation so sym-name. 
+Adds (appends) some documentation so sym-name.
 Useful to avoid adding big strings (like examples) in the definition of a procedure.")
 
 (define (contract-expr? e)
@@ -149,8 +149,8 @@ Useful to avoid adding big strings (like examples) in the definition of a proced
   "Returns a description string of the identifier if found."
   (define res (hash-ref doc-dict symbol #f))
   (if res
-      (string-join 
-       (filter values 
+      (string-join
+       (filter values
                (map (λ(s)(cond [(string? s) s]
                                [(contract-expr? s)
                                 (let-values ([(in out) (split-at s (sub1 (length s)))])
@@ -158,7 +158,7 @@ Useful to avoid adding big strings (like examples) in the definition of a proced
                                     "  "
                                     (string-join (map ~a (append (rest in)
                                                                  (cons (first in) out))))))]
-                               [(location? s) (format "From ~a:" 
+                               [(location? s) (format "From ~a:"
                                                       (file-name-from-path (location-value s)))]
                                ;[(module-path-index? s) (~a (module-path-index-resolve s))]
                                [s (~a s)]
@@ -209,17 +209,17 @@ Use (search-identifiers rx) to fetch the list of identifiers matching the specif
 
 (module+ main
   (require racket/contract)
-  
+
   (define*/contract (foo x y)
     (number? symbol? . -> . string?)
     "Turns a number and a symbol into a string."
     (format "~a ~a" x y))
-  
+
   (describe 'foo)
-  
+
   (define* bar "some bar" 'babar)
   (describe 'bar)
-  
+
   (define*/contract baz symbol? "some other baz" 'babaz)
   (describe 'baz)
   ;(set! baz 3) ;exn

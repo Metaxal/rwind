@@ -58,8 +58,11 @@
  ; Quit RWind (but may not quit the session)
  "M-Escape" (L* (dprintf "Now exiting.\n")
                 (exit-rwind? #t))
+ "C-Escape" (L* (dprintf "Now exiting and restarting.\n")
+                (restart-rwind? #t)
+                (exit-rwind? #t))
  ; Recompile RWind, quit and restart
- "M-C-Escape" (L* (when #t #;(recompile-rwind)
+ "M-C-Escape" (L* (when (recompile-rwind)
                     (dprintf "Restarting...\n")
                     (restart-rwind? #t)
                     (exit-rwind? #t)))

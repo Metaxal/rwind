@@ -20,12 +20,12 @@
 (define (start-rwind-client [continuous? #t])
   (define rwind-prompt "rwind-client> ")
   (define rwind-out-prompt "")
-  
+
   (current-display (XOpenDisplay #f))
   (unless (current-display)
     (error "Cannot open display.")
     (exit))
-    
+
   (define (client-loop)
     (display rwind-prompt) (flush-output)
     (XSync (current-display) #f) ; sync and wait for sync'ed state
@@ -39,12 +39,12 @@
         (define res (eval e server-namespace))
         (printf "~a~v\n" rwind-out-prompt res)
         (display rwind-prompt) (flush-output)
-        
+
         ;; This seems necessary to force the server to handle our request immediately
-        ;; otherwise, I sometimes see it hand until some other request is given        
+        ;; otherwise, I sometimes see it hand until some other request is given
         (XFlush (current-display))
         )))
-  
+
   (dynamic-wind
    void
    client-loop

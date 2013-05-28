@@ -33,3 +33,27 @@
 
 (define* (widget-x11-top-level-window widget [client? #f])
   (widget-x11-window (send widget get-top-level-window) client?))
+
+(module+ main
+  (require racket/gui)
+  (define pm (new popup-menu% [title "Popup"]))
+  (new menu-item% [label "Item1"] [parent pm]
+       [callback (thunk* (displayln "Item1 pressed"))])
+  (define fr (new (class frame%
+                  (define/override (on-superwindow-show shown?)
+                    (when shown?
+                      (printf "On show: ~a\n" (widget-x11-window this))
+                      (send this popup-menu
+                            pm
+                            10 10)
+                      ))
+                  (super-new))
+                  [label "auie"] [min-width 200] [min-height 200]))
+  (widget-x11-top-level-window fr)
+  (widget-x11-window fr)
+  (widget-x11-top-level-window fr #t)
+  (widget-x11-window fr #t)
+  (send fr show #t)
+  (widget-x11-top-level-window fr)
+  (widget-x11-window fr)
+  )

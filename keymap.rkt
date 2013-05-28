@@ -4,7 +4,7 @@
 ;;; License: LGPL
 
 (require ;"base.rkt" "util.rkt" "window-util.rkt"
-         rwind/base 
+         rwind/base
          rwind/util
          rwind/window
          rwind/doc-string
@@ -23,7 +23,7 @@
 #| TODO
 - add border-keymap (requires a border)
 - it would be simpler if we could use (mouse-event-window ev)
-  instead of needing to call (keymap-event-window ev) 
+  instead of needing to call (keymap-event-window ev)
   (that's because mouse-event derives from keymap-event)
   Not sure how to do it tough.
 - add FocusIn, FocusOut, PointerIn, PointerOut? (or not as keybindings but as other callbacks?)
@@ -75,7 +75,7 @@
    Mod1Mask ; Alt/meta
    Mod2Mask ; NumLock
    Mod3Mask ; Super
-   Mod4Mask ; 
+   Mod4Mask ;
    Mod5Mask ; AltGr
    Button1Mask
    Button2Mask
@@ -103,7 +103,7 @@
     Button4Mask
     Button5Mask))
 
-(define* modifier-XK-dict 
+(define* modifier-XK-dict
   "Dictionary that holds the modifier mask associated with a given XK-key."
   (make-hasheq))
 (define* num-lock-mask #f)
@@ -159,14 +159,14 @@ If it is a mouse key string, it returns a list of the corresponding number and t
     ["Move1"  (list 1 'ButtonMove)]
     ["Move2"  (list 2 'ButtonMove)]
     ["Move3"  (list 3 'ButtonMove)]
-    
+
     [(or "SPC" "Space") XK-space]
     ["TAB" XK-Tab]
     ["RET" XK-Return]
     ["ESC" XK-Escape]
     ["BS" XK-BackSpace]
     ["DEL" XK-Delete]
-    
+
     [" " XK-space]
     ["!" XK-exclam]
     ["\"" XK-quotedbl]
@@ -216,9 +216,9 @@ since there is no fixed value for them."
   (define modmap (XGetModifierMapping (current-display)))
   (define mods (XModifierKeymap->vector modmap))
   (define mod-list (vector->list mods))
-  
+
   (displayln mod-list)
-  
+
   (cond
     [modmap
      ;; Search for the *-lock modifiers
@@ -235,7 +235,7 @@ since there is no fixed value for them."
        (for ([index 2])
          (define sym (keycode->keysym code index))
          (unless (zero? sym)
-           (dict-set! modifier-XK-dict 
+           (dict-set! modifier-XK-dict
                       (keysym-number->symbol sym) mask))))
 
      ;; Find the num-lock and scrol-lock masks
@@ -246,7 +246,7 @@ since there is no fixed value for them."
      ;; Create the list of all possible combinations of *-Lock modifiers
      (set! all-lock-combinations
            (all-combinations lock-masks))
-     
+
      (dprintf "All lock combinations: ~a\n" all-lock-combinations)
      (XFreeModifiermap modmap)]
     [else
@@ -267,7 +267,7 @@ since there is no fixed value for them."
 ;==============;
 
 (provide (struct-out keymap-event))
-(struct keymap-event 
+(struct keymap-event
   (window ; the window in which the event was sent (may be #f)
    value ; key-code or mouse-button
    type ; (one-of 'KeyPress 'KeyRelease 'ButtonPress 'ButtonMove 'ButtonRelease)
@@ -284,7 +284,7 @@ since there is no fixed value for them."
          [modifiers (remove* button-modifiers modifiers)])
     (list* key/mouse-code type (sort modifiers symbol<=?))))
 
-(define* make-keymap 
+(define* make-keymap
   "Returns an empty keymap."
   make-hash)
 
@@ -296,13 +296,13 @@ since there is no fixed value for them."
   "General keymap for all windows. It is applied to the virtual roots, but not to the root window."
   (make-keymap))
 
-(define* window-keymap 
+(define* window-keymap
   "Keymap for actions that depend on the window."
   (make-keymap))
 
 (define* (keymap-set! keymap key proc #:grab-mode [grab-mode 'GrabModeAsync])
   (when (hash-ref keymap key #f)
-    (dprintf "Warning: keybinding already defined ~a. Replacing old one.\n" 
+    (dprintf "Warning: keybinding already defined ~a. Replacing old one.\n"
             key))
   (hash-set! keymap key (list grab-mode proc)))
 
@@ -347,7 +347,7 @@ since there is no fixed value for them."
        (grab-button window value modifiers '(ButtonPressMask ButtonReleaseMask)
                     #:grab-mode grab-mode)]
       [(ButtonMove)
-       ; It's not clear what InputMasks are required, 
+       ; It's not clear what InputMasks are required,
        ; and I couldn't find the right smallest combination
        ; So I just use the same (more general) combination as in Sawfish.
        (grab-button window value modifiers pointer-grab-events)]
@@ -357,7 +357,7 @@ since there is no fixed value for them."
   (window-apply-keymap window global-keymap)
   (window-apply-keymap window window-keymap))
 
-;@@ add-binding 
+;@@ add-binding
 (define* (add-binding keymap str proc #:grab-mode [grab-mode 'GrabModeAsync])
   (define l (string->key-list str))
   (define mods (rest l))
@@ -396,7 +396,7 @@ Like add-binding, but for several str procs pairs."
   "Register KeyPress events
 The given combination is done for all combinations of the *-Lock modifiers."
   (for ([lock-mods all-lock-combinations])
-    (XGrabKey (current-display) keycode 
+    (XGrabKey (current-display) keycode
               (append modifiers lock-mods)
               window
               #f 'GrabModeAsync 'GrabModeAsync)))
@@ -436,7 +436,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
       [else #f])))
 
 ;; http://tronche.com/gui/x/xlib/input/XGrabPointer.html
-(define* (grab-pointer window [mask pointer-grab-events] 
+(define* (grab-pointer window [mask pointer-grab-events]
                        #:cursor [cursor None]
                        #:confine-to [confine-to None])
   (XGrabPointer (current-display) window #f mask
@@ -446,12 +446,12 @@ Useful for 'MotionNotify events (where the button is not specified)."
 ;; http://tronche.com/gui/x/xlib/input/XUngrabPointer.html
 (define* (ungrab-pointer)
   (XUngrabPointer (current-display) CurrentTime))
-  
+
 ;; can also use AnyButton for button-num.
 ;; http://tronche.com/gui/x/xlib/input/XGrabButton.html
 (define* (grab-button window button-num modifiers mask #:grab-mode [grab-mode 'GrabModeAsync])
   (for ([lock-mods all-lock-combinations])
-    (XGrabButton (current-display) button-num 
+    (XGrabButton (current-display) button-num
                  (append modifiers lock-mods)
                  window #f mask
                  grab-mode 'GrabModeAsync None None)))
@@ -468,12 +468,12 @@ Useful for 'MotionNotify events (where the button is not specified)."
                      #:grab-mode [grab-mode 'GrabModeAsync])
   (let ([key (make-keymap-key button-num type modifiers)])
     (keymap-set! keymap key proc #:grab-mode grab-mode)))
-  
+
 (define* (bind-motion keymap button-num modifiers proc)
   "Like bind-button, but for press, move and release events.
   The keymap-event-type is set to 'ButtonPress, 'ButtonMove and 'ButtonRelease accordingly."
   (define motion-mask (string->symbol (format "Button~aMotionMask" button-num)))
-  (bind-button keymap button-num 'ButtonPress modifiers 
+  (bind-button keymap button-num 'ButtonPress modifiers
                (λ(ev)
                  (proc ev)
                  ; Warning: It may happen that if some call fails, the grab is not released!
@@ -481,9 +481,9 @@ Useful for 'MotionNotify events (where the button is not specified)."
                    (dprintf "Grabbing pointer by ~a\n" root)
                    (grab-pointer root;(keymap-event-window ev)
                                  (cons motion-mask pointer-grab-events)
-                                 ; do not let the pointer get out of the window, 
+                                 ; do not let the pointer get out of the window,
                                  ; avoids losing windows by dragging them
-                                 #:confine-to root)) 
+                                 #:confine-to root))
                  ))
   ; Use the global keymap to catch events event when the pointer is not in the window itself
   ; Warning: This implies that the keymap-event-window is #f, and may be the cause of unintuitive behaviors?
@@ -555,14 +555,14 @@ Useful for 'MotionNotify events (where the button is not specified)."
    #:grab-mode 'GrabModeSync))
 
 (define* (init-keymap)
-  
+
   (dprintf "root keymap:\n")
   (pretty-print root-keymap)
   (dprintf "global keymap:\n")
   (pretty-print global-keymap)
   (dprintf "window keymap:\n")
   (pretty-print window-keymap)
-  
-  (window-apply-keymap (true-root-window) root-keymap) 
+
+  (window-apply-keymap (true-root-window) root-keymap)
   ; but not the window-keymap! (otherwise virtual roots will be considered as subwindows)
   )

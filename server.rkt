@@ -4,7 +4,7 @@
 ;;; License: LGPL
 
 #| TODO
-- security: 
+- security:
   - verify that the user is the same as the owner of the root window
   - see https://github.com/Metaxal/RWind/issues/4
   - and maybe scheme_make_fd_output_port
@@ -37,7 +37,7 @@
   (dprint-wait "Opening listener")
   (define listener (tcp-listen rwind-tcp-port 4 #t "127.0.0.1"))
   (dprint-ok)
-  
+
   (dynamic-wind
    void
    (λ()
@@ -45,7 +45,7 @@
        (dprint-wait "Waiting for client")
        (define-values (in out) (tcp-accept/enable-break listener))
        (printf "Client is connected.\n")
-       
+
        (dynamic-wind
         void
         (λ()
@@ -59,30 +59,30 @@
                                            (define res (exn-message e))
                                            (dprintf "Sending exception: ~a" res)
                                            (write-data/flush res out))])
-                (define res 
+                (define res
                   (let ([d (current-display)])
                     (dynamic-wind
                      (λ() (XLockDisplay d))
-                     (λ() 
+                     (λ()
                        ;(printf "BEFORE EVAL")(flush-output)
                        (with-output-to-string
                         (λ()
                           (define r (eval e server-namespace))
                           (unless (void? r)
                             (write r)))))
-                     (λ() 
+                     (λ()
                        ;(printf "BETWEEN EVAL AND FLUSH")(flush-output)
                        (XFlush (current-display))
                        ;(printf "AFTER FLUSH")(flush-output)
                        (XUnlockDisplay d)))))
                 (dprint-wait "Sending value: ~a" res)
-                ; Printed in a string, to send a string, 
+                ; Printed in a string, to send a string,
                 ; because the reader cannot read things like #<some-object>
                 (write-data/flush res out)
                 )
             (dprint-ok)
             (dprint-wait "Waiting for data")
-            
+
             ))
         (λ()
           (dprintf "Closing connection.\n")

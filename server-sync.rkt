@@ -27,8 +27,8 @@
   (define-values (in out) (tcp-accept/enable-break listener))
   (dprint-ok)
   (list in out))
-  
-;; Returns #t if the client wants to continue handling events, 
+
+;; Returns #t if the client wants to continue handling events,
 ;; or #f if the client is shut down
 (define (handle-server-input in out)
   (define e (read in))
@@ -79,7 +79,7 @@
       #;(handle-evt (system-idle-evt)
                   (λ(e)(dprintf "Idle\n")
                     (loop)))
-      (handle-evt listener 
+      (handle-evt listener
                   (λ(listener)
                     (define client-ports (handle-server-accept listener))
                     (set! clients (cons client-ports clients))
@@ -109,16 +109,16 @@
                             (loop)
                             (dprintf "Client exited.\n"))
                         )))))))
-  
+
   (dynamic-wind
    void
    (let loop ()
-     
+
      (sync/enable-break
       #;(handle-evt (system-idle-evt)
                     (λ(e)(dprintf "Idle\n")
                       (loop)))
-      (handle-evt listener 
+      (handle-evt listener
                   (λ(listener)
                     (define in-out (handle-server-accept listener))
                     (apply make-client-thread in-out)

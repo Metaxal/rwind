@@ -3,7 +3,7 @@
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
 
-(require rwind/base 
+(require rwind/base
          rwind/doc-string
          rwind/util
          x11/x11
@@ -11,7 +11,7 @@
          )
 
 ;; TODO: update when xrandr is invoked (ConfigureNotify)
-;; But should better use the (head-infos) 
+;; But should better use the (head-infos)
 (define* (display-dimensions [screen 0])
   "Returns the values of width and height of the given screen.
 Warning: These values may not reflect the current screen widths if they have changed?!"
@@ -33,27 +33,27 @@ Warning: These values may not reflect the current screen widths if they have cha
     ;:::::::::::;
     ;:: Debug ::;
     ;:::::::::::;
-    
+
     (set-Xdebug! #t) ; for POSIX compliant systems
-    
+
     (x11-debug-prefix "  X: ")
-    
+
     ; For debugging purposes only, because very slow!
     #;(XSynchronize (current-display) #t)
-    
+
     ; TODO: set _XDebug to #t !
     #;(XSetAfterFunction (current-display)
                          (λ(display) ; -> int
                            ; This function is called after each X function
                            ))
     )
-  
+
   ;; Errors and error-handlers:
   ;; http://tronche.com/gui/x/xlib/event-handling/protocol-errors/default-handlers.html
-  (XSetErrorHandler 
+  (XSetErrorHandler
    (λ(display err-ev)
      ;(printf "Error received: ~a\n" (XErrorEvent->list* err-ev))
-     (printf "*** Error: ~a\n" (XGetErrorText 
+     (printf "*** Error: ~a\n" (XGetErrorText
                                 (XErrorEvent-display err-ev)
                                 (XErrorEvent-error-code err-ev)
                                 500)) ; Sufficient bytes?
@@ -61,16 +61,16 @@ Warning: These values may not reflect the current screen widths if they have cha
   )
 
 (define* (init-display)
-  (dprintf "\n *** New session on ~a on display ~a ***\n" 
+  (dprintf "\n *** New session on ~a on display ~a ***\n"
            (date->string (current-date) #t)
            (getenv "DISPLAY"))
-  
+
   (current-display (XOpenDisplay #f))
   (unless (current-display)
     (error "Cannot open display.")
     (exit))
   )
-      
+
 (define* (exit-display)
   (XCloseDisplay (current-display))
   )

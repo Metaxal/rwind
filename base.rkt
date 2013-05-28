@@ -27,5 +27,5 @@ Similar to make-parameter, but without all the thread safety and the parameteriz
 (define* rwind-user-config-file-name  "config.rkt")
 (define* rwind-website                "http://github/...")
 (define* rwind-tcp-port               54321)
-(define* rwind-log-file 
+(define* rwind-log-file
   (build-path (find-system-path 'home-dir) "rwind.log"))

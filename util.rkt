@@ -10,7 +10,8 @@
          racket/string
          racket/file
          racket/function
-         compiler/compiler
+         #;compiler/compiler
+         "main.rkt"
          )
 
 (module+ test
@@ -18,10 +19,10 @@
 
 (define* (rwind-system . args)
   "Runs a command asynchronously."
-  (system (string-append 
+  (system (string-append
            (string-join (map path-string->string args))
            " &")))
-  
+
 ;; Todo: for macos, it should be a different path?
 ;; app-name: string?
 (define* (find-user-config-dir app-name)
@@ -33,7 +34,7 @@
           (unless (directory-exists? d)
             (make-directory* d))
           d))))
-  
+
 (define* (find-user-config-file app-name file-name)
   "Returns the configuration-file path for application app-name (and may create the directory)."
   (build-path (find-user-config-dir app-name) file-name))
@@ -92,7 +93,7 @@
   (dprintf "Var ~a: ~v\n" 'var var))
 (provide debug-var)
 
-;; I tried to use (call/debug proc . args) instead, 
+;; I tried to use (call/debug proc . args) instead,
 ;; so that keyword arguments could be dealt with, but did not succeed.
 (define-syntax-rule (call/debug proc args ...)
   (let ([largs (list args ...)])
@@ -108,15 +109,23 @@ Prints (proc args ...) before calling it."
 ;=== Compilation ===;
 ;===================;
 
-(define* (compile-collection . collections)
+#;(define* (compile-collection . collections)
   (dprint-wait (string-append* "Recompiling " (add-between collections "/")))
   (apply compile-collection-zos collections)
   (dprint-ok))
 
+
+;; Tries to recompile RWind.
+(define* (recompile-rwind)
+  (recompile (λ(e)
+               (dprintf "Error: Something went wrong during compilation:\n")
+               (displayln (exn-message e))
+               (dprintf "Aborting procedure.\n"))))
+
 ;; Tries to recompile RWind.
 ;; Returns #t on success, #f otherwise (+ logging)
-(define* (recompile-rwind)
-  (with-handlers ([exn:fail? 
+#;(define* (recompile-rwind)
+  (with-handlers ([exn:fail?
                      (λ(e)
                        (dprintf "Error: Something went wrong during compilation:\n")
                        (displayln (exn-message e))
@@ -140,8 +149,8 @@ Warning: This assumes the process is started in the same working directory as th
   (define full-cmd-line (full-command-line-arguments))
   (debug-var full-cmd-line)
   (define-values (sp a b c)
-    (call/debug 
-     apply subprocess 
+    (call/debug
+     apply subprocess
      (current-output-port) (current-input-port) (current-error-port)
      ;(find-executable-path (find-system-path 'exec-file))
      ;this-file-string
@@ -194,8 +203,16 @@ Warning: This assumes the process is started in the same working directory as th
       (loop))))
 (doc while "(while test body ...)")
 
+(provide until)
+(define-syntax-rule (until test body ...)
+  (let loop ()
+    (unless test
+      body ...
+      (loop))))
+(doc until "(until test body ...)")
+
 ;; Returns #f if:
-;; - the result of obj is #f, 
+;; - the result of obj is #f,
 ;; - or any test applied to this result is #f
 ;; Otherwise returns the result of the last test applied to obj.
 ;; The `test's must be arity-1 predicates.
@@ -203,7 +220,7 @@ Warning: This assumes the process is started in the same working directory as th
 (provide and=>)
 (define-syntax-rule (and=> obj test ...)
   (let ([v obj])
-    (and v (test obj) ...)))
+    (and v (test v) ...)))
 
 (module+ main
   (struct foo (x y))
@@ -217,7 +234,7 @@ Warning: This assumes the process is started in the same working directory as th
   "Calls proc on args and turns the returned (multiple) values into a list."
   (call-with-values (λ()(apply proc args)) list))
 
-(more-doc 
+(more-doc
  call/values->list
  "Example:
 > (call/values->list values 1 2 3)
@@ -230,7 +247,7 @@ Warning: This assumes the process is started in the same working directory as th
 (define* (write-data/flush data [out (current-output-port)])
   "'write's the data to the output port, and flushes it.
 To ensure that the data is really sent as is, a space is added before flushing.
-(otherwise non-self-delimited data is not 'read' correctly, as the reader 
+(otherwise non-self-delimited data is not 'read' correctly, as the reader
 waits for the delimiter to be read, and would thus hang)."
   (write data out)
   (display "  " out)
@@ -257,7 +274,7 @@ waits for the delimiter to be read, and would thus hang)."
                cbs)))
 
 ;; l: list
-;; Returns the list of all the combinations of the elements of l, 
+;; Returns the list of all the combinations of the elements of l,
 ;; including the empty list.
 (define* (all-combinations l)
   "Returns the partition list of list l."

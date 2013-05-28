@@ -26,10 +26,10 @@ To switch between workspaces, it suffices to unmap the current workspace and map
 
 |#
 
-#| 
+#|
 - See sawfish/lisp/sawfish/wm/workspaces.jl
 - evilwm, make-new-client
-- Workspaces are organized into a list (no need for a vector since we don't expect more 
+- Workspaces are organized into a list (no need for a vector since we don't expect more
   than a dozen of them).
   The layout (grid, sphere, etc.) will be implemented on top of that.
 - Convention: wk: workspace; wkn: workspace-number; w: window
@@ -48,16 +48,16 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define* workspaces '())
 
-(define* workspace-warp? 
+(define* workspace-warp?
   "Fun-box that holds whether moving after the last (first) workpsace returns to the first (last)."
   (make-fun-box #f))
 
-#;(define*/contract current-workspace-number 
+#;(define*/contract current-workspace-number
   (or/c #f number?)
   "Current workspace number"
   #f)
 
-(define workspace-mode 
+(define workspace-mode
   #;"Controls the modes in which the workspaces are displayed.
 'single: One workspace over all heads (monitors). The workspace is of the size of the heads bounding box.
 'multi: One workspace per head. The workspace size is adapted to the head."
@@ -79,7 +79,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   "Returns a newly created workspace, which contains a new unmapped window of the size of the display.
   The new workspace is inserted into the workspace list."
   ;; Sets the new window attributes so that it will report any events
-  (define attrs (make-XSetWindowAttributes 
+  (define attrs (make-XSetWindowAttributes
                  #:event-mask '(SubstructureRedirectMask)
                  #:background-pixel bk-color
                  ))
@@ -92,12 +92,12 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
                    CopyFromParent/int
                    'InputOutput
                    #f
-                   '(EventMask BackPixel) attrs))  
-  
+                   '(EventMask BackPixel) attrs))
+
   ;; Add the window to the list of supported virtual roots
   ;; Does this work?? Not sure it really appends...
   (change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window))
-  
+
   ;; Make sure we will see the keymap events
   (virtual-root-apply-keymaps root-window)
   (define wk (workspace id root-window))
@@ -142,7 +142,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (find-root-window-workspace window)
   (window? . -> . any/c)
   "Returns the workspace for which window is the (virtual) root, or #f if none is found."
-  (findf (λ(wk)(window=? window (workspace-root-window wk))) 
+  (findf (λ(wk)(window=? window (workspace-root-window wk)))
          workspaces))
 
 (define*/contract (find-head-workspace hd)
@@ -153,7 +153,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define*/contract (workspace-subwindows wk)
   (workspace? . -> . list?)
-  "Returns the list of windows that are managed by the specified workspace, 
+  "Returns the list of windows that are managed by the specified workspace,
 in the sense of `window-list'."
   (window-list (workspace-root-window wk)))
 
@@ -191,7 +191,7 @@ in the sense of `window-list'."
 
 (define*/contract (guess-window-workspace window)
   (window? . -> . (or/c #f workspace?))
-  "Returns the workspace that /should/ contain the window based on the window position, 
+  "Returns the workspace that /should/ contain the window based on the window position,
 but that does not currently contain it.
 This is mainly meant to be used to restore windows to their proper workspaces."
   (and=> (find-window-head window)
@@ -210,14 +210,14 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   "Controls the modes in which the workspaces are displayed.
   'single: One workspace over all heads (monitors). The workspace is of the size of the heads bounding box.
   'multi: One workspace per head. The workspace size is adapted to the head."
-  
+
   ; (Warning) TODO: The multi mode should not be activated if some heads are superimposed!
 
   (workspace-mode mode)
   #;(case mode
     [(single) (void)]
     [(multi) (for ([wk ]))])
-  
+
   (update-workspaces)
   )
 
@@ -233,7 +233,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (cond [(or (valid-workspace-number? n) (= n (length workspaces)))
          (define-values (left right) (split-at workspaces n))
          (set! workspaces (append left (list wk) right))]
-        [else 
+        [else
          (error "Cannot insert workspace: Invalid number:" n)]))
 
 ;; TODO: what to do about the windows contained in the current workspace?
@@ -247,7 +247,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
   (define nmax (count-workspaces))
   (define wkn (+ n0 inc))
-  (if warp? 
+  (if warp?
       (modulo wkn nmax)
       (min wkn (sub1 nmax))))
 
@@ -255,10 +255,10 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
   (define nmax (count-workspaces))
   (define wkn (- n0 dec))
-  (if warp? 
+  (if warp?
       (modulo wkn nmax)
       (max wkn 0)))
-  
+
 ; current-workspace-number is obsolete. Must use heads to know the current workspace
 #;(define*/contract (next-workspace! [inc 1] [warp? (workspace-warp?)])
   (() (number? any/c) . ->* . void?)
@@ -314,13 +314,13 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 (define/contract (activate-workspace/single wk)
   (workspace? . -> . any)
   ;; Places the specified workspace over all heads
-  
+
   #;(define old-root (head-info-root-window hd-info))
-  
+
   ; Make sure all workspace windows are unmapped:
   ; (could be optimized, but is safer)
   (for ([wk workspaces])
-    (unmap-window (workspace-root-window wk)))  
+    (unmap-window (workspace-root-window wk)))
   ; Hide the old workspace:
   #;(when old-root
     (unmap-window old-root))
@@ -340,14 +340,14 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 (define/contract (activate-workspace/multi new-wk head)
   (workspace? number? . -> . any)
   ;; Activates the specified workspace when in 'multi mode
-  
+
   (define hd-info (get-head-info head))
   (check-not-false hd-info)
-  
+
   (define old-root (head-info-root-window hd-info))
   (define new-root (workspace-root-window new-wk))
   (define other-head (find-root-window-head new-root))
-    
+
   (cond [(window=? new-root old-root)
          ; We are trying to activate the current-workspace -> no change
          (dprintf "Trying to activate the current workspace.\n")
@@ -359,10 +359,10 @@ This is mainly meant to be used to restore windows to their proper workspaces."
          (dprintf "New workspace already mapped in head ~a.\n" other-head)
          (define old-wk (find-root-window-workspace old-root))
          (define other-head-info (get-head-info other-head))
-         
+
          (set-head-info-root-window! other-head-info old-root)
          (set-head-info-root-window! hd-info new-root)
-         
+
          ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed
          ; TODO: use find-root-window-heads ?
          (workspace-fit-to-heads old-wk (list other-head))
@@ -375,22 +375,22 @@ This is mainly meant to be used to restore windows to their proper workspaces."
         [else
          ; We replace the current workspace by the new one in the specified head
          (dprintf "Normal replacement of current workspace.\n")
-         
+
          ; Hide the old workspace:
          (when old-root
            (unmap-window old-root))
-         
+
          ; List of heads that contain the old-root
          (define heads (if old-root
                            (find-root-window-heads old-root)
                            (list head)))
-         
+
          ; Reconfigure the workspace to span over all the heads the old workspace was in
          (workspace-fit-to-heads new-wk heads)
-         
+
          ; show the new workspace with all its windows:
          (map-window new-root)
-         
+
          ; The following may fail because the window may not yet be visible:
          ;(set-input-focus new-root)
          ; TODO: Add a callback for when the window is visible?
@@ -400,10 +400,10 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   ((workspace-ref?) (number?) . ->* . any)
   "Switches to workspace wk/i/n (either a workspace?, a number? or a workspace identifier)."
   (dprintf "Activating workspace ~a\n" wk/i/n)
-  
+
   (define new-wk (find-workspace wk/i/n))
   (check-not-false new-wk)
-  
+
   (case (workspace-mode)
     [(single) (activate-workspace/single new-wk)]
     [(multi)  (activate-workspace/multi new-wk head)]))
@@ -422,7 +422,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (when (or move? resize?)
     (for ([win (workspace-subwindows wk)])
       (define-values (x y w h) (window-bounds win))
-      (move-resize-window win 
+      (move-resize-window win
                           (if move? (scale-w x) x)
                           (if move? (scale-h y) y)
                           (if resize? (scale-w w) w)
@@ -431,7 +431,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 
 (define*/contract (workspace-fit-to-heads wk [heads #f] [move? #t] [resize? move?])
   ([workspace?] [(or/c #f (listof number?)) any/c any/c] . ->* . any)
-  "Like workspace-fit-to, but fits to a given list of heads (numbers), i.e., 
+  "Like workspace-fit-to, but fits to a given list of heads (numbers), i.e.,
 the workspace window will then span over all the given heads.
 If heads is #f, then all heads are considered.
 Furthermore, it also changes the root-windows of the heads."
@@ -447,15 +447,15 @@ Furthermore, it also changes the root-windows of the heads."
 (define* (update-workspaces)
   "Updates the information about the screens and maps one workspace in each screen.
 See change-workspace-mode for more information on the different modes."
-  
+
   ; First make sure that all root windows are unmapped
   (for-each unmap-workspace workspaces)
-    
+
   (case (workspace-mode)
     [(single)
      (activate-workspace/single (first workspaces))]
     [(multi)
-     ; WARNING: We should check that no root-window are overlapping, 
+     ; WARNING: We should check that no root-window are overlapping,
      ; otherwise we should fall back to 'single mode!
      (for ([hd (head-count)])
        (define wk (or (find-workspace hd)
@@ -494,16 +494,16 @@ See also `split-head'."
 (define* (init-workspaces)
   ; Wait for sync to be sure that all pending windows (not currently managed by us) are mapped:
   (XSync (current-display) #f)
-  
+
   (change-window-property (true-root-window) _NET_SUPPORTED 'XA_WINDOW 'PropModeAppend (list _NET_VIRTUAL_ROOTS))
 
-  
+
   ;; Get the window list *before* creating the workspace windows...
   (define existing-windows (window-list (true-root-window)))
-    
-  (define color-list 
+
+  (define color-list
     '("DarkSlateGray" "DarkSlateBlue" "Sienna"))
-  
+
   ;; Create at least one workspace per head
   (for ([i (max (head-count) 3)]
         [color (in-cycle color-list)])

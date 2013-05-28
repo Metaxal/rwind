@@ -78,12 +78,12 @@
   _NET_WM_ICON_NAME
   _NET_WM_VISIBLE_ICON_NAME
   _NET_WM_STATE ; http://developer.gnome.org/wm-spec/#id2551694
-  
+
   _NET_WM_WINDOW_TYPE ; http://developer.gnome.org/wm-spec/#id2551529
   _NET_WM_WINDOW_TYPE_NORMAL
   _NET_WM_WINDOW_TYPE_DESKTOP
   _NET_WM_WINDOW_TYPE_DOCK
-  
+
   _NET_WM_ALLOWED_ACTIONS ; http://developer.gnome.org/wm-spec/#id2551927
   _NET_SUPPORTED
   _NET_VIRTUAL_ROOTS
@@ -105,9 +105,9 @@
      (window-text-property window _NET_WM_NAME)
      (window-text-property window 'XA_WM_NAME)))
   (and names (not (null? names)) (car names)))
-   
+
 (define* (window-names window)
-  "Returns the list of list of strings for the name, 
+  "Returns the list of list of strings for the name,
 the visible name, the icon name and the visible icon name in order."
   (map (λ(v)(window-text-property window v))
        (list 'XA_WM_NAME 'XA_WM_ICON_NAME))
@@ -116,7 +116,7 @@ the visible name, the icon name and the visible icon name in order."
              _NET_WM_VISIBLE_NAME
              _NET_WM_ICON_NAME
              _NET_WM_VISIBLE_ICON_NAME)))
-   
+
 
 (define* (window-class window)
   "Returns the list of classes of the window."
@@ -295,7 +295,7 @@ Ex: (for ([w (viewable-windows)]) (move-resize-window-grid-auto w 3))"
   (XSendEvent (current-display) window propagate event-mask event))
 
 (define* (send-client-message window msg-type msg-values [format 32])
-  "Sends an XClientMessage event to window. 
+  "Sends an XClientMessage event to window.
   msg-type must be an atom.
   format must be either 8, 16 or 32, and is the size in bits of each sent value.
   msg-values must be a list of at most 20 8bits or 10 16bits or 5 32bits values.
@@ -400,7 +400,7 @@ click-to-focus:
 root is the window relative to which the query is made, and the child window win is returned.
 By default it is the virtual-root under the pointer."
   (define-values (rc _root win x y win-x win-y mask)
-    (XQueryPointer (current-display) 
+    (XQueryPointer (current-display)
                    ;(true-root-window)
                    root
                    ))
@@ -418,7 +418,7 @@ By default it is the virtual-root under the pointer."
   void)
 
 (define* (focus-next!)
-  "Gives the keyboard focus to the next window in the list of windows" 
+  "Gives the keyboard focus to the next window in the list of windows"
   ; TODO: cycle only among windows that want focus
   (define wl (viewable-windows))
   (unless (empty? wl)
@@ -427,7 +427,7 @@ By default it is the virtual-root under the pointer."
            ; if no window has the focus (maybe the root has it)
            [m (member w wl)])
       (if m
-          ; the cadr should not be a problem because of the last that ensures 
+          ; the cadr should not be a problem because of the last that ensures
           ; that the list has at least 2 elements if w is found
           (set-input-focus/raise (cadr m))
           ; not found, give the focus to the firt window
@@ -477,7 +477,7 @@ By default it is the virtual-root under the pointer."
 - sawfish/src/functions.c
 - The best and simplest way may be to consider one desktop per monitor.
   (this however requires to resize the windows and positions according to each monitor?)
-- to test monitors on a single screen, I could set up "virtual" monitors, 
+- to test monitors on a single screen, I could set up "virtual" monitors,
   i.e., split the screen in different monitors.
   This could even be a usefull feature (to develop further and expand?)
 - each monitor may display a different workspace (like xmonad)
@@ -521,7 +521,7 @@ By default it is the virtual-root under the pointer."
 
 (define* (xinerama-update-infos)
   (define infos (XineramaQueryScreens (current-display)))
-  (head-infos 
+  (head-infos
    (if infos
        (for/vector ([inf infos])
          (match inf
@@ -538,7 +538,7 @@ By default it is the virtual-root under the pointer."
 
 (provide with-head-info)
 (define-syntax-rule (with-head-info hd (screen win x y w h) body ...)
-  ; input: hd 
+  ; input: hd
   ; output: screen win x y w h
   (let ([info (get-head-info hd)])
     (and info
@@ -578,7 +578,7 @@ By default it is the virtual-root under the pointer."
 
 (define* (find-root-window-heads win)
   "Returns the list of heads that has win as its root window."
-  (filter 
+  (filter
    values
    (for/list ([hd-info (head-infos)]
               [i (in-naturals)])
@@ -587,7 +587,7 @@ By default it is the virtual-root under the pointer."
 (define* (find-head px py)
   "Returns the number of the first head that contains the point (px, py), or #f if not found."
   (for/or ([info (head-infos)] [i (in-naturals)])
-    (match info 
+    (match info
       [(head-info s win x y w h)
        (and (>= px x) (< px (+ x w))
             (>= py y) (< py (+ y h))
@@ -628,9 +628,9 @@ This can be used to simulate several heads on a single monitor."
 (define* (head-list-bounds [heads #f])
   "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
 If `heads' is #f, all heads are considered."
-  (define (app1 op a b) 
+  (define (app1 op a b)
     (if a (op a b) b))
-  (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers 
+  (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers
     (define-values (x1 y1 x2 y2)
       (for/fold ([x1 #f] [y1 #f] [x2 #f] [y2 #f])
         ([hd heads])
@@ -641,8 +641,8 @@ If `heads' is #f, all heads are considered."
     (values x1 y1 (- x2 x1) (- y2 y1))))
 
 (define* (find-window-head win)
-  "Returns the head number that contains one of the corners or the center 
-of the window that has the input focus. 
+  "Returns the head number that contains one of the corners or the center
+of the window that has the input focus.
 Returns #f if no corner and center is contained in any head
 (which should be rare if the window is visible)."
   (and win
@@ -659,7 +659,7 @@ Returns #f if no corner and center is contained in any head
   (find-head x y))
 
 (define* (focus-head)
-  "Returns the head number that contains the input focus window, 
+  "Returns the head number that contains the input focus window,
 in the sense of `find-window-head'."
   (find-window-head (input-focus)))
 
@@ -696,11 +696,11 @@ in the sense of `find-window-head'."
   (true-root-window (XDefaultRootWindow (current-display)))
   ;; Ask the root window to send us any event
   ;; (Q: is it useful if we use virtual roots?)
-  (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask) 
-                           (make-XSetWindowAttributes 
-                            #:event-mask '(SubstructureRedirectMask 
+  (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask)
+                           (make-XSetWindowAttributes
+                            #:event-mask '(SubstructureRedirectMask
                                            SubstructureRedirectMask
                                            StructureNotifyMask)))
-  
+
   (xinerama-update-infos)
   )

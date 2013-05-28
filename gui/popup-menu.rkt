@@ -22,14 +22,17 @@
            ; or raise an error?
            (error "Wrong format in menu ~a\n" (cons k v))])))
 
-(define* (make-popup-menu dic)
+(define* (make-popup-menu dic [fr #f])
   #;(define fr (new frame% [label ""]
                  [style '(no-resize-border no-caption no-system-menu hide-menu-bar float)]
                  [x 0] [y 0] [width 0 #;40] [height 0 #;20]))
   (define pm (new popup-menu%
                   [title "Some popup menu"]
-                  [popdown-callback (L* (printf "menu popped down\n")
-                                        #;(send fr show #f))]))
+                  [popdown-callback (L* (dprintf "menu popped down\n")
+                                        (when fr
+                                          (dprintf "hiding frame: ~a\n" fr)
+                                          (send fr show #f)
+                                          (dprintf "frame hidden\n")))]))
   #;(define bt (new button% [label "Menu"] [parent fr]
                   [callback (λ _ (send fr popup-menu pm 0 0))]))
   (make-menu pm dic)

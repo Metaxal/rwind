@@ -16,30 +16,30 @@
 
 (define* (handle-event event)
   "Main function to handle events received from the X server."
-  
+
   (define event-type (XAnyEvent-type event))
   (dprintf "Event type: ~a\n" event-type)
-  
+
   (case event-type
-    
+
     [(KeyPress)
-     (match-define 
-       (XKeyEvent type serial send-event display window root subwindow time 
+     (match-define
+       (XKeyEvent type serial send-event display window root subwindow time
                   x y x-root y-root modifiers key-code same-screen)
        event)
      (define key-string (XKeysymToString (XKeycodeToKeysym (current-display) key-code 0)))
      (dprintf "KeyPress: key-code: ~a (~a) modifiers: ~a\n" key-code key-string modifiers)
-     
+
      ; Give the subwindow as argument if the root window is selected.
      ; This is useful for the global-keymap.
      (define keyboard-ev (keyboard-event subwindow key-code 'KeyPress modifiers))
      (call-keymaps-binding keyboard-ev)]
-    
+
     #;[(KeyRelease)
        useful?]
-    
+
     [(ButtonPress ButtonRelease)
-     (match-define 
+     (match-define
        (XButtonEvent type serial send-event display window root subwindow
                      time x y x-root y-root modifiers button same-screen)
        event)
@@ -49,12 +49,12 @@
               (window-name window) window (window-name subwindow) subwindow)
      (define mouse-ev (mouse-event (or subwindow window) button event-type modifiers x-root y-root))
      (call-keymaps-binding mouse-ev)]
-    
+
     [(MotionNotify)
      ; Consume all pending 'MotionNotify events
      (while (XCheckTypedEvent (current-display) 'MotionNotify event))
      ;(for/and () (XCheckTypedEvent (current-display) 'MotionNotify event))
-     (match-define 
+     (match-define
        (XMotionEvent type serial send-event display window root subwindow time
                      x y x-root y-root modifiers is-hint same-screen)
        event)
@@ -64,18 +64,18 @@
               (window-name window) (window-name subwindow))
      (define mouse-ev (mouse-event subwindow button 'ButtonMove modifiers x-root y-root))
      (call-keymaps-binding mouse-ev)]
-    
+
     [(ConfigureRequest)
-     (match-define 
+     (match-define
        (XConfigureRequestEvent type serial send-event _display parent window
                                x y width height border-width above stack-mode value-mask)
        event)
-     (XConfigureWindow (current-display) window value-mask 
+     (XConfigureWindow (current-display) window value-mask
                        (make-XWindowChanges x y (bound-value width 1 10000) (bound-value height 1 10000)
                                             border-width above stack-mode))]
-    
+
     [(ConfigureNotify)
-     (match-define 
+     (match-define
        (XConfigureEvent type serial send-event _display event-window window
                                x y width height border-width above override-redirect)
        event)
@@ -87,12 +87,12 @@
               (xinerama-update-infos)
               (update-workspaces)
               #;(call-hooks 'configure-notify-true-root-window event)]))]
-    
+
     #;[(Expose)
      (define window (XExposeEvent-window event))
      ; give the input focus to the window that appears?
      (set-input-focus window)]
-    
+
     [(MapRequest)
      (define window (XMapRequestEvent-window event))
      ; if override-redirect is true it is a top-level window
@@ -108,7 +108,7 @@
                  (dprintf "Mapping existing window in ~a\n" wk)
                  (show/raise-window window)
                  #f)]
-           [else 
+           [else
             (dprintf "Mapping new window\n")
             ; This is a new window
             ; Apply the keymap to it
@@ -119,34 +119,34 @@
             ])
      ; give the window the input focus (if viewable)
      (set-input-focus window)]
-    
+
     [(MappingNotify)
      ; see the warning about override-redirect in Tronche's doc
      (XRefreshKeyboardMapping event)]
-    
+
     #;[(UnmapNotify)
      (define window (XUnmapEvent-window event))
      ]
-    
+
     #;[(CreateNotify)
      (define window (XCreateWindowEvent-window event))
      (define override? (XCreateWindowEvent-override-redirect event))
     ]
-    
-    #;[(EnterNotify LeaveNotify) 
+
+    #;[(EnterNotify LeaveNotify)
        ; for enternotify, compress the event queue with XCheckTypedEvent, as for MotionNotify:
-       ; http://incise.org/tinywm.html 
+       ; http://incise.org/tinywm.html
        #f]
-    
+
     #;[(FocusIn FocusOut) #f]
-    
+
     [(ClientMessage)
-     (dprintf "Client message: window: ~a message-type: ~a format: ~a\n" 
+     (dprintf "Client message: window: ~a message-type: ~a format: ~a\n"
               (XClientMessageEvent-window event)
               (atom->atom-name (XClientMessageEvent-message-type event))
               (XClientMessageEvent-format event))
      ]
-    
+
     [else
      (dprintf "Unhandled event ~a\n" (XEvent->list* event))
      ]))
@@ -157,17 +157,17 @@
   ; Jon Rafkind's version
   (define events (make-channel))
   (start-x11-event-thread (current-display) events)
-  
+
   (XFlush (current-display))
   (let server-loop ()
-    
+
     ;(XSync (current-display) #f)
     ;(XFlush (current-display)) ; normally XNextEvent flushes itself
     (flush-output) ; to write to file
-    
+
     ;(define event (XNextEvent* (current-display))) ; waits for the next event
     (sync/enable-break
-     (handle-evt events 
+     (handle-evt events
                  (lambda (event)
                    (dynamic-wind
                     (λ()(XLockDisplay (current-display)))
@@ -187,12 +187,10 @@
     (with-handlers ([exn:fail? (λ(e)(dprintf (exn-message e))
                                  #;(thread (λ()(error-message-box e))))])
       (sync/enable-break
-       (handle-evt x11-port 
+       (handle-evt x11-port
                    (lambda (_in)
-                     (let loop2 ()
-                       (unless (zero? (XPending (current-display)))
-                         (handle-event (XNextEvent* (current-display)))
-                         (loop2)))
+                     (until (zero? (XPending (current-display)))
+                            (handle-event (XNextEvent* (current-display))))
                      ))
        ; This could be used by the server instead of creating a thread?
        #;(handle-evt (current-input-port)
