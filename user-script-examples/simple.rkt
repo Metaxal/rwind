@@ -34,7 +34,7 @@
  "M-Super-F6" (L* (change-workspace-mode 'multi))
  )
 
-(for ([i 3])
+(for ([i 4])
   (add-bindings
    global-keymap
    ; Switch to the i-th workspace with Super-F1, Super-F2, etc.
@@ -55,7 +55,7 @@
 
 (add-bindings 
  root-keymap 
- ; Quit RWind (but may not quit the session)
+ ; Quit RWind
  "M-Escape" (L* (dprintf "Now exiting.\n")
                 (exit-rwind? #t))
  "C-Escape" (L* (dprintf "Now exiting and restarting.\n")

@@ -117,7 +117,8 @@ Prints (proc args ...) before calling it."
 
 ;; Tries to recompile RWind.
 (define* (recompile-rwind)
-  (recompile (λ(e)
+  (system "raco setup rwind")
+  #;(recompile (λ(e)
                (dprintf "Error: Something went wrong during compilation:\n")
                (displayln (exn-message e))
                (dprintf "Aborting procedure.\n"))))

@@ -502,10 +502,10 @@ See also `split-head'."
   (define existing-windows (window-list (true-root-window)))
 
   (define color-list
-    '("DarkSlateGray" "DarkSlateBlue" "Sienna"))
+    '("DarkSlateGray" "DarkSlateBlue" "Sienna" "DarkRed"))
 
   ;; Create at least one workspace per head
-  (for ([i (max (head-count) 3)]
+  (for ([i (max (head-count) 4)]
         [color (in-cycle color-list)])
     ; Create a workspace and apply the keymap to it
     (make-workspace (number->string i)  #:background-color (find-named-color color)))

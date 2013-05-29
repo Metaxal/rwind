@@ -224,4 +224,3 @@ Use (search-identifiers rx) to fetch the list of identifiers matching the specif
   (describe 'baz)
   ;(set! baz 3) ;exn
   )
-

@@ -274,8 +274,7 @@ Row and col range from 0 to rows-1 and cols-1."
 
 (define*/contract (move-resize-window-grid-auto window cols [rows cols])
   ((window? (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
-  "Places window in the grid in the row and column of its gravity center.
-Ex: (for ([w (viewable-windows)]) (move-resize-window-grid-auto w 3))"
+  "Places window in the grid in the row and column of its gravity center."
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
   (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))

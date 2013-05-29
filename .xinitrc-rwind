@@ -16,6 +16,6 @@ exec ./run.sh &
 # Or debug mode:
 #X11_RACKET_DEBUG=1 exec ./run-debug.sh &
 
-# Close this to end the session
+# Close this xterm to end the session
 xterm -g 80x24-0-0
 

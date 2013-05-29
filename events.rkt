@@ -9,6 +9,7 @@
          rwind/keymap
          rwind/window
          rwind/workspace
+         rwind/policies/base
          x11/x11
          x11/fd
          racket/match
@@ -33,7 +34,8 @@
      ; Give the subwindow as argument if the root window is selected.
      ; This is useful for the global-keymap.
      (define keyboard-ev (keyboard-event subwindow key-code 'KeyPress modifiers))
-     (call-keymaps-binding keyboard-ev)]
+     (call-keymaps-binding keyboard-ev)
+     (policy. on-keypress keyboard-ev)]
 
     #;[(KeyRelease)
        useful?]
@@ -48,7 +50,8 @@
               x y x-root y-root button modifiers
               (window-name window) window (window-name subwindow) subwindow)
      (define mouse-ev (mouse-event (or subwindow window) button event-type modifiers x-root y-root))
-     (call-keymaps-binding mouse-ev)]
+     (call-keymaps-binding mouse-ev)
+     (policy. on-mouse-button mouse-ev)]
 
     [(MotionNotify)
      ; Consume all pending 'MotionNotify events
@@ -63,7 +66,8 @@
               x y x-root y-root button modifiers
               (window-name window) (window-name subwindow))
      (define mouse-ev (mouse-event subwindow button 'ButtonMove modifiers x-root y-root))
-     (call-keymaps-binding mouse-ev)]
+     (call-keymaps-binding mouse-ev)
+     (policy. on-motion-notify mouse-ev)]
 
     [(ConfigureRequest)
      (match-define
@@ -72,7 +76,8 @@
        event)
      (XConfigureWindow (current-display) window value-mask
                        (make-XWindowChanges x y (bound-value width 1 10000) (bound-value height 1 10000)
-                                            border-width above stack-mode))]
+                                            border-width above stack-mode))
+     #;(policy. on-configure-request ...)]
 
     [(ConfigureNotify)
      (match-define
@@ -106,7 +111,8 @@
             ; This is an already managed window, just raise it normally.
             => (λ(wk)
                  (dprintf "Mapping existing window in ~a\n" wk)
-                 (show/raise-window window)
+                 (show-window window)
+                 (policy. on-map-request window #f)
                  #f)]
            [else
             (dprintf "Mapping new window\n")
@@ -115,18 +121,21 @@
             ;(window-apply-keymap window window-keymap) ; no, only (virtual) root windows have keymaps?
             ; add it to the current workspace
             (add-window-to-workspace window (pointer-workspace))
-            (show/raise-window window)
-            ])
-     ; give the window the input focus (if viewable)
-     (set-input-focus window)]
+            (show-window window)
+            (policy. on-map-request window #t)
+            ])]
 
     [(MappingNotify)
      ; see the warning about override-redirect in Tronche's doc
      (XRefreshKeyboardMapping event)]
 
-    #;[(UnmapNotify)
+    [(UnmapNotify)
      (define window (XUnmapEvent-window event))
-     ]
+     (policy. on-unmap-notify window)]
+    
+    [(DestroyNotify)
+     (define window (XDestroyWindowEvent-window event))
+     (policy. on-destroy-notify window)]
 
     #;[(CreateNotify)
      (define window (XCreateWindowEvent-window event))

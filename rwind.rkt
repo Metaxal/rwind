@@ -156,15 +156,8 @@ to be able to use (require rwind/keymap) for example
 
         ))); log to file
 
-  ;===============;
-  ;=== Restart ===;
-  ;===============;
-  #;(when (restart-rwind?)
-    (start-rwind-process))
-
   (dprintf "RWind terminated.\n")
   ; Make sure to exit the process, e.g., in case somethings hangs, like gui frames
-  #;(exit)
   (restart-rwind?))
 
 ;============;
