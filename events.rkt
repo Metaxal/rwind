@@ -131,10 +131,13 @@
 
     [(UnmapNotify)
      (define window (XUnmapEvent-window event))
+     (dprintf "Unmapping ~a\n" window)
+     ;(remove-window-from-workspace window)
      (policy. on-unmap-notify window)]
     
     [(DestroyNotify)
      (define window (XDestroyWindowEvent-window event))
+     (remove-window-from-workspace window)
      (policy. on-destroy-notify window)]
 
     #;[(CreateNotify)

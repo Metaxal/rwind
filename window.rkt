@@ -25,6 +25,10 @@
   "Returns #t if w1 and w2 are the same non-#f windows, #f otherwise."
   (and w1 w2 (eq? w1 w2)))
 
+;=======================;
+;=== Window creators ===;
+;=======================;
+
 ;; TEST: for testing
 (define* (create-test-window [x 100] [y 100])
   "Creates a simple window under the root and maps it."
@@ -40,6 +44,10 @@
 ;=================;
 ;=== Selectors ===;
 ;=================;
+
+(define* (query-tree window)
+  "Returns the parent and the children of the specified window."
+  (XQueryTree (current-display) window))
 
 #;(define* (window-name/class window)
   (define-values (status hint) (XGetClassHint (current-display) window))
@@ -145,9 +153,19 @@ the visible name, the icon name and the visible icon name in order."
           (XWindowAttributes-height attr)))
 
 (define* (window-position window)
+  "Returns the position of the window relatively to its parent."
   (define attr (window-attributes window))
   (values (XWindowAttributes-x attr)
           (XWindowAttributes-y attr)))
+
+(define* (window-absolute-position window)
+  "Returns the position of the window relative to the root window."
+  (let loop ([window window] [x 0] [y 0])
+    (if window
+        (let*-values ([(xw yw) (window-position window)]
+                      [(parent children) (query-tree window)])
+          (loop parent (+ x xw) (+ y yw)))
+        (values x y))))
 
 (define* (window-border-width window)
   (define attr (window-attributes window))
@@ -178,9 +196,9 @@ the visible name, the icon name and the visible icon name in order."
 (define* (window-user-resizable? window)
   (window-user-movable? window))
 
-;==================;
-;=== Operations ===;
-;==================;
+;=========================;
+;=== Window operations ===;
+;=========================;
 
 (define* (move-window window x y)
   (XMoveWindow (current-display) window x y))
@@ -218,69 +236,6 @@ the visible name, the icon name and the visible icon name in order."
 (define* (iconify-window window)
   (XIconifyWindow (current-display) window))
 
-(define (window+head-bounds window)
-  (define-values (x y w h) (window-bounds window))
-  (define-values (wmax hmax) (head-dimensions (find-window-head window)))
-  (values x y w h wmax hmax))
-
-(define* (h-maximize-window window)
-  "Maximizes window horizontally."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (move-resize-window window 0 y wmax h))
-
-(define* (v-maximize-window window)
-  "Maximizes window vertically."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (move-resize-window window x 0 w hmax))
-
-(define* (maximize-window window)
-  "Maximizes window horizontally and vertically."
-  (define-values (wmax hmax) (head-dimensions (find-window-head window)))
-  (move-resize-window window 0 0 wmax hmax))
-
-(define* (center-window window)
-  "Centers the window in the current head."
-  (move-window-frac window 1/2 1/2))
-
-(define*/contract (move-window-frac window frac-x frac-y)
-  (window? (real-in 0 1) (real-in 0 1) . -> . any/c)
-  "Places the window at a fraction of its head.
-Ex: (move-window (pointer-head) 1/4 3/4)"
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (move-window window (truncate (* frac-x (- wmax w))) (truncate (* frac-y (- hmax h)))))
-
-(define*/contract (move-resize-window-frac window frac-x frac-y frac-w [frac-h frac-w])
-  ((window? (real-in 0 1) (real-in 0 1) (real-in 0 1)) ((real-in 0 1)) . ->* . any/c)
-  "Places the window at a fraction of its head.
-Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (define new-w (truncate (* frac-w wmax)))
-  (define new-h (truncate (* frac-h hmax)))
-  (move-resize-window window
-                      (truncate (* frac-x (- wmax new-w))) (truncate (* frac-y (- hmax new-h)))
-                      new-w new-h))
-
-(define*/contract (move-resize-window-grid window cols win-col win-row col-span [row-span col-span]
-                                           #:rows [rows cols])
-  ((window? (integer-in 1 100) (integer-in 0 99) (integer-in 0 99) (integer-in 0 99))
-   ((integer-in 1 100) #:rows (integer-in 0 99))
-   . ->* . any/c)
-  "Places window in the grid of size (rows, cols) at the cell (row, col) spanning over col-span and row-span cells.
-Row and col range from 0 to rows-1 and cols-1."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (define cell-w (truncate (/ wmax cols)))
-  (define cell-h (truncate (/ hmax rows)))
-  (move-resize-window window (* win-col cell-w) (* win-row cell-h) (* col-span cell-w) (* row-span cell-h)))
-
-(define*/contract (move-resize-window-grid-auto window cols [rows cols])
-  ((window? (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
-  "Places window in the grid in the row and column of its gravity center."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
-  (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))
-  (define win-col (truncate (/ (* cols xc) wmax)))
-  (define win-row (truncate (/ (* rows yc) hmax)))
-  (move-resize-window-grid window cols #:rows rows win-col win-row 1))
 
 ;(define (uniconify-window window)(void))
 
@@ -363,74 +318,72 @@ Row and col range from 0 to rows-1 and cols-1."
 (define* (get-window-allowed-actions window)
   (get-window-property-atoms window _NET_WM_ALLOWED_ACTIONS))
 
-;=====================;
-;=== Focus/Pointer ===;
-;=====================;
+;==============================;
+;=== More window operations ===;
+;==============================;
 
-#| Resources
-click-to-focus:
-- http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/x-understanding.html
-- http://stackoverflow.com/questions/3528304/xlib-getting-events-of-a-child-window
-- potential solution (use XAllowEvents + ModeSync ?): http://code.google.com/p/xmonad/issues/detail?id=225
-- http://www.hioreanu.net/cs/ahwm/sloppy-focus.html
-- metacity/doc/how-to-get-focus-right.txt
-|#
 
-(define* (input-focus)
-  (car (XGetInputFocus (current-display))))
+;; TODO? Parameterize the following procedurs by either the head or the workspace?
 
-(define* (set-input-focus window)
-  "Gives the keyboard focus to the window if it is viewable."
-  ; TODO: focus should not be given to windows that don't want it
-  (when (and window (window-viewable? window))
-    (XSetInputFocus (current-display) window 'RevertToParent CurrentTime)))
+(define* (h-maximize-window window)
+  "Maximizes window horizontally."
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
+  (move-resize-window window 0 y wmax h))
 
-(define* (set-input-focus/raise window)
-  (when window
-    (set-input-focus window)
-    (raise-window window)))
+(define* (v-maximize-window window)
+  "Maximizes window vertically."
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
+  (move-resize-window window x 0 w hmax))
 
-(define* (query-pointer [root (pointer-root-window)])
-"Returns a list of the following values:
-  win: the targeted window
-  x: the x coordinate in the root window
-  y: the y coordinate in the root window
-  mask: the modifier mask.
-root is the window relative to which the query is made, and the child window win is returned.
-By default it is the virtual-root under the pointer."
-  (define-values (rc _root win x y win-x win-y mask)
-    (XQueryPointer (current-display)
-                   ;(true-root-window)
-                   root
-                   ))
-  (values win x y mask))
+(define* (maximize-window window)
+  "Maximizes window horizontally and vertically."
+  (define-values (wmax hmax) (head-dimensions (find-window-head window)))
+  (move-resize-window window 0 0 wmax hmax))
 
-(define* (pointer-focus)
-  "Returns the window that is below the mouse pointer."
-  (define-values (win x y mask) (query-pointer))
-  win)
+(define* (center-window window)
+  "Centers the window in the current head."
+  (move-window-frac window 1/2 1/2))
 
-;; Replace the global keymap by an empty one
-;; with only one binding: Button1Press
-;; Use grabPointer, and ungrab it in the callback
-#;(define* (select-window)
-  void)
+(define*/contract (move-window-frac window frac-x frac-y)
+  (window? (real-in 0 1) (real-in 0 1) . -> . any/c)
+  "Places the window at a fraction of its head.
+Ex: (move-window (pointer-head) 1/4 3/4)"
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
+  (move-window window (truncate (* frac-x (- wmax w))) (truncate (* frac-y (- hmax h)))))
 
-(define* (focus-next!)
-  "Gives the keyboard focus to the next window in the list of windows"
-  ; TODO: cycle only among windows that want focus
-  (define wl (viewable-windows))
-  (unless (empty? wl)
-    (let* ([wl (cons (last wl) wl)]
-           [w (input-focus)]
-           ; if no window has the focus (maybe the root has it)
-           [m (member w wl)])
-      (if m
-          ; the cadr should not be a problem because of the last that ensures
-          ; that the list has at least 2 elements if w is found
-          (set-input-focus/raise (cadr m))
-          ; not found, give the focus to the firt window
-          (set-input-focus/raise (first wl))))))
+(define*/contract (move-resize-window-frac window frac-x frac-y frac-w [frac-h frac-w])
+  ((window? (real-in 0 1) (real-in 0 1) (real-in 0 1)) ((real-in 0 1)) . ->* . any/c)
+  "Places the window at a fraction of its head.
+Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
+  (define new-w (truncate (* frac-w wmax)))
+  (define new-h (truncate (* frac-h hmax)))
+  (move-resize-window window
+                      (truncate (* frac-x (- wmax new-w))) (truncate (* frac-y (- hmax new-h)))
+                      new-w new-h))
+
+(define*/contract (move-resize-window-grid window cols win-col win-row col-span [row-span col-span]
+                                           #:rows [rows cols])
+  ((window? (integer-in 1 100) (integer-in 0 99) (integer-in 0 99) (integer-in 0 99))
+   ((integer-in 1 100) #:rows (integer-in 0 99))
+   . ->* . any/c)
+  "Places window in the grid of size (rows, cols) at the cell (row, col) spanning over col-span and row-span cells.
+Row and col range from 0 to rows-1 and cols-1."
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
+  (define cell-w (truncate (/ wmax cols)))
+  (define cell-h (truncate (/ hmax rows)))
+  (move-resize-window window (* win-col cell-w) (* win-row cell-h) (* col-span cell-w) (* row-span cell-h)))
+
+(define*/contract (move-resize-window-grid-auto window cols [rows cols])
+  ((window? (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
+  "Places window in the grid in the row and column of its gravity center."
+  (define-values (x y w h wmax hmax) (window+head-bounds window))
+  (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
+  (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))
+  (define win-col (truncate (/ (* cols xc) wmax)))
+  (define win-row (truncate (/ (* rows yc) hmax)))
+  (move-resize-window-grid window cols #:rows rows win-col win-row 1))
+
 
 ;===============================;
 ;=== Window Lists Operations ===;
@@ -466,6 +419,86 @@ By default it is the virtual-root under the pointer."
 
 
 ;; todo: send window to left/right/up/down, etc.
+
+;=====================;
+;=== Focus/Pointer ===;
+;=====================;
+
+#| Resources
+click-to-focus:
+- http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/x-understanding.html
+- http://stackoverflow.com/questions/3528304/xlib-getting-events-of-a-child-window
+- potential solution (use XAllowEvents + ModeSync ?): http://code.google.com/p/xmonad/issues/detail?id=225
+- http://www.hioreanu.net/cs/ahwm/sloppy-focus.html
+- metacity/doc/how-to-get-focus-right.txt
+|#
+
+(define* (query-pointer [root (pointer-root-window)])
+"Returns a list of the following values:
+  win: the targeted window
+  x: the x coordinate in the root window
+  y: the y coordinate in the root window
+  mask: the modifier mask.
+root is the window relative to which the query is made, and the child window win is returned.
+By default it is the virtual-root under the pointer."
+  (define-values (rc _root win x y win-x win-y mask)
+    (XQueryPointer (current-display)
+                   ;(true-root-window)
+                   root
+                   ))
+  (values win x y mask))
+
+(define* (pointer-head)
+  "Returns the head number that contains the mouse pointer."
+  (define-values (win x y mask) (query-pointer (true-root-window)))
+  (find-head x y))
+
+(define* (focus-head)
+  "Returns the head number that contains the input focus window,
+in the sense of `find-window-head'."
+  (find-window-head (input-focus)))
+
+(define* (pointer-root-window)
+  "Returns the virtual root-window that contains the pointer."
+  (and=> (pointer-head) head-root-window))
+
+(define* (focus-root-window)
+  "Returns the virtual root window that has the keyboard focus."
+  #;(XWindowAttributes-root (window-attributes (input-focus))) ; nope, gives the true root
+  #;(workspace-root-window (find-window-workspace (input-focus)))
+  (and=> (focus-head) head-root-window))
+
+(define* (pointer-focus)
+  "Returns the window that is below the mouse pointer."
+  (define-values (win x y mask) (query-pointer))
+  win)
+
+(define* pointer-window pointer-focus
+  "Synonym for pointer-focus.")
+
+(define* (input-focus)
+  "Returns the window that currently has the keyboard focus."
+  (car (XGetInputFocus (current-display))))
+
+(define* input-window input-focus
+  "Synonym for input-focus.")
+
+(define* (set-input-focus window)
+  "Gives the keyboard focus to the window if it is viewable."
+  ; TODO: focus should not be given to windows that don't want it
+  (when (and window (window-viewable? window))
+    (XSetInputFocus (current-display) window 'RevertToParent CurrentTime)))
+
+(define* (set-input-focus/raise window)
+  (when window
+    (set-input-focus window)
+    (raise-window window)))
+
+;; Replace the global keymap by an empty one
+;; with only one binding: Button1Press
+;; Use grabPointer, and ungrab it in the callback
+#;(define* (select-window)
+  void)
 
 ;===========================================;
 ;=== Heads / Monitors / Physical Screens ===;
@@ -592,6 +625,61 @@ By default it is the virtual-root under the pointer."
             (>= py y) (< py (+ y h))
             i)])))
 
+(define* (head-list-bounds [heads #f])
+  "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
+If `heads' is #f, all heads are considered."
+  (define (app1 op a b)
+    (if a (op a b) b))
+  (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers
+    (define-values (x1 y1 x2 y2)
+      (for/fold ([x1 #f] [y1 #f] [x2 #f] [y2 #f])
+        ([hd heads])
+        (match (get-head-info hd)
+          [(head-info s win x y w h)
+           (values (app1 min x1 x) (app1 min y1 y)
+                   (app1 max x2 (+ x w)) (app1 max y2 (+ y h)))])))
+    (values x1 y1 (- x2 x1) (- y2 y1))))
+
+;; Still buggy?
+(define* (find-window-head win)
+  "Returns the head number that contains one of the corners or the center
+of the window that has the input focus.
+Returns #f if no corner and center is contained in any head
+(which should be rare if the window is visible)."
+  (and win
+       (let*-values ([(x y w h) (window-bounds win)]
+                     [(x y) (window-absolute-position)])
+         (or (find-head x                     y)
+             (find-head (+ x w)               y)
+             (find-head x                     (+ y h))
+             (find-head (+ x w)               (+ y h))
+             (find-head (+ x (quotient w 2))  (+ y (quotient h 2)))))))
+
+
+
+#;(module+ main
+  (require racket/vector)
+  (init-display)
+  (split-head)
+  (head-infos)
+  (head-dimensions 0)
+  (find-head 0 0)
+  (find-head 1000 1000)
+  (exit-display))
+
+(define* (window+head-bounds window)
+  "Returns the bounds of the window and the dimensions of its enclosing head."
+  (define-values (x y w h) (window-bounds window))
+  (define-values (xroot yroot wroot hroot) (head-bounds (find-window-head window)))
+  (values x y w h wroot hroot))
+
+(define* (window+vroot-bounds window)
+  "Returns the bounds of the window and its enclosing virtual root."
+  (define-values (x y w h) (window-bounds window))
+  (define-values (xroot yroot wroot hroot) (window-bounds (head-root-window (find-window-head window))))
+  (values x y w h xroot yroot wroot hroot))
+
+
 (define*/contract (split-head [fraction 1/2] [hd (pointer-head)] #:style [style 'horiz])
   ([] [(real-in 0 1) natural-number/c #:style (one-of/c 'horiz 'vert)] . ->* . any)
   "Splits the specified head in two new heads, vertically or horizontally depending on the specified style.
@@ -624,53 +712,21 @@ This can be used to simulate several heads on a single monitor."
                                      (head-info 0 #f 100 300 800 300)))
   )
 
-(define* (head-list-bounds [heads #f])
-  "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
-If `heads' is #f, all heads are considered."
-  (define (app1 op a b)
-    (if a (op a b) b))
-  (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers
-    (define-values (x1 y1 x2 y2)
-      (for/fold ([x1 #f] [y1 #f] [x2 #f] [y2 #f])
-        ([hd heads])
-        (match (get-head-info hd)
-          [(head-info s win x y w h)
-           (values (app1 min x1 x) (app1 min y1 y)
-                   (app1 max x2 (+ x w)) (app1 max y2 (+ y h)))])))
-    (values x1 y1 (- x2 x1) (- y2 y1))))
-
-(define* (find-window-head win)
-  "Returns the head number that contains one of the corners or the center
-of the window that has the input focus.
-Returns #f if no corner and center is contained in any head
-(which should be rare if the window is visible)."
-  (and win
-       (let-values ([(x y w h)(window-bounds win)])
-         (or (find-head x                     y)
-             (find-head (+ x w)               y)
-             (find-head x                     (+ y h))
-             (find-head (+ x w)               (+ y h))
-             (find-head (+ x (quotient w 2))  (+ y (quotient h 2)))))))
-
-(define* (pointer-head)
-  "Returns the head number that contains the mouse pointer."
-  (define-values (win x y mask) (query-pointer (true-root-window)))
-  (find-head x y))
-
-(define* (focus-head)
-  "Returns the head number that contains the input focus window,
-in the sense of `find-window-head'."
-  (find-window-head (input-focus)))
-
-#;(module+ main
-  (require racket/vector)
-  (init-display)
-  (split-head)
-  (head-infos)
-  (head-dimensions 0)
-  (find-head 0 0)
-  (find-head 1000 1000)
-  (exit-display))
+(define* (focus-next!)
+  "Gives the keyboard focus to the next window in the list of windows"
+  ; TODO: cycle only among windows that want focus
+  (define wl (viewable-windows))
+  (unless (empty? wl)
+    (let* ([wl (cons (last wl) wl)]
+           [w (input-focus)]
+           ; if no window has the focus (maybe the root has it)
+           [m (member w wl)])
+      (if m
+          ; the cadr should not be a problem because of the last that ensures
+          ; that the list has at least 2 elements if w is found
+          (set-input-focus/raise (cadr m))
+          ; not found, give the focus to the firt window
+          (set-input-focus/raise (first wl))))))
 
 ;===================;
 ;=== Root Window ===;
@@ -681,16 +737,6 @@ in the sense of `find-window-head'."
 (define* (true-root-window? win)
   (window=? win (true-root-window)))
 
-(define* (pointer-root-window)
-  "Returns the virtual root-window that contains the pointer."
-  (and=> (pointer-head) head-root-window))
-
-(define* (focus-root-window)
-  "Returns the virtual root window that has the keyboard focus."
-  #;(XWindowAttributes-root (window-attributes (input-focus))) ; nope, gives the true root
-  #;(workspace-root-window (find-window-workspace (input-focus)))
-  (and=> (focus-head) head-root-window))
-
 (define* (init-root-window)
   (true-root-window (XDefaultRootWindow (current-display)))
   ;; Ask the root window to send us any event
@@ -698,7 +744,7 @@ in the sense of `find-window-head'."
   (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask)
                            (make-XSetWindowAttributes
                             #:event-mask '(SubstructureRedirectMask
-                                           SubstructureRedirectMask
+                                           SubstructureNotifyMask
                                            StructureNotifyMask)))
 
   (xinerama-update-infos)

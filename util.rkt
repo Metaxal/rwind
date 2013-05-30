@@ -117,7 +117,7 @@ Prints (proc args ...) before calling it."
 
 ;; Tries to recompile RWind.
 (define* (recompile-rwind)
-  (system "raco setup rwind")
+  (system "raco setup -D rwind")
   #;(recompile (λ(e)
                (dprintf "Error: Something went wrong during compilation:\n")
                (displayln (exn-message e))

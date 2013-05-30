@@ -7,6 +7,7 @@
          rwind/base
          rwind/util
          rwind/window
+         ;rwind/window-utils
          rwind/doc-string
          x11/x11
          ;x11/keysym-util

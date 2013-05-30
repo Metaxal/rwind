@@ -68,7 +68,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;====================;
 
 ;; window is the virtual root window of the workspace
-(struct workspace (id root-window)
+(struct workspace (id root-window windows)
   #:transparent
   #:mutable)
 (provide (struct-out workspace))
@@ -80,7 +80,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   The new workspace is inserted into the workspace list."
   ;; Sets the new window attributes so that it will report any events
   (define attrs (make-XSetWindowAttributes
-                 #:event-mask '(SubstructureRedirectMask)
+                 #:event-mask '(SubstructureRedirectMask
+                                SubstructureNotifyMask)
                  #:background-pixel bk-color
                  ))
   ;; Create the window, but don't map it yet.
@@ -100,7 +101,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
   ;; Make sure we will see the keymap events
   (virtual-root-apply-keymaps root-window)
-  (define wk (workspace id root-window))
+  (define wk (workspace id root-window '()))
   (insert-workspace wk)
   wk)
 
@@ -155,6 +156,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (workspace? . -> . list?)
   "Returns the list of windows that are managed by the specified workspace,
 in the sense of `window-list'."
+  ; Should be simply `workspace-windows', but not yet entirely functional.
   (window-list (workspace-root-window wk)))
 
 (define* (count-workspaces)
@@ -273,21 +275,31 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   If 'wrap?' is true, then the list is circular, otherwise it is bounded."
   (activate-workspace (workspace-subn current-workspace-number dec warp?)))
 
-(define*/contract (remove-window-from-workspace window wk)
-  (window? workspace? . -> . any/c)
+(define*/contract (remove-window-from-workspace window [wk (find-window-workspace window)])
+  ([window?] [(or/c workspace? #f)] . ->* . any/c)
+  "Removes the window from the workspace (by default the workspace of the window)
+if it is not #f."
   ;; TODO: Remove the workspace-window from the list of _NET_VIRTUAL_ROOTS
   ;(change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window) 32)
-  #f)
+  (when wk
+    (set-workspace-windows! wk (remove window (workspace-windows wk)))))
 
 (define*/contract (add-window-to-workspace window wk)
   (window? workspace? . -> . any)
+  "Adds the window to the workspace. 
+If the window was in another workspace, it is removed from the latter."
   (dprintf "Adding window ~a to workspace ~a\n" window wk)
-  (if (some-root-window? window)
-      (printf "Warning: not a valid window (~a) to add to workspace\n" window)
-      (let ([old-wk (find-window-workspace window)])
-        (when old-wk
-          (remove-window-from-workspace window wk))
-        (reparent-window window (workspace-root-window wk)))))
+  (define wk-src (find-window-workspace window))
+  (cond [(some-root-window? window)
+         (dprintf "Warning: not a valid window (~a) to add to workspace\n" window)]
+        [(not (eq? wk wk-src))
+         ; The found workspace (or #f) is not the target workspace
+         (remove-window-from-workspace window wk-src)
+         (reparent-window window (workspace-root-window wk))
+         (define wk-ws (workspace-windows wk))
+         (unless (memq window wk-ws)
+           ; This can happen if closed windows get reused for new ones, like xterm
+           (set-workspace-windows! wk (cons window wk-ws)))]))
 
 
 (define*/contract (move-window-to-workspace window wk/i/n)

@@ -36,7 +36,8 @@
   (displayln "Recompiling...")
   (with-handlers ([exn:fail? (λ(e)(error-handler e)
                                #f)])
-    (compile-collection-zos the-collection-str)
+    (compile-collection-zos the-collection-str
+                            #:skip-doc-sources? #t)
     (displayln "Compilation done.")
     #t))
 
