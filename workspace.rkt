@@ -13,7 +13,6 @@
          x11/x11
          racket/list
          racket/contract
-         racket/match
          rackunit
          )
 
@@ -75,7 +74,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define*/contract (make-workspace [id #f]
                                   #:background-color [bk-color black-pixel])
-  (() ((or/c string? #f) #:background-color exact-nonnegative-integer?) . ->* . workspace?)
+  ([] [(or/c string? #f) #:background-color exact-nonnegative-integer?] . ->* . workspace?)
   "Returns a newly created workspace, which contains a new unmapped window of the size of the display.
   The new workspace is inserted into the workspace list."
   ;; Sets the new window attributes so that it will report any events
@@ -263,14 +262,14 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 
 ; current-workspace-number is obsolete. Must use heads to know the current workspace
 #;(define*/contract (next-workspace! [inc 1] [warp? (workspace-warp?)])
-  (() (number? any/c) . ->* . void?)
+  ([] [number? any/c] . ->* . void?)
   "Switches to the next workspace by offset 'inc' in linear order and returns the new workspace number.
   If 'wrap?' is true, then the list is circular, otherwise it is bounded."
   (activate-workspace (workspace-addn current-workspace-number inc warp?)))
 
 ; current-workspace-number is obsolete. Must use heads to know the current workspace
 #;(define*/contract (previous-workspace! [dec 1] [warp? (workspace-warp?)])
-  (() (number? any/c) . ->* . void?)
+  ([] [number? any/c] . ->* . void?)
   "Switches to the previous workspace by offest 'dec' in linear order and returns the new workspace number.
   If 'wrap?' is true, then the list is circular, otherwise it is bounded."
   (activate-workspace (workspace-subn current-workspace-number dec warp?)))
@@ -409,8 +408,8 @@ If the window was in another workspace, it is removed from the latter."
          (set-input-focus (true-root-window))]))
 
 (define*/contract (activate-workspace wk/i/n [head (pointer-head)])
-  ((workspace-ref?) (number?) . ->* . any)
-  "Switches to workspace wk/i/n (either a workspace?, a number? or a workspace identifier)."
+  ([workspace-ref?] [number?] . ->* . any)
+  "Switches to workspace wk/i/n (either a `workspace?', a `number?' or a workspace identifier)."
   (dprintf "Activating workspace ~a\n" wk/i/n)
 
   (define new-wk (find-workspace wk/i/n))
@@ -443,7 +442,7 @@ If the window was in another workspace, it is removed from the latter."
 
 (define*/contract (workspace-fit-to-heads wk [heads #f] [move? #t] [resize? move?])
   ([workspace?] [(or/c #f (listof number?)) any/c any/c] . ->* . any)
-  "Like workspace-fit-to, but fits to a given list of heads (numbers), i.e.,
+  "Like `workspace-fit-to', but fits to a given list of heads (numbers), i.e.,
 the workspace window will then span over all the given heads.
 If heads is #f, then all heads are considered.
 Furthermore, it also changes the root-windows of the heads."
@@ -458,7 +457,7 @@ Furthermore, it also changes the root-windows of the heads."
 
 (define* (update-workspaces)
   "Updates the information about the screens and maps one workspace in each screen.
-See change-workspace-mode for more information on the different modes."
+See `change-workspace-mode' for more information on the different modes."
 
   ; First make sure that all root windows are unmapped
   (for-each unmap-workspace workspaces)
@@ -485,12 +484,12 @@ See also `split-head'."
       (begin
         (split-head #:style style)
         (update-workspaces))
-      (dprintf "split-workspace: Must be in 'multi mode (use change-workspace-mode)")))
+      (dprintf "split-workspace: Must be in 'multi mode (use `change-workspace-mode')")))
 
 (define*/contract (exit-workspace wk)
   (workspace? . -> . any)
   "Reparents all sub-windows of the specified workspace to the true root."
-  ;; This is necessary to avoid killing the windows when RWind quits.
+  ; This is necessary to avoid killing the windows when RWind quits.
   (define root (true-root-window))
   (for ([w (workspace-subwindows wk)])
     (reparent-window w root)))
@@ -510,23 +509,24 @@ See also `split-head'."
   (change-window-property (true-root-window) _NET_SUPPORTED 'XA_WINDOW 'PropModeAppend (list _NET_VIRTUAL_ROOTS))
 
 
-  ;; Get the window list *before* creating the workspace windows...
+  ; Get the window list *before* creating the workspace windows...
   (define existing-windows (window-list (true-root-window)))
 
   (define color-list
     '("DarkSlateGray" "DarkSlateBlue" "Sienna" "DarkRed"))
 
-  ;; Create at least one workspace per head
+  ; Create at least one workspace per head
+  ; (This should move to the user's config file?)
   (for ([i (max (head-count) 4)]
         [color (in-cycle color-list)])
     ; Create a workspace and apply the keymap to it
     (make-workspace (number->string i)  #:background-color (find-named-color color)))
 
-  ;; Place the workspaces for a given mode
+  ; Place the workspaces for a given mode
   (change-workspace-mode 'single)
 
-  ;; Put all mapped windows in the workspace it belongs to,
-  ;; depending on its position
+  ; Put all mapped windows in the workspace it belongs to,
+  ; depending on its position
   (for-each (λ(w)(let ([wk (guess-window-workspace w)])
                    (if wk
                        (add-window-to-workspace w wk)
@@ -536,6 +536,6 @@ See also `split-head'."
 
 (define* (exit-workspaces)
   "Reparents all sub-windows to the true root-window."
-  ;; TODO: unmap all workspace virtual-root-windows?
+  ; TODO: unmap all workspace virtual-root-windows?
   (for-each exit-workspace workspaces)
   )

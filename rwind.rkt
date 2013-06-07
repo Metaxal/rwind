@@ -83,6 +83,7 @@ to be able to use (require rwind/keymap) for example
          rwind/util
          rwind/window
          rwind/workspace
+         rwind/policy/simple ; instantiate the simple policy and use it as default
          rwind/gui/base
          x11/x11 ; needs raco pkg install x11
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
@@ -138,9 +139,9 @@ to be able to use (require rwind/keymap) for example
 
         (init-server)
 
-        ;==================;
-        ;=== Event loop ===;
-        ;==================;
+        ;--------------;
+        ;- Event loop -;
+        ;--------------;
         (run-event-loop)
 
         (dprintf "Terminating... ")
@@ -153,6 +154,8 @@ to be able to use (require rwind/keymap) for example
         (exit-workspaces)
 
         (exit-display)
+        
+        (set-input-focus (true-root-window))
 
         ))); log to file
 

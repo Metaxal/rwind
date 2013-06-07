@@ -1,16 +1,14 @@
 #lang racket/base
 
-;; Derived from: https://gist.github.com/tonyg/4548874
+;;; Author: Laurent Orseau
+;;; License: LGPL
 
-;; Allows to run another racket program and restart it without having
-;; to restart the whole racket process.
-;; The procedure `recompile' is exported to allow recompilation before
-;; restarting the "process".
+;;; Derived from: https://gist.github.com/tonyg/4548874
 
-;; Before testing this file, you must do, in the parent directory
-;; of this directory (named <the-collection-str>, defined below):
-;; $ raco link <the-collection-str>
-;; $ raco setup <the-collection-str>
+;;; Allows to run another racket program and restart it without having
+;;; to restart the whole racket process.
+;;; The procedure `recompile' is exported to allow recompilation before
+;;; restarting the "process".
 
 (require compiler/compiler
          racket/gui/base ; To instantiate it once, and keep its reference
@@ -43,7 +41,7 @@
 
 (module+ main
 
-  ;; We need to do this to avoid the infamous
+  ;; We need(?) to do this to avoid the infamous
   ;; "cannot instantiate racket/gui/base a second time in the same process" error.
   (define-namespace-anchor this-namespace-anchor)
   (define this-namespace (namespace-anchor->namespace this-namespace-anchor))
@@ -58,7 +56,7 @@
   ;; it may be unsuitable to even stop the running user procedure.)
   (define (run)
     (define sub-custodian (make-custodian))
-    (printf "Starting worker...\n")
+    (printf "Starting delegate main...\n")
     (define restart?
       (parameterize ([current-custodian sub-custodian]
                      [current-namespace (make-base-namespace)])
@@ -66,7 +64,7 @@
         (define run (dynamic-require the-collection-file-sym
                                      the-procedure-sym))
         (run)))
-    (printf "Terminating worker...\n")
+    (printf "Terminating delegate main...\n")
     (custodian-shutdown-all sub-custodian)
     restart?)
 

@@ -7,13 +7,15 @@
          rwind/doc-string
          rwind/util
          rwind/display
+         rwind/policy/base
+         rwind/color
          x11/x11
          racket/list
          racket/contract
          )
 
 #| TODO
-- contracts and tests
+- contracts and tests...
 |#
 
 (module+ test (require rackunit))
@@ -29,37 +31,24 @@
 ;=== Window creators ===;
 ;=======================;
 
-;; TEST: for testing
+(define* (create-simple-window x y w h [border-width 0])
+  (define window (XCreateSimpleWindow (current-display) (true-root-window)
+                                      x y w h border-width 0 0))
+  (when window (policy. on-create-window window))
+  window)
+
+;; For testing
 (define* (create-test-window [x 100] [y 100])
   "Creates a simple window under the root and maps it."
-  (define window (XCreateSimpleWindow (current-display) (pointer-root-window)
-                                      x y 100 100 2 0 0))
+  (define window (create-simple-window x y 100 100 2))
   (when window (map-window window))
   window)
 
-(define* (create-simple-window x y w h [border-width 1])
-  (XCreateSimpleWindow (current-display) (pointer-root-window)
-                       x y w h border-width 0 0))
+;=============;
+;=== Atoms ===;
+;=============;
 
-;=================;
-;=== Selectors ===;
-;=================;
-
-(define* (query-tree window)
-  "Returns the parent and the children of the specified window."
-  (XQueryTree (current-display) window))
-
-#;(define* (window-name/class window)
-  (define-values (status hint) (XGetClassHint (current-display) window))
-  (and status
-       (list (XClassHint-res-name) (XClassHint-res-class))))
-
-(define* (window-text-property window atom)
-  "Returns a list of strings for the property named atom for the given window."
-  (and window
-       (let ([txt (XGetTextProperty (current-display) window atom)])
-         ; should use the Xmb variant instead?
-         (and txt (XTextPropertyToStringList txt)))))
+; put in a separate file?
 
 (define* (intern-atom atom)
   (XInternAtom (current-display) atom #f))
@@ -76,7 +65,6 @@
            ...)
          ))
 
-;@@ Atoms
 (provide intern-atoms)
 ;; (intern-atoms) must be called on init.
 (define-atoms intern-atoms
@@ -101,10 +89,30 @@
   __SWM_VROOT
   )
 
-(define* (atom->atom-name atom)
+(define* (atom->string atom)
   (if (symbol? atom)
       atom
       (XGetAtomName (current-display) atom)))
+
+;=================;
+;=== Selectors ===;
+;=================;
+
+(define* (query-tree window)
+  "Returns the parent and the children of the specified window."
+  (XQueryTree (current-display) window))
+
+#;(define* (window-name/class window)
+  (define-values (status hint) (XGetClassHint (current-display) window))
+  (and status
+       (list (XClassHint-res-name) (XClassHint-res-class))))
+
+(define* (window-text-property window atom)
+  "Returns a list of strings for the property named atom for the given window."
+  (and window
+       (let ([txt (XGetTextProperty (current-display) window atom)])
+         ; should use the Xmb variant instead?
+         (and txt (XTextPropertyToStringList txt)))))
 
 (define* (window-name window)
   ;(printf "net wm name: ~a\n" _NET_WM_NAME)
@@ -125,16 +133,14 @@ the visible name, the icon name and the visible icon name in order."
              _NET_WM_ICON_NAME
              _NET_WM_VISIBLE_ICON_NAME)))
 
-
 (define* (window-class window)
   "Returns the list of classes of the window."
   (window-text-property window 'XA_WM_CLASS))
 
-
 (define* (window-protocols window)
-  ; Use XGetAtomNames instead of XGetAtomName ?
-  (map atom->atom-name
-       (XGetWMProtocols (current-display) window)))
+  "Returns the list of protocols as atoms that the window supports."
+  (or (XGetWMProtocols (current-display) window)
+      '()))
 
 (define* (window-attributes window)
   (XGetWindowAttributes (current-display) window))
@@ -170,7 +176,6 @@ the visible name, the icon name and the visible icon name in order."
 (define* (window-border-width window)
   (define attr (window-attributes window))
   (XWindowAttributes-border-width attr))
-
 
 (define* (window-map-state window)
   "Returns 'IsUnmapped, 'IsUnviewable or 'IsViewable.
@@ -220,7 +225,7 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (raise-window window)
   "Raises window to top, unless it has type _NET_WM_WINDOW_TYPE_DESKTOP."
-  (define type (get-window-type window)) ; may be a list of types
+  ; TODO: This test probably belongs to the policy!
   (unless (window-has-type? window _NET_WM_WINDOW_TYPE_DESKTOP)
     (XRaiseWindow (current-display) window)))
 
@@ -235,7 +240,6 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (iconify-window window)
   (XIconifyWindow (current-display) window))
-
 
 ;(define (uniconify-window window)(void))
 
@@ -264,16 +268,19 @@ the visible name, the icon name and the visible icon name in order."
 
 (define*/contract (destroy-window window)
   (window? . -> . any)
-  (when window
-    (XDestroyWindow (current-display) window)))
+  (XDestroyWindow (current-display) window))
 
 (define*/contract (kill-client window)
   (window? . -> . any)
   (XKillClient (current-display) window))
 
+;; Does not seem to work properly... 
+;; TODO: Look at other window managers to see how they do it.
+;; - does not delete all windows that could be destroyed
+;; - when calling it on a window created with `create-simple-window', RWind crashes (or just halts?).
 (define* (delete-window window)
   "Tries to gently close the window and client if possible, otherwise kills it."
-  (if (member "WM_DELETE_WINDOW" (window-protocols window))
+  (if (member WM_DELETE_WINDOW (window-protocols window))
       (send-client-message window WM_PROTOCOLS (list WM_DELETE_WINDOW CurrentTime))
       (kill-client window)))
 
@@ -281,8 +288,11 @@ the visible name, the icon name and the visible icon name in order."
   (XSetWindowBorderWidth (current-display) window width))
 
 (define* (set-window-background-color window color)
-  "Color must be a color found with find-named-color or similar (i.e., it is a color-pixel)."
-  (XSetWindowBackground (current-display) window color)
+  "Color is either a color-pixel or a string suitable for `find-named-color'."
+  (XSetWindowBackground (current-display) window 
+                        (if (string? color)
+                            (find-named-color color)
+                            color))
   ; refresh:
   (clear-window window))
 
@@ -307,7 +317,7 @@ the visible name, the icon name and the visible icon name in order."
   (or (get-window-property window property 'XA_ATOM Atom) #f))
 
 ; For information on all the window types, see http://developer.gnome.org/wm-spec/#id2551529
-; (use it with (map atom->atom-name ...) for better reading)
+; (use it with (map atom->string ...) for better reading)
 (define* (get-window-type window)
   "Returns a list of types as atoms for the specified window."
   (get-window-property-atoms window _NET_WM_WINDOW_TYPE))
@@ -321,7 +331,6 @@ the visible name, the icon name and the visible icon name in order."
 ;==============================;
 ;=== More window operations ===;
 ;==============================;
-
 
 ;; TODO? Parameterize the following procedurs by either the head or the workspace?
 
@@ -352,7 +361,7 @@ Ex: (move-window (pointer-head) 1/4 3/4)"
   (move-window window (truncate (* frac-x (- wmax w))) (truncate (* frac-y (- hmax h)))))
 
 (define*/contract (move-resize-window-frac window frac-x frac-y frac-w [frac-h frac-w])
-  ((window? (real-in 0 1) (real-in 0 1) (real-in 0 1)) ((real-in 0 1)) . ->* . any/c)
+  ([window? (real-in 0 1) (real-in 0 1) (real-in 0 1)] [(real-in 0 1)] . ->* . any/c)
   "Places the window at a fraction of its head.
 Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
   (define-values (x y w h wmax hmax) (window+head-bounds window))
@@ -364,8 +373,8 @@ Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
 
 (define*/contract (move-resize-window-grid window cols win-col win-row col-span [row-span col-span]
                                            #:rows [rows cols])
-  ((window? (integer-in 1 100) (integer-in 0 99) (integer-in 0 99) (integer-in 0 99))
-   ((integer-in 1 100) #:rows (integer-in 0 99))
+  ([window? (integer-in 1 100) (integer-in 0 99) (integer-in 0 99) (integer-in 0 99)]
+   [(integer-in 1 100) #:rows (integer-in 0 99)]
    . ->* . any/c)
   "Places window in the grid of size (rows, cols) at the cell (row, col) spanning over col-span and row-span cells.
 Row and col range from 0 to rows-1 and cols-1."
@@ -375,7 +384,7 @@ Row and col range from 0 to rows-1 and cols-1."
   (move-resize-window window (* win-col cell-w) (* win-row cell-h) (* col-span cell-w) (* row-span cell-h)))
 
 (define*/contract (move-resize-window-grid-auto window cols [rows cols])
-  ((window? (integer-in 1 100)) ((integer-in 1 100)) . ->* . any/c)
+  ([window? (integer-in 1 100)] [(integer-in 1 100)] . ->* . any/c)
   "Places window in the grid in the row and column of its gravity center."
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
@@ -384,14 +393,17 @@ Row and col range from 0 to rows-1 and cols-1."
   (define win-row (truncate (/ (* rows yc) hmax)))
   (move-resize-window-grid window cols #:rows rows win-col win-row 1))
 
+;==============================;
+;=== Window List Operations ===;
+;==============================;
 
-;===============================;
-;=== Window Lists Operations ===;
-;===============================;
+(define* (window-children window)
+  (define-values (parent children) (query-tree window))
+  children)
 
 (define* (window-list [parent (focus-root-window)])
   "Returns the list of windows."
-  (filter values (XQueryTree (current-display) parent)))
+  (filter values (window-children parent)))
 
 (define* (filter-windows proc [parent (focus-root-window)])
   "Maps proc to the list of windows."
@@ -419,26 +431,18 @@ Row and col range from 0 to rows-1 and cols-1."
 
 
 ;; todo: send window to left/right/up/down, etc.
+;; Put all these procs in a separate window-utils.rkt file?
 
 ;=====================;
 ;=== Focus/Pointer ===;
 ;=====================;
 
-#| Resources
-click-to-focus:
-- http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/x-understanding.html
-- http://stackoverflow.com/questions/3528304/xlib-getting-events-of-a-child-window
-- potential solution (use XAllowEvents + ModeSync ?): http://code.google.com/p/xmonad/issues/detail?id=225
-- http://www.hioreanu.net/cs/ahwm/sloppy-focus.html
-- metacity/doc/how-to-get-focus-right.txt
-|#
-
 (define* (query-pointer [root (pointer-root-window)])
-"Returns a list of the following values:
+  "Returns a list of the following values:
   win: the targeted window
   x: the x coordinate in the root window
   y: the y coordinate in the root window
-  mask: the modifier mask.
+  mask: the modifier mask
 root is the window relative to which the query is made, and the child window win is returned.
 By default it is the virtual-root under the pointer."
   (define-values (rc _root win x y win-x win-y mask)
@@ -473,15 +477,17 @@ in the sense of `find-window-head'."
   (define-values (win x y mask) (query-pointer))
   win)
 
-(define* pointer-window pointer-focus
-  "Synonym for pointer-focus.")
+(define* pointer-window
+  "Synonym for `pointer-focus'."
+  pointer-focus)
 
 (define* (input-focus)
   "Returns the window that currently has the keyboard focus."
   (car (XGetInputFocus (current-display))))
 
-(define* input-window input-focus
-  "Synonym for input-focus.")
+(define* input-window
+  "Synonym for `input-focus'."
+  input-focus)
 
 (define* (set-input-focus window)
   "Gives the keyboard focus to the window if it is viewable."
@@ -535,10 +541,11 @@ in the sense of `find-window-head'."
 (provide (struct-out head-info))
 (doc head-info
      "Structure holding information about heads (monitors, screens).
-  `screen' is the physical head on which the (possibly virtual) head is mapped.
-  It may be different from the position of the head in the xinerama-screen-infos vector
-  in the case a screen has been split.
-  `root-window' may be shared among several heads and thus may not have the same dimensions as the head.")
+screen is the physical head on which the (possibly virtual) head is mapped.
+It may be different from the position of the head in the xinerama-screen-infos 
+vector in the case a screen has been split.
+root-window be shared among several heads and thus may not have the same 
+dimensions as the head.")
 
 (define (heads-intersect? hd1 hd2)
   (with-head-info
@@ -627,7 +634,7 @@ in the sense of `find-window-head'."
 
 (define* (head-list-bounds [heads #f])
   "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
-If `heads' is #f, all heads are considered."
+If heads is #f, all heads are considered."
   (define (app1 op a b)
     (if a (op a b) b))
   (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers
@@ -648,7 +655,7 @@ Returns #f if no corner and center is contained in any head
 (which should be rare if the window is visible)."
   (and win
        (let*-values ([(x y w h) (window-bounds win)]
-                     [(x y) (window-absolute-position)])
+                     [(x y) (window-absolute-position win)])
          (or (find-head x                     y)
              (find-head (+ x w)               y)
              (find-head x                     (+ y h))
@@ -713,7 +720,7 @@ This can be used to simulate several heads on a single monitor."
   )
 
 (define* (focus-next!)
-  "Gives the keyboard focus to the next window in the list of windows"
+  "Gives the keyboard focus to the next window in the list of windows."
   ; TODO: cycle only among windows that want focus
   (define wl (viewable-windows))
   (unless (empty? wl)
@@ -722,10 +729,10 @@ This can be used to simulate several heads on a single monitor."
            ; if no window has the focus (maybe the root has it)
            [m (member w wl)])
       (if m
-          ; the cadr should not be a problem because of the last that ensures
+          ; the `second' should not be a problem because of the last that ensures
           ; that the list has at least 2 elements if w is found
-          (set-input-focus/raise (cadr m))
-          ; not found, give the focus to the firt window
+          (set-input-focus/raise (second m))
+          ; not found, give the focus to the first window
           (set-input-focus/raise (first wl))))))
 
 ;===================;

@@ -372,7 +372,7 @@ since there is no fixed value for them."
 
 (define* (add-bindings keymap . str/procs)
   "(add-binding keymap str1 proc1 str2 proc2 ...)
-Like add-binding, but for several str procs pairs."
+Like `add-binding', but for several str procs pairs."
   (let loop ([str/procs str/procs])
     (unless (empty? str/procs)
     (cond [(empty? (rest str/procs))
@@ -420,6 +420,7 @@ The given combination is done for all combinations of the *-Lock modifiers."
 ;; TODO: add 'Enter and 'Leave ? ('PointerIn 'PointerOut)
 (provide (struct-out mouse-event))
 (struct mouse-event keymap-event (x y))
+
 (define* (mouse-event-position ev)
   (values (mouse-event-x ev)
           (mouse-event-y ev)))
@@ -471,7 +472,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
     (keymap-set! keymap key proc #:grab-mode grab-mode)))
 
 (define* (bind-motion keymap button-num modifiers proc)
-  "Like bind-button, but for press, move and release events.
+  "Like `bind-button', but for press, move and release events.
   The keymap-event-type is set to 'ButtonPress, 'ButtonMove and 'ButtonRelease accordingly."
   (define motion-mask (string->symbol (format "Button~aMotionMask" button-num)))
   (bind-button keymap button-num 'ButtonPress modifiers
@@ -500,7 +501,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
 ;;; To put in a separate file?
 
 (define* (motion-move-window)
-  "Returns a procedure to use with bind-motion or add-binding(s)."
+  "Returns a procedure to use with `bind-motion' or `add-binding(s)'."
   (let ([x-ini #f] [y-ini #f] [x #f] [y #f] [window #f])
     (λ(ev)
       (case (keymap-event-type ev)
@@ -521,7 +522,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
          (printf "@ Stop dragging window ~a.\n" (window-name (keymap-event-window ev)))]))))
 
 (define* (motion-resize-window)
-  "Returns a procedure to use with bind-motion."
+  "Returns a procedure to use with `bind-motion'."
   (let ([x-ini #f] [y-ini #f] [w #f] [h #f] [window #f])
     (λ(ev)
       (case (keymap-event-type ev)
@@ -539,16 +540,27 @@ Useful for 'MotionNotify events (where the button is not specified)."
            (dprintf "Resizing window to ~a\n" (list window new-w new-h))
            (resize-window window new-w new-h))]))))
 
- ;; Left-click to focus and raise window.
- ;; We need to use the grab sync mode in order to be able to replay the event to the window
- ;; after we have processsed it, using allow-events.
- ;; (see http://tronche.com/gui/x/xlib/input/XGrabPointer.html)
- ;; (see metacity/src/core/display.c around line 1728)
+ 
+#| click-to-focus resources:
+- http://tronche.com/gui/x/xlib/input/XGrabPointer.html
+- http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/x-understanding.html
+- http://stackoverflow.com/questions/3528304/xlib-getting-events-of-a-child-window
+- XAllowEvents + ModeSync: http://code.google.com/p/xmonad/issues/detail?id=225
+- http://www.hioreanu.net/cs/ahwm/sloppy-focus.html
+- metacity/src/core/display.c around line 1728
+- metacity/doc/how-to-get-focus-right.txt
+|#
+
+;; Left-click to focus and raise window.
+;; We need to use the grab sync mode in order to be able to replay the event to the window
+;; after we have processsed it, using allow-events.
 (define* (bind-click-to-focus keys)
   (add-binding
    window-keymap
    keys (λ(ev)
           (define w (keymap-event-window ev))
+          ; TODO: These probably belong to the policy!
+          ; (policy. activate-window w) ?
           (raise-window w)
           (set-input-focus w)
           (allow-events 'ReplayPointer)

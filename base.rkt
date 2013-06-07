@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 ;;; Author: Laurent Orseau
 ;;; License: LGPL

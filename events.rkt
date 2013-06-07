@@ -9,14 +9,14 @@
          rwind/keymap
          rwind/window
          rwind/workspace
-         rwind/policies/base
+         rwind/policy/base
          x11/x11
          x11/fd
          racket/match
          )
 
-(define* (handle-event event)
-  "Main function to handle events received from the X server."
+(define (handle-event event)
+  #;"Main function to handle events received from the X server."
 
   (define event-type (XAnyEvent-type event))
   (dprintf "Event type: ~a\n" event-type)
@@ -74,6 +74,11 @@
        (XConfigureRequestEvent type serial send-event _display parent window
                                x y width height border-width above stack-mode value-mask)
        event)
+     ; This should probably depend on the window type,
+     ; e.g., splash windows should be centered
+     ; fullscreen windows, etc.
+     ; See the EWMH.
+     ; This behavior specification belongs to the policy.
      (XConfigureWindow (current-display) window value-mask
                        (make-XWindowChanges x y (bound-value width 1 10000) (bound-value height 1 10000)
                                             border-width above stack-mode))
@@ -91,7 +96,7 @@
               (dprintf "Updating workspaces\n")
               (xinerama-update-infos)
               (update-workspaces)
-              #;(call-hooks 'configure-notify-true-root-window event)]))]
+              #;(policy. on-configure-notify-true-root)]))]
 
     #;[(Expose)
      (define window (XExposeEvent-window event))
@@ -155,13 +160,12 @@
     [(ClientMessage)
      (dprintf "Client message: window: ~a message-type: ~a format: ~a\n"
               (XClientMessageEvent-window event)
-              (atom->atom-name (XClientMessageEvent-message-type event))
+              (atom->string (XClientMessageEvent-message-type event))
               (XClientMessageEvent-format event))
      ]
 
     [else
-     (dprintf "Unhandled event ~a\n" (XEvent->list* event))
-     ]))
+     (dprintf "Unhandled event ~a\n" (XEvent->list* event))]))
 
 (provide run-event-loop)
 
