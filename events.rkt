@@ -15,6 +15,8 @@
          racket/match
          )
 
+;;; See https://github.com/SawfishWM/sawfish/blob/master/src/events.c
+
 (define (handle-event event)
   #;"Main function to handle events received from the X server."
 
@@ -22,6 +24,11 @@
   (dprintf "Event type: ~a\n" event-type)
 
   (case event-type
+
+    [(MappingNotify)
+     ; When the keyboard mapping changes.
+     ; see the warning about override-redirect in Tronche's doc
+     (XRefreshKeyboardMapping event)]
 
     [(KeyPress)
      (match-define
@@ -70,6 +77,9 @@
      (policy. on-motion-notify mouse-ev)]
 
     [(ConfigureRequest)
+     ; When a window asks for changing its configuration (geometry)
+     ; https://github.com/SawfishWM/sawfish/blob/master/src/events.c#L1109
+     ; https://github.com/SawfishWM/sawfish/search?q=XConfigureWindow&ref=cmdform
      (match-define
        (XConfigureRequestEvent type serial send-event _display parent window
                                x y width height border-width above stack-mode value-mask)
@@ -85,6 +95,7 @@
      #;(policy. on-configure-request ...)]
 
     [(ConfigureNotify)
+     ; When the configuration of a window changes.
      (match-define
        (XConfigureEvent type serial send-event _display event-window window
                                x y width height border-width above override-redirect)
@@ -99,11 +110,14 @@
               #;(policy. on-configure-notify-true-root)]))]
 
     #;[(Expose)
+       ; When the X server asks for the window to be (partly) redrawn
+       ; (because it was previously somehow hidden, possibly partially only)
      (define window (XExposeEvent-window event))
      ; give the input focus to the window that appears?
-     (set-input-focus window)]
+     (policy. on-expose window)]
 
     [(MapRequest)
+     ; When a window asks to be mapped on the screen.
      (define window (XMapRequestEvent-window event))
      ; if override-redirect is true it is a top-level window
      (cond [(find-root-window-workspace window)
@@ -130,34 +144,39 @@
             (policy. on-map-request window #t)
             ])]
 
-    [(MappingNotify)
-     ; see the warning about override-redirect in Tronche's doc
-     (XRefreshKeyboardMapping event)]
-
     [(UnmapNotify)
+     ; When a window has been unmapped.
      (define window (XUnmapEvent-window event))
      (dprintf "Unmapping ~a\n" window)
      ;(remove-window-from-workspace window)
      (policy. on-unmap-notify window)]
     
     [(DestroyNotify)
+     ; When a window has been destroyed.
      (define window (XDestroyWindowEvent-window event))
      (remove-window-from-workspace window)
      (policy. on-destroy-notify window)]
 
-    #;[(CreateNotify)
+    [(CreateNotify)
+     ; When a window has been created with Create(Simple)Window
      (define window (XCreateWindowEvent-window event))
      (define override? (XCreateWindowEvent-override-redirect event))
+     (policy. on-create-notify window)
+     (dprintf "Create-notify ~a\n" window)
     ]
 
     #;[(EnterNotify LeaveNotify)
+       ; When the pointer enters or leaves a window
        ; for enternotify, compress the event queue with XCheckTypedEvent, as for MotionNotify:
        ; http://incise.org/tinywm.html
        #f]
 
-    #;[(FocusIn FocusOut) #f]
+    #;[(FocusIn FocusOut) 
+       ; When the window receives/loses the keyboard focus
+       #f]
 
     [(ClientMessage)
+     ; When a window communicates with the root window (i.e. with the window manager)
      (dprintf "Client message: window: ~a message-type: ~a format: ~a\n"
               (XClientMessageEvent-window event)
               (atom->string (XClientMessageEvent-message-type event))
