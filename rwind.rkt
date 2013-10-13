@@ -8,7 +8,6 @@
 #| TODO:
 PRIORITIES:
 - *** make the basis so that extending and debugging is easy! ***
-- make sure Racket's GUI works... (problems with the event-spaces)
 
 Other:
 - security of the server: make sure the user at the other end of the tcp connection
@@ -21,8 +20,6 @@ Other:
 - time-stamps are quite probably not handled properly
 
 - viewports?
-
-- GUI. Started, but problem, conflict with Racket's gui?
 
 - grab the server here and there to speed up things
   Warning: Beware of deadlocks, especially with the gui thread
@@ -84,7 +81,6 @@ to be able to use (require rwind/keymap) for example
          rwind/window
          rwind/workspace
          rwind/policy/simple ; instantiate the simple policy and use it as default
-         rwind/gui/base
          x11/x11 ; needs raco pkg install x11
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
 
@@ -128,8 +124,6 @@ to be able to use (require rwind/keymap) for example
         (find-modifiers)
 
         (intern-atoms)
-
-        (init-gui)
 
         (init-user)
 

@@ -10,9 +10,7 @@
 ;;; The procedure `recompile' is exported to allow recompilation before
 ;;; restarting the "process".
 
-(require compiler/compiler
-         racket/gui/base ; To instantiate it once, and keep its reference
-         )
+(require compiler/compiler)
 
 (provide recompile)
 
@@ -41,12 +39,6 @@
 
 (module+ main
 
-  ;; We need(?) to do this to avoid the infamous
-  ;; "cannot instantiate racket/gui/base a second time in the same process" error.
-  (define-namespace-anchor this-namespace-anchor)
-  (define this-namespace (namespace-anchor->namespace this-namespace-anchor))
-
-
   ;; -> bool
   ;; Dynamic-requires the specified file,
   ;; runs the specified procedure and returns its (single) return value.
@@ -60,7 +52,6 @@
     (define restart?
       (parameterize ([current-custodian sub-custodian]
                      [current-namespace (make-base-namespace)])
-        (namespace-attach-module this-namespace 'racket/gui/base)
         (define run (dynamic-require the-collection-file-sym
                                      the-procedure-sym))
         (run)))
