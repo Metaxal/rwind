@@ -9,10 +9,10 @@
          rwind/window
          ;rwind/window-utils
          rwind/doc-string
+         rwind/policy/base
          x11/x11
          ;x11/keysym-util
          x11/keysymdef
-         ;"../racket/common/debug.rkt"
          racket/list
          racket/match
          racket/function
@@ -549,20 +549,19 @@ Useful for 'MotionNotify events (where the button is not specified)."
 - http://www.hioreanu.net/cs/ahwm/sloppy-focus.html
 - metacity/src/core/display.c around line 1728
 - metacity/doc/how-to-get-focus-right.txt
+
+Also see Xlib book, p. 40, top, events can be duplicated
+if the event input is selected directly on the window?
 |#
 
 ;; Left-click to focus and raise window.
 ;; We need to use the grab sync mode in order to be able to replay the event to the window
 ;; after we have processsed it, using allow-events.
-(define* (bind-click-to-focus keys)
+(define* (bind-click-to-activate keys)
   (add-binding
    window-keymap
    keys (λ(ev)
-          (define w (keymap-event-window ev))
-          ; TODO: These probably belong to the policy!
-          ; (policy. activate-window w) ?
-          (raise-window w)
-          (set-input-focus w)
+          (policy. activate-window (keymap-event-window ev))
           (allow-events 'ReplayPointer)
           )
    #:grab-mode 'GrabModeSync))
