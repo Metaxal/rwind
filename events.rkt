@@ -27,7 +27,6 @@
 
     [(MappingNotify)
      ; When the keyboard mapping changes.
-     ; see the warning about override-redirect in Tronche's doc
      (XRefreshKeyboardMapping event)]
 
     [(KeyPress)
@@ -61,9 +60,9 @@
      (policy. on-mouse-button mouse-ev)]
 
     [(MotionNotify)
-     ; Consume all pending 'MotionNotify events
+     ; When the mouse pointer moves.
+     ; Consume all pending 'MotionNotify events, and keep the last one
      (while (XCheckTypedEvent (current-display) 'MotionNotify event))
-     ;(for/and () (XCheckTypedEvent (current-display) 'MotionNotify event))
      (match-define
        (XMotionEvent type serial send-event display window root subwindow time
                      x y x-root y-root modifiers is-hint same-screen)
@@ -143,6 +142,11 @@
             (show-window window)
             (policy. on-map-request window #t)
             ])]
+    
+    #;[(MapNotify)
+     ; When a window is mapped on the screen 
+     ; A window with override-redirect should be ignored.
+     ]
 
     [(UnmapNotify)
      ; When a window has been unmapped.
@@ -175,6 +179,15 @@
        ; When the window receives/loses the keyboard focus
        #f]
 
+    #;[(ReparentNotify)
+     ; When a window is reparented to another window
+       ; TODO: We should monitor this event to remove windows from workspaces?
+     ]
+    
+    #;[(GravityNotify)
+     ; When ...
+     ]
+    
     [(ClientMessage)
      ; When a window communicates with the root window (i.e. with the window manager)
      (dprintf "Client message: window: ~a message-type: ~a format: ~a\n"
