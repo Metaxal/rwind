@@ -25,7 +25,7 @@ Similar to make-parameter, but without all the thread safety and the parameteriz
 (define* rwind-app-description        "Window manager in the Racket programming language")
 (define* rwind-dir-name               "rwind")
 (define* rwind-user-config-file-name  "config.rkt")
-(define* rwind-website                "http://github/...")
+(define* rwind-website                "http://github/Metaxal/rwind")
 (define* rwind-tcp-port               54321)
 (define* rwind-log-file
   (build-path (find-system-path 'home-dir) "rwind.log"))
