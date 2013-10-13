@@ -16,6 +16,12 @@
 
 #| TODO
 - contracts and tests...
+- Xlib Vol I, p. 47, Performance Optimizing
+  "functions with Fetch, Get or Query should be avoided in the event loop" (for applications)
+  This is because the X server can be running on a different machine, 
+  and network latencies should be avoided.
+  This is why window managers store window properties locally
+  (but this requires carefully keeping such values up to date).
 |#
 
 (module+ test (require rackunit))
@@ -502,7 +508,9 @@ in the sense of `find-window-head'."
 
 ;; Replace the global keymap by an empty one
 ;; with only one binding: Button1Press
-;; Use grabPointer, and ungrab it in the callback
+;; Use grabPointer, and ungrab it in the callback.
+;; ** Other option: Create an InputOnly window above the entire root window
+;; and select input on it.
 #;(define* (select-window)
   void)
 
@@ -719,7 +727,7 @@ This can be used to simulate several heads on a single monitor."
                                      (head-info 0 #f 100 300 800 300)))
   )
 
-(define* (focus-next!)
+(define* (activate-next-window)
   "Gives the keyboard focus to the next window in the list of windows."
   ; TODO: cycle only among windows that want focus
   (define wl (viewable-windows))
@@ -728,12 +736,13 @@ This can be used to simulate several heads on a single monitor."
            [w (input-focus)]
            ; if no window has the focus (maybe the root has it)
            [m (member w wl)])
-      (if m
-          ; the `second' should not be a problem because of the last that ensures
-          ; that the list has at least 2 elements if w is found
-          (set-input-focus/raise (second m))
-          ; not found, give the focus to the first window
-          (set-input-focus/raise (first wl))))))
+      (policy. activate-window
+               (if m
+                   ; the `second' should not be a problem because of the last that ensures
+                   ; that the list has at least 2 elements if w is found
+                   (second m)
+                   ; not found, give the focus to the first window
+                   (first wl))))))
 
 ;===================;
 ;=== Root Window ===;

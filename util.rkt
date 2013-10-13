@@ -25,6 +25,7 @@
 
 ;; Todo: for macos, it should be a different path?
 ;; app-name: string?
+;; (use bazaar/system find-config-path instead?)
 (define* (find-user-config-dir app-name)
   "Returns the directory of application app-name (and may create it)."
   (let ([d (getenv "XDG_CONFIG_HOME")])

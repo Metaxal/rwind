@@ -61,13 +61,14 @@ Warning: These values may not reflect the current screen widths if they have cha
   )
 
 (define* (init-display)
+  (define d (getenv "DISPLAY"))
   (dprintf "\n *** New session on ~a on display ~a ***\n"
            (date->string (current-date) #t)
-           (getenv "DISPLAY"))
+           d)
 
   (current-display (XOpenDisplay #f))
   (unless (current-display)
-    (error "Cannot open display.")
+    (error (format "Cannot open display ~a" d))
     (exit))
   )
 

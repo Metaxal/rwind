@@ -112,6 +112,7 @@ to be able to use (require rwind/keymap) for example
 
         ;; Initialize thread support
         ;; This must be the first X procedure to call
+        ;; Q: Is it useful since Racket threads are not C threads?
         (XInitThreads)
 
         (init-display)
@@ -167,6 +168,8 @@ to be able to use (require rwind/keymap) for example
 ;=== Main ===;
 ;============;
 (define (main)
+  
+  ; TODO: Use the 'command-line' facility instead
 
   ;; take the config file from the environment
   (let ([config-file (getenv "RWIND_CONFIG_FILE")])
