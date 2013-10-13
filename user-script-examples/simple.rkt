@@ -27,7 +27,7 @@
  ; Close window gracefully if possible, otherwise kill the client
  "M-F4"  (L* (delete-window (input-focus)))
  ; Give keyboard focus to the next window
- "M-Tab" (L* (focus-next!))
+ "M-Tab" (L* (activate-next-window))
  ; Place one workspace over all heads (monitors)
  "M-Super-F5" (L* (change-workspace-mode 'single))
  ; Place one workspace per head
@@ -51,7 +51,7 @@
  "M-Move3" (motion-resize-window)
  )
 
-(bind-click-to-focus "Press1")
+(bind-click-to-activate "Press1")
 
 (add-bindings 
  root-keymap 
