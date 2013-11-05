@@ -202,6 +202,10 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   "Returns the workspace that contains the pointer or #f if none is found."
   (find-head-workspace (pointer-head)))
 
+(define* (focus-workspace)
+  "Returns the workspace that contains the window having the focus or #f if none is found."
+  (find-head-workspace (focus-head)))
+
 ;==================;
 ;=== Operations ===;
 ;==================;
