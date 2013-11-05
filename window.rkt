@@ -466,7 +466,7 @@ By default it is the virtual-root under the pointer."
 (define* (focus-head)
   "Returns the head number that contains the input focus window,
 in the sense of `find-window-head'."
-  (find-window-head (input-focus)))
+  (find-window-head (focus-window)))
 
 (define* (pointer-root-window)
   "Returns the virtual root-window that contains the pointer."
@@ -474,8 +474,8 @@ in the sense of `find-window-head'."
 
 (define* (focus-root-window)
   "Returns the virtual root window that has the keyboard focus."
-  #;(XWindowAttributes-root (window-attributes (input-focus))) ; nope, gives the true root
-  #;(workspace-root-window (find-window-workspace (input-focus)))
+  #;(XWindowAttributes-root (window-attributes (focus-window))) ; nope, gives the true root
+  #;(workspace-root-window (find-window-workspace (focus-window)))
   (and=> (focus-head) head-root-window))
 
 (define* (pointer-focus)
@@ -492,6 +492,10 @@ in the sense of `find-window-head'."
   (car (XGetInputFocus (current-display))))
 
 (define* input-window
+  "Synonym for `input-focus'."
+  input-focus)
+
+(define* focus-window
   "Synonym for `input-focus'."
   input-focus)
 
@@ -733,7 +737,7 @@ This can be used to simulate several heads on a single monitor."
   (define wl (viewable-windows))
   (unless (empty? wl)
     (let* ([wl (cons (last wl) wl)]
-           [w (input-focus)]
+           [w (focus-window)]
            ; if no window has the focus (maybe the root has it)
            [m (member w wl)])
       (policy. activate-window
