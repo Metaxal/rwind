@@ -94,6 +94,12 @@
   (dprintf "Var ~a: ~v\n" 'var var))
 (provide debug-var)
 
+(define-syntax-rule (debug-expr expr)
+  (let ([res expr])
+    (dprintf "Expr: ~a -> ~a\n" 'expr res)
+    res))
+(provide debug-expr)
+
 ;; I tried to use (call/debug proc . args) instead,
 ;; so that keyword arguments could be dealt with, but did not succeed.
 (define-syntax-rule (call/debug proc args ...)

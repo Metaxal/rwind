@@ -137,7 +137,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define*/contract (workspace-dimensions wk)
   (workspace? . -> . (values number? number?))
-  "Returns the dimension of the virtual root window of the specified workspace."
+  "Returns the dimensions of the virtual root window of the specified workspace."
   (window-dimensions (workspace-root-window wk)))
 
 (define*/contract (workspace-position wk)
@@ -154,8 +154,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (find-head-workspace hd)
   (number? . -> . (or/c #f workspace?))
   "Returns the (current) root-window of the given head."
-  (and=> (head-root-window hd)
-         find-root-window-workspace))
+  (debug-expr (and=> (debug-expr (head-root-window hd))
+                     find-root-window-workspace)))
 
 (define*/contract (workspace-subwindows wk)
   (workspace? . -> . list?)
@@ -201,8 +201,8 @@ in the sense of `window-list'."
   "Returns the workspace that /should/ contain the window based on the window position,
 but that does not currently contain it.
 This is mainly meant to be used to restore windows to their proper workspaces."
-  (and=> (find-window-head window)
-         find-head-workspace))
+  (debug-expr (and=> (debug-expr (find-window-head window))
+                     find-head-workspace)))
 
 (define* (pointer-workspace)
   "Returns the workspace that contains the pointer or #f if none is found."
@@ -232,15 +232,15 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 ;=== Operations ===;
 ;==================;
 
-(define*/contract (change-workspace-mode mode)
-  ((one-of/c 'multi 'single) . -> . any)
+(define*/contract (change-workspace-mode mode #:force? [force? #t])
+  ([(one-of/c 'multi 'single)] [#:force? any/c] . ->* . any)
   "Controls the modes in which the workspaces are displayed.
   'single: One workspace over all heads (monitors). The workspace is of the size of the heads bounding box.
   'multi: One workspace per head. The workspace size is adapted to the head."
 
   ; (Warning) TODO: The multi mode should not be activated if some heads are superimposed!
 
-  (when (not (eq? mode (workspace-mode)))
+  (when (or force? (not (eq? mode (workspace-mode))))
     (workspace-mode mode)
     (policy. on-change-workspace-mode mode)
     (update-workspaces)
@@ -509,7 +509,8 @@ See also `split-head'."
     (make-workspace (number->string i)  #:background-color (find-named-color color)))
 
   ; Place the workspaces for a given mode
-  (change-workspace-mode 'single)
+  ; We need to force to make sure the heads are place correctly.
+  (change-workspace-mode 'single #:force? #t)
   
   (dprintf "Workspaces:\n")
   (for ([wk workspaces])
@@ -523,7 +524,7 @@ See also `split-head'."
   ; depending on its position
   (for ([w existing-windows])
     (define wk (guess-window-workspace w))
-    (dprintf "~a\n" (cvl window-bounds w))
+    (dprintf "window bounds: ~a\n" (cvl window-bounds w))
     (if wk
         (add-window-to-workspace w wk)
         (dprintf "Warning: Could not guess workspace for window ~a\n" w)))

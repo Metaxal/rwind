@@ -101,6 +101,9 @@
       atom
       (XGetAtomName (current-display) atom)))
 
+;; That's a bit too loose though. It would be bette to check if the symbol is known.
+(define* atom? (or/c symbol? number?))
+
 ;=================;
 ;=== Selectors ===;
 ;=================;
@@ -108,11 +111,6 @@
 (define* (query-tree window)
   "Returns the parent and the children of the specified window."
   (XQueryTree (current-display) window))
-
-#;(define* (window-name/class window)
-  (define-values (status hint) (XGetClassHint (current-display) window))
-  (and status
-       (list (XClassHint-res-name) (XClassHint-res-class))))
 
 (define* (window-text-property window atom)
   "Returns a list of strings for the property named atom for the given window."
@@ -133,12 +131,7 @@
   "Returns the list of list of strings for the name,
 the visible name, the icon name and the visible icon name in order."
   (map (λ(v)(window-text-property window v))
-       (list 'XA_WM_NAME 'XA_WM_ICON_NAME))
-  #;(map (λ(v)(window-text-property window v))
-       (list _NET_WM_NAME
-             _NET_WM_VISIBLE_NAME
-             _NET_WM_ICON_NAME
-             _NET_WM_VISIBLE_ICON_NAME)))
+       (list 'XA_WM_NAME 'XA_WM_ICON_NAME)))
 
 (define* (window-class window)
   "Returns the list of classes of the window."
@@ -220,18 +213,6 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (move-resize-window window x y w h)
   (XMoveResizeWindow (current-display) window x y w h))
-
-(define*/contract (change-window-state window state)
-  (window? (one-of/c 'withdrawn 'normal 'iconic) . -> . any)
-  (define s (case state 
-              [(withdrawn) 0]
-              [(normal) 1]
-              [(iconic) 3]))
-  ; XA_ATOM?
-  (XChangeProperty (current-display) window WM_STATE 'XA_ATOM 'PropModeReplace (list s))
-  ; TODO:
-  ; udpdate _NET_WM_STATE too??
-  )
 
 (define* (show-window window)
   (XMapWindow (current-display) window)
@@ -324,8 +305,19 @@ the visible name, the icon name and the visible icon name in order."
 (define* (clear-window window)
   (XClearWindow (current-display) window))
 
-(define* (change-window-property window property type mode data-list [format 32])
+(define*/contract (change-window-property window property type mode data-list [format 32])
+  ([window? atom? atom? PropMode? list?] [(one-of/c 8 16 32)] . ->* . any)
   (ChangeProperty (current-display) window property type mode data-list format))
+
+(define*/contract (change-window-state window state)
+  (window? (one-of/c 'withdrawn 'normal 'iconic) . -> . any)
+  (define s (case state 
+              [(withdrawn) 0]
+              [(normal) 1]
+              [(iconic) 3]))
+  (change-window-property window WM_STATE 'XA_ATOM 'PropModeReplace (list s))
+  ; TODO: udpdate _NET_WM_STATE too?
+  )
 
 (define* (window-properties window)
   (XListProperties (current-display) window))
