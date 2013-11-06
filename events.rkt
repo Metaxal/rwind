@@ -138,7 +138,8 @@
             ; Apply the keymap to it
             ;(window-apply-keymap window window-keymap) ; no, only (virtual) root windows have keymaps?
             ; add it to the current workspace
-            (add-window-to-workspace window (pointer-workspace))
+            (define wk (pointer-workspace))
+            (add-window-to-workspace window wk)
             (show-window window)
             (policy. on-map-request window #t)
             ])]

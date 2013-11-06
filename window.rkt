@@ -92,6 +92,7 @@
   WM_TAKE_FOCUS
   WM_DELETE_WINDOW
   WM_PROTOCOLS
+  WM_STATE
   __SWM_VROOT
   )
 
@@ -220,11 +221,25 @@ the visible name, the icon name and the visible icon name in order."
 (define* (move-resize-window window x y w h)
   (XMoveResizeWindow (current-display) window x y w h))
 
+(define*/contract (change-window-state window state)
+  (window? (one-of/c 'withdrawn 'normal 'iconic) . -> . any)
+  (define s (case state 
+              [(withdrawn) 0]
+              [(normal) 1]
+              [(iconic) 3]))
+  ; XA_ATOM?
+  (XChangeProperty (current-display) window WM_STATE 'XA_ATOM 'PropModeReplace (list s))
+  ; TODO:
+  ; udpdate _NET_WM_STATE too??
+  )
+
 (define* (show-window window)
-  (XMapWindow (current-display) window))
+  (XMapWindow (current-display) window)
+  (change-window-state window 'normal))
 
 (define* (show/raise-window window)
-  (XMapRaised (current-display) window))
+  (XMapRaised (current-display) window)
+  (change-window-state window 'normal))
 
 (define* (hide-window window)
   (XUnmapWindow (current-display) window))
@@ -239,13 +254,16 @@ the visible name, the icon name and the visible icon name in order."
   (XLowerWindow (current-display) window))
 
 (define* (map-window window)
-  (XMapWindow (current-display) window))
+  (XMapWindow (current-display) window)
+  (change-window-state window 'normal))
 
+;; Should probably not change the window state here?
 (define* (unmap-window window)
   (XUnmapWindow (current-display) window))
 
 (define* (iconify-window window)
-  (XIconifyWindow (current-display) window))
+  (XIconifyWindow (current-display) window)
+  (change-window-state window 'iconic))
 
 ;(define (uniconify-window window)(void))
 
@@ -274,7 +292,8 @@ the visible name, the icon name and the visible icon name in order."
 
 (define*/contract (destroy-window window)
   (window? . -> . any)
-  (XDestroyWindow (current-display) window))
+  (XDestroyWindow (current-display) window)
+  (change-window-state window 'withdrawn))
 
 (define*/contract (kill-client window)
   (window? . -> . any)
@@ -659,7 +678,6 @@ If heads is #f, all heads are considered."
                    (app1 max x2 (+ x w)) (app1 max y2 (+ y h)))])))
     (values x1 y1 (- x2 x1) (- y2 y1))))
 
-;; Still buggy?
 (define* (find-window-head win)
   "Returns the head number that contains one of the corners or the center
 of the window that has the input focus.

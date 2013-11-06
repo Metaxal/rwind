@@ -56,6 +56,18 @@ and it must necessarily be  implemented to have a working WM.
     (define/public (activate-window window)
       (void))
     
+    (define/public (on-add-window-to-workspace window wk)
+      (void))
+    
+    (define/public (on-remove-window-from-workspace window wk)
+      (void))
+    
+    (define/public (on-activate-workspace wk)
+      (void))
+    
+    (define/public (on-change-workspace-mode mode)
+      (void))
+    
     (super-new)))
 
 (define* current-policy (make-parameter (new policy%)))

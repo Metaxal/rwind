@@ -10,6 +10,7 @@
          rwind/keymap
          rwind/window
          rwind/color
+         rwind/policy/base
          x11/x11
          racket/list
          racket/contract
@@ -129,9 +130,14 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;=== Selectors ===;
 ;=================;
 
+(define*/contract (workspace-bounds wk)
+  (workspace? . -> . (values number? number? number? number?))
+  "Returns the position and dimension of the virtual root window of the specified workspace."
+  (window-bounds (workspace-root-window wk)))
+
 (define*/contract (workspace-dimensions wk)
   (workspace? . -> . (values number? number?))
-  "Returns the dimensions of the virtual root window of the specified workspace."
+  "Returns the dimension of the virtual root window of the specified workspace."
   (window-dimensions (workspace-root-window wk)))
 
 (define*/contract (workspace-position wk)
@@ -146,7 +152,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
          workspaces))
 
 (define*/contract (find-head-workspace hd)
-  (number? . -> . workspace?)
+  (number? . -> . (or/c #f workspace?))
   "Returns the (current) root-window of the given head."
   (and=> (head-root-window hd)
          find-root-window-workspace))
@@ -206,6 +212,22 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   "Returns the workspace that contains the window having the focus or #f if none is found."
   (find-head-workspace (focus-head)))
 
+(define/contract (workspace-addn n0 inc warp?)
+  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
+  (define nmax (count-workspaces))
+  (define wkn (+ n0 inc))
+  (if warp?
+      (modulo wkn nmax)
+      (min wkn (sub1 nmax))))
+
+(define/contract (workspace-subn n0 dec warp?)
+  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
+  (define nmax (count-workspaces))
+  (define wkn (- n0 dec))
+  (if warp?
+      (modulo wkn nmax)
+      (max wkn 0)))
+
 ;==================;
 ;=== Operations ===;
 ;==================;
@@ -218,13 +240,11 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 
   ; (Warning) TODO: The multi mode should not be activated if some heads are superimposed!
 
-  (workspace-mode mode)
-  #;(case mode
-    [(single) (void)]
-    [(multi) (for ([wk ]))])
-
-  (update-workspaces)
-  )
+  (when (not (eq? mode (workspace-mode)))
+    (workspace-mode mode)
+    (policy. on-change-workspace-mode mode)
+    (update-workspaces)
+    ))
 
 (define/contract (unmap-workspace wk)
   (workspace? . -> . any)
@@ -248,36 +268,6 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (define-values (left right) (split-at workspaces wkn))
   (set! workspaces (append left (rest right))))
 
-(define/contract (workspace-addn n0 inc warp?)
-  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
-  (define nmax (count-workspaces))
-  (define wkn (+ n0 inc))
-  (if warp?
-      (modulo wkn nmax)
-      (min wkn (sub1 nmax))))
-
-(define/contract (workspace-subn n0 dec warp?)
-  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
-  (define nmax (count-workspaces))
-  (define wkn (- n0 dec))
-  (if warp?
-      (modulo wkn nmax)
-      (max wkn 0)))
-
-; current-workspace-number is obsolete. Must use heads to know the current workspace
-#;(define*/contract (next-workspace! [inc 1] [warp? (workspace-warp?)])
-  ([] [number? any/c] . ->* . void?)
-  "Switches to the next workspace by offset 'inc' in linear order and returns the new workspace number.
-  If 'wrap?' is true, then the list is circular, otherwise it is bounded."
-  (activate-workspace (workspace-addn current-workspace-number inc warp?)))
-
-; current-workspace-number is obsolete. Must use heads to know the current workspace
-#;(define*/contract (previous-workspace! [dec 1] [warp? (workspace-warp?)])
-  ([] [number? any/c] . ->* . void?)
-  "Switches to the previous workspace by offest 'dec' in linear order and returns the new workspace number.
-  If 'wrap?' is true, then the list is circular, otherwise it is bounded."
-  (activate-workspace (workspace-subn current-workspace-number dec warp?)))
-
 (define*/contract (remove-window-from-workspace window [wk (find-window-workspace window)])
   ([window?] [(or/c workspace? #f)] . ->* . any/c)
   "Removes the window from the workspace (by default the workspace of the window)
@@ -285,7 +275,8 @@ if it is not #f."
   ;; TODO: Remove the workspace-window from the list of _NET_VIRTUAL_ROOTS
   ;(change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window) 32)
   (when wk
-    (set-workspace-windows! wk (remove window (workspace-windows wk)))))
+    (set-workspace-windows! wk (remove window (workspace-windows wk)))
+    (policy. on-remove-window-from-workspace window wk)))
 
 (define*/contract (add-window-to-workspace window wk)
   (window? workspace? . -> . any)
@@ -302,7 +293,8 @@ If the window was in another workspace, it is removed from the latter."
          (define wk-ws (workspace-windows wk))
          (unless (memq window wk-ws)
            ; This can happen if closed windows get reused for new ones, like xterm
-           (set-workspace-windows! wk (cons window wk-ws)))]))
+           (set-workspace-windows! wk (cons window wk-ws)))
+         (policy. on-add-window-to-workspace window wk)]))
 
 
 (define*/contract (move-window-to-workspace window wk/i/n)
@@ -314,17 +306,6 @@ If the window was in another workspace, it is removed from the latter."
   (define wk (find-workspace wk/i/n))
   (add-window-to-workspace window wk)
   (activate-workspace wk))
-
-
-#;(module+ test
-  (require rackunit)
-  (init-workspaces)
-  (check = (next-workspace!) 0)
-  (check-pred workspace? (insert-workspace))
-  (check = (next-workspace!) 1)
-  (check = (next-workspace!) 1)
-  (check = (next-workspace! 1 #t) 0)
-  )
 
 (define/contract (activate-workspace/single wk)
   (workspace? . -> . any)
@@ -421,7 +402,8 @@ If the window was in another workspace, it is removed from the latter."
 
   (case (workspace-mode)
     [(single) (activate-workspace/single new-wk)]
-    [(multi)  (activate-workspace/multi new-wk head)]))
+    [(multi)  (activate-workspace/multi new-wk head)])
+  (policy. on-activate-workspace new-wk))
 
 (define* (workspace-fit-to wk hx hy hw hh [move? #t] [resize? move?])
   "Moves and resizes the workspace to the given dimensions.
@@ -528,14 +510,23 @@ See also `split-head'."
 
   ; Place the workspaces for a given mode
   (change-workspace-mode 'single)
+  
+  (dprintf "Workspaces:\n")
+  (for ([wk workspaces])
+    (dprintf "wk:~a\n" wk)
+    (dprintf "bounds: ~a\n" (cvl workspace-bounds wk)))
+  
+  (dprintf "Heads:~a\n" (head-infos))
 
+  (dprintf "Trying to add windows:\n")
   ; Put all mapped windows in the workspace it belongs to,
   ; depending on its position
-  (for-each (λ(w)(let ([wk (guess-window-workspace w)])
-                   (if wk
-                       (add-window-to-workspace w wk)
-                       (dprintf "Warning: Could not guess workspace for window ~a\n" w))))
-            existing-windows)
+  (for ([w existing-windows])
+    (define wk (guess-window-workspace w))
+    (dprintf "~a\n" (cvl window-bounds w))
+    (if wk
+        (add-window-to-workspace w wk)
+        (dprintf "Warning: Could not guess workspace for window ~a\n" w)))
   )
 
 (define* (exit-workspaces)
