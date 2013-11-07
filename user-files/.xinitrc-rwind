@@ -11,9 +11,9 @@ xclock -g 50x50-0+0 -bw 0 &
 xload -g 50x50-50+0 -bw 0 &
 xterm -g 80x24+0-0 &
 
-# Debug mode:
-X11_RACKET_DEBUG=1 exec ./run-debug.sh &
+# The window manager
+exec racket -l rwind &
 
-# Close this to end the session
+# Close this xterm to end the session
 xterm -g 80x24-0-0
 

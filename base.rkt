@@ -26,6 +26,7 @@ parameterization (and, thus, faster)."
 (define* rwind-app-description        "Window manager in the Racket programming language")
 (define* rwind-dir-name               "rwind")
 (define* rwind-user-config-file-name  "config.rkt")
+(define* rwind-env-config-var         "RWIND_CONFIG_FILE")
 (define* rwind-website                "http://github/Metaxal/rwind")
 (define* rwind-tcp-port               54321)
 (define* rwind-log-file

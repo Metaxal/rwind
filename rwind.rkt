@@ -166,7 +166,7 @@ to be able to use (require rwind/keymap) for example
   ; TODO: Use the 'command-line' facility instead
 
   ;; take the config file from the environment
-  (let ([config-file (getenv "RWIND_CONFIG_FILE")])
+  (let ([config-file (getenv rwind-env-config-var)])
     (when (and config-file (file-exists? config-file))
       (cmd-line-config-file (path->complete-path config-file))))
 
