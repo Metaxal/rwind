@@ -119,6 +119,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (or (find-root-window-workspace window)
       (window=? window (true-root-window))))
 
+(set-can-delete-window? (λ(w)(not (some-root-window? w))))
+
 ;=================;
 ;=== Selectors ===;
 ;=================;

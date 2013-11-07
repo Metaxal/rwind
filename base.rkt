@@ -9,7 +9,8 @@
 ;; Their values are shared between all threads
 (define* (make-fun-box val)
   "Like a box, but the identifier is used like for parameters.
-Similar to make-parameter, but without all the thread safety and the parameterization (and, thus, faster)."
+Similar to make-parameter, but without all the thread safety and the 
+parameterization (and, thus, faster)."
   (let ([var val])
     (case-lambda
       [() var]
@@ -29,3 +30,11 @@ Similar to make-parameter, but without all the thread safety and the parameteriz
 (define* rwind-tcp-port               54321)
 (define* rwind-log-file
   (build-path (find-system-path 'home-dir) "rwind.log"))
+
+; Defines if a window is proteced.
+; Used (at least) in workspace.rkt to avoid circular dependencies with window.rkt
+; (it's not pretty but that seems the most reasonnable thing to do for now.)
+(define* can-delete-window? #f)
+(define* (set-can-delete-window? proc)
+  (set! can-delete-window? proc))
+

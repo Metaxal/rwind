@@ -103,10 +103,10 @@
        ;; TODO: Seems to be called twice. -> Call only if there are changes?
        (cond [(true-root-window? window)
               (dprintf "Configuring root window\n")
-              (dprintf "Updating workspaces\n")
               (xinerama-update-infos)
+              (dprintf "Updating workspaces\n")
               (update-workspaces)
-              #;(policy. on-configure-notify-true-root)]))]
+              (policy. on-configure-notify-true-root)]))]
 
     #;[(Expose)
        ; When the X server asks for the window to be (partly) redrawn
@@ -164,6 +164,7 @@
      (when (some-root-window? window)
        (dprintf "Destroying a virtual root?!"))
      (remove-window-from-workspace window)
+     ;(change-window-state window 'withdrawn) ; ??
      (policy. on-destroy-notify window)]
 
     [(CreateNotify)

@@ -16,7 +16,7 @@
 ;;; See other tiling policies from xmonad:
 ;;; http://xmonad.org/xmonad-docs/xmonad-contrib/
 
-;;; To try a layout, use the ../test/test-layout.rkt
+;;; To try a layout, use the ../private/test-layout.rkt
 
 (define* policy-tiling%
   (class policy%
@@ -26,6 +26,17 @@
     (define/public (set-layout new-layout)
       (set! layout new-layout)
       (relayout))
+    
+    ;; Gives the focus back to a window of the current workspace.
+    ;; It's safer to use the pointer to identify the workspace than
+    ;; the input-focus (because the focus might not be owned by any 
+    ;; top-level window).
+    (define/public (give-focus)
+      (define wk (pointer-workspace))
+      (when wk
+        (define ws (workspace-windows wk))
+        (unless (empty? ws)
+          (set-input-focus (first ws)))))
 
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)
@@ -34,10 +45,15 @@
     
     (define/override (on-unmap-notify window)
       ; todo: give focus to first window?
-      (relayout))
+      (relayout)
+      (give-focus))
     
     (define/override (on-destroy-notify window)
       ; todo: give focus to first window?
+      (relayout)
+      (give-focus))
+    
+    (define/override (policy. on-configure-notify-true-root)
       (relayout))
     
     (define/override (on-create-window window)
@@ -51,7 +67,8 @@
     
     (define/public (relayout)
       (define wk (focus-workspace))
-      (define wl (workspace-windows wk))
+      ; Keep only mapped windows
+      (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
       (case layout
         [(matrix) (relayout-matrix wl x y w h)]))
@@ -76,4 +93,10 @@
                      wl2)]
               )))
     
+    (define/override (on-activate-workspace wk)
+      (give-focus))
+    
+    (define/override (on-change-workspace-mode mode)
+      (give-focus))
+
     (super-new)))

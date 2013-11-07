@@ -278,17 +278,22 @@ the visible name, the icon name and the visible icon name in order."
 
 (define*/contract (kill-client window)
   (window? . -> . any)
+  "Attempts to kill the window without warning. 
+May kill the window manager if window is one of the virtual roots."
   (XKillClient (current-display) window))
 
 ;; Does not seem to work properly... 
 ;; TODO: Look at other window managers to see how they do it.
 ;; - does not delete all windows that could be destroyed
 ;; - when calling it on a window created with `create-simple-window', RWind crashes (or just halts?).
-(define* (delete-window window)
+(define*/contract (delete-window window)
+  (window? . -> . any)
   "Tries to gently close the window and client if possible, otherwise kills it."
-  (if (member WM_DELETE_WINDOW (window-protocols window))
-      (send-client-message window WM_PROTOCOLS (list WM_DELETE_WINDOW CurrentTime))
-      (kill-client window)))
+  (if (can-delete-window? window)
+      (if (member WM_DELETE_WINDOW (window-protocols window))
+          (send-client-message window WM_PROTOCOLS (list WM_DELETE_WINDOW CurrentTime))
+          (kill-client window))
+      (dprintf "Warning: Cannot delete window ~a" window)))
 
 (define* (set-window-border-width window width)
   (XSetWindowBorderWidth (current-display) window width))
@@ -508,10 +513,6 @@ in the sense of `find-window-head'."
 (define* (input-focus)
   "Returns the window that currently has the keyboard focus."
   (car (XGetInputFocus (current-display))))
-
-(define* input-window
-  "Synonym for `input-focus'."
-  input-focus)
 
 (define* focus-window
   "Synonym for `input-focus'."

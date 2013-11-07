@@ -9,9 +9,10 @@
 #| Policies
 
 A policy defines most of the behavior of the window manager,
-except (at least) for keybindings.
-It can be easily extended and modified by using Racket's OO tools,
-like inheritence, augment, mixins, etc.
+like the layout policy (where to place windows, what size, what order, etc.)
+and the focus policy (to what window do we give the focus when a window is destroyed
+or added, etc.).
+Key/mouse-bindings are not handled by policies.
 
 The policy% class is virtual in the sense that no method does anything,
 and it must necessarily be  implemented to have a working WM.
@@ -50,6 +51,9 @@ and it must necessarily be  implemented to have a working WM.
       (void))
     
     (define/public (on-create-notify window)
+      (void))
+    
+    (define/public (policy. on-configure-notify-true-root)
       (void))
     
     ;; Called from click-to-activate and other places(?)
