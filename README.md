@@ -29,9 +29,12 @@ All these features are in development stage.
 
 ## Installation
 
-1) Install [Racket](http://www.racket-lang.org)
+### 1) Install Racket 
+<!-- [Racket](http://www.racket-lang.org) -->
 
-2) Install RWind:
+Currently, you will need the [latest version of Racket](http://plt.eecs.northwestern.edu/snapshots/).
+
+### 2) Install RWind:
 ```shell
 raco pkg install rwind
 ```
@@ -39,16 +42,23 @@ raco pkg install rwind
 
 It will ask you if you want to install `x11`. You should say yes as RWind cannot work without this library.
 
-3) Optional, but (highly) recommended
+It will also ask you if you want to install the default configuration files.
+You should accept unless you know what you are doing.
 
-Copy (or link) and rename one of the files in the `user-script-examples` directory
-to `$XDG_CONFIG_HOME/rwind/config.rkt` (or to `$HOME/.config/rwind/config.rkt` if
-the xdg environment variable is not set).
+### 3) In a _login_ shell (try `Ctrl-Alt-F1`), type the following:
+```shell
+xinit .xinitrc-rwind -- :1 &
+```
 
-Take a look at the file to know what key and mouse bindings are defined. You can
-modify it as you want.
+You may need to modify the display ":1" to ":2" for example if ":1" is not
+available.
 
-The file `simple.rkt` defines a number of default key and mouse bindings:
+Now RWind should be running.
+
+## Default configuration 
+
+The default configuration file that you installed provide you with a number of keybinding and mouse bindings 
+that you can redefine by editing the file:
  - Alt-left-button to move a window around
  - Alt-right-button to resize the window
  - Alt-tab to navigate between windows
@@ -60,19 +70,10 @@ The file `simple.rkt` defines a number of default key and mouse bindings:
  - Alt-Super-F5 switches to `single` workspace mode
  - Alt-Super-F6 switches to `multi` workspace mode
  - ...
- - 
 
-4) Copy the file `.xinitrc-rwind` shipped with RWind into your home directory.
+You can also modify the default `.xinitrc-rwind` to fit your needs.
+By default, you need to close the xterms to exit the session.
 
-5) In a _login_ shell (try `Ctrl-Alt-F1`), type the following:
-```shell
-xinit .xinitrc-rwind -- :1 &
-```
-
-You may need to modify the display ":1" to ":2" for example if ":1" is not
-available.
-
-Now RWind should be running. Type `exit` in the bottom-right xterm to exit the session.
 
 <!--
 ### Installation for use in lightdm/gdm
@@ -89,7 +90,7 @@ raco exe main.rkt && sudo cp rwind /usr/bin
 3) Close your session, choose RWind in the session menu and open your session.
 -->
 
-## The client:
+## The client
 
 The client is a console where you can evaluate expressions.
 It can be opened in a terminal with:
@@ -111,14 +112,5 @@ All bindings of `#lang racket` are available too.
 
 You can get help on a known identifier with:
 ```racket
-> (describe 'window-list)
-```
-
-## Debugging
-
-An easy way to enable debugging is to type in a login shell (in RWind's
-directory):
-```shell
-./compile-debug.sh
-xinit .xinit-rwind-debug -- :1
+> (describe 'focus-window)
 ```
