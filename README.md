@@ -22,10 +22,8 @@ There is an [RWind mailing list](https://groups.google.com/forum/?fromgroups#!fo
 * Workspaces with several modes:
     - single mode: one workspace over all monitors
     - multi mode: one workspace per monitor
-* xinerama support (currently only through repl)
-* Very simple frames (currently only through repl, and buggy)
-* Very little ICCCM/EWMH compliance
-* `_NET_VIRTUAL_ROOTS`
+* xinerama support
+* Currently very little ICCCM/EWMH compliance
 
 All these features are in development stage.
 
@@ -36,28 +34,32 @@ All these features are in development stage.
 2) Create a directory where to place Racket projects (e.g.,
 /home/me/Programming/Racket), then do, in this directory:
 ```shell
-raco pkg install x11 github://github.com/Metaxal/rwind/master
+raco pkg install rwind
 ```
 
-3) Optional, but recommended:
+3) Optional, but (really) recommended
 
-Copy (or link) and rename one of the files in the user-script-examples directory
+Copy (or link) and rename one of the files in the `user-script-examples` directory
 to `$XDG_CONFIG_HOME/rwind/config.rkt` (or to `$HOME/.config/rwind/config.rkt` if
 the xdg environment variable is not set).
 
 Take a look at the file to know what key and mouse bindings are defined. You can
 modify it as you want.
 
-The file simple.rkt defines a number of default key and mouse bindings.
+The file `simple.rkt` defines a number of default key and mouse bindings:
  - Alt-left-button to move a window around
  - Alt-right-button to resize the window
+ - Alt-tab to navigate between windows
  - Control-Alt-t to open xterm
  - Alt-F4 to close a window
  - Alt-F12 opens the client
- - Super-F1-3 switches between workspaces
- - Shift-Super-F1-3 moves the current window to another workspace
+ - Super-F{1-4} switches between workspaces
+ - Shift-Super-F{1-4} moves the current window to another workspace
+ - Alt-Super-F5 switches to `single` workspace mode
+ - Alt-Super-F6 switches to `multi` workspace mode
+ - ...
 
-4a) In a login shell, in RWind's directory, type the following:
+4) In a login shell, in RWind's directory, type the following:
 ```shell
 xinit .xinitrc-rwind -- :1 &
 ```
@@ -71,7 +73,7 @@ Type `exit` in the bottom-right xterm to exit the session.
 
 Do steps 1-4) of the installation above.
 
-1) In rwind directory, compile and install the executable with:
+1) In RWind's directory, compile and install the executable with:
 ```shell
 raco exe main.rkt && sudo cp rwind /usr/bin
 ```
