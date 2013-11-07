@@ -37,6 +37,8 @@ raco pkg install rwind
 ```
 (`raco` is provided with Racket, so it should be in your path)
 
+It will ask you if you want to install `x11`. You should say yes as RWind cannot work without this library.
+
 3) Optional, but (highly) recommended
 
 Copy (or link) and rename one of the files in the `user-script-examples` directory
