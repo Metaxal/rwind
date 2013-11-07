@@ -319,6 +319,10 @@ the visible name, the icon name and the visible icon name in order."
   ; TODO: udpdate _NET_WM_STATE too?
   )
 
+(define* (add-window-to-save-set window)
+  (dprintf "Adding ~a to save set\n" window)
+  (XAddToSaveSet (current-display) window))
+
 (define* (window-properties window)
   (XListProperties (current-display) window))
 
@@ -393,12 +397,15 @@ Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
   ([window? (integer-in 1 100) (integer-in 0 99) (integer-in 0 99) (integer-in 0 99)]
    [(integer-in 1 100) #:rows (integer-in 0 99)]
    . ->* . any/c)
-  "Places window in the grid of size (rows, cols) at the cell (row, col) spanning over col-span and row-span cells.
+  "Places window in the grid of size (rows, cols) at the cell (row, col) 
+spanning over col-span and row-span cells.
 Row and col range from 0 to rows-1 and cols-1."
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define cell-w (truncate (/ wmax cols)))
   (define cell-h (truncate (/ hmax rows)))
-  (move-resize-window window (* win-col cell-w) (* win-row cell-h) (* col-span cell-w) (* row-span cell-h)))
+  (move-resize-window window
+                      (* win-col cell-w) (* win-row cell-h)
+                      (* col-span cell-w) (* row-span cell-h)))
 
 (define*/contract (move-resize-window-grid-auto window cols [rows cols])
   ([window? (integer-in 1 100)] [(integer-in 1 100)] . ->* . any/c)
@@ -705,13 +712,15 @@ Returns #f if no corner and center is contained in any head
 (define* (window+vroot-bounds window)
   "Returns the bounds of the window and its enclosing virtual root."
   (define-values (x y w h) (window-bounds window))
-  (define-values (xroot yroot wroot hroot) (window-bounds (head-root-window (find-window-head window))))
+  (define-values (xroot yroot wroot hroot) 
+    (window-bounds (head-root-window (find-window-head window))))
   (values x y w h xroot yroot wroot hroot))
 
 
 (define*/contract (split-head [fraction 1/2] [hd (pointer-head)] #:style [style 'horiz])
   ([] [(real-in 0 1) natural-number/c #:style (one-of/c 'horiz 'vert)] . ->* . any)
-  "Splits the specified head in two new heads, vertically or horizontally depending on the specified style.
+  "Splits the specified head in two new heads, vertically or horizontally
+depending on the specified style.
 This can be used to simulate several heads on a single monitor."
   (with-head-info
    hd (s win x y w h)
@@ -770,7 +779,7 @@ This can be used to simulate several heads on a single monitor."
 (define* (init-root-window)
   (true-root-window (XDefaultRootWindow (current-display)))
   ;; Ask the root window to send us any event
-  ;; (Q: is it useful if we use virtual roots?)
+  ;; (is it useful if we use virtual roots?)
   (XChangeWindowAttributes (current-display) (true-root-window) '(EventMask)
                            (make-XSetWindowAttributes
                             #:event-mask '(SubstructureRedirectMask

@@ -37,14 +37,13 @@
       (set-input-focus/raise window))
     
     (define/public (relayout)
-      (case layout
-        [(matrix) (relayout-matrix)]))
-    
-    (define/public (relayout-matrix)
       (define wk (focus-workspace))
       (define wl (workspace-windows wk))
       (define-values (x y w h) (workspace-bounds wk))
-      ; TODO: Only for mapped windows? (and not hidden ones)
+      (case layout
+        [(matrix) (relayout-matrix wl x y w h)]))
+    
+    (define/public (relayout-matrix wl x y w h)
       (let loop ([x x] [y y] [w w] [h h] [wl wl])
         (cond [(empty? wl) (void)]
               [(empty? (rest wl))

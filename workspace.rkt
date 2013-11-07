@@ -520,9 +520,11 @@ See also `split-head'."
   (for ([w existing-windows])
     (define wk (guess-window-workspace w))
     (dprintf "window bounds: ~a\n" (cvl window-bounds w))
-    (if wk
-        (add-window-to-workspace w wk)
-        (dprintf "Warning: Could not guess workspace for window ~a\n" w)))
+    (cond [wk
+           (add-window-to-workspace w wk)
+           (add-window-to-save-set w)]
+          [else 
+           (dprintf "Warning: Could not guess workspace for window ~a\n" w)]))
   )
 
 (define* (exit-workspaces)

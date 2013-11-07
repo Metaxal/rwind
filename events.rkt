@@ -138,14 +138,13 @@
            [else
             (dprintf "Mapping new window\n")
             ; This is a new window
-            ; Apply the keymap to it
-            ;(window-apply-keymap window window-keymap) ; no, only (virtual) root windows have keymaps?
             ; add it to the current workspace
             (define wk (pointer-workspace))
             (add-window-to-workspace window wk)
+            ; make sure the window doesn't die if the WM dies
+            (add-window-to-save-set window)
             (show-window window)
-            (policy. on-map-request window #t)
-            ])]
+            (policy. on-map-request window #t)])]
     
     #;[(MapNotify)
      ; When a window is mapped on the screen 
@@ -162,6 +161,8 @@
      ; When a window has been destroyed.
      (define window (XDestroyWindowEvent-window event))
      (dprintf "Destroying ~a\n" window)
+     (when (some-root-window? window)
+       (dprintf "Destroying a virtual root?!"))
      (remove-window-from-workspace window)
      (policy. on-destroy-notify window)]
 
