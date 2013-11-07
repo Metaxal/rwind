@@ -118,6 +118,9 @@
     [(MapRequest)
      ; When a window asks to be mapped on the screen.
      (define window (XMapRequestEvent-window event))
+     (define parent (XMapRequestEvent-window event))
+     (dprintf "window: ~a parent: ~a (vroot: ~a true root: ~a)\n" window parent 
+              (workspace-root-window (pointer-workspace)) (true-root-window))
      ; if override-redirect is true it is a top-level window
      (cond [(find-root-window-workspace window)
             ; This is a virtual root window, find the corresponding workspace
@@ -153,12 +156,12 @@
      ; When a window has been unmapped.
      (define window (XUnmapEvent-window event))
      (dprintf "Unmapping ~a\n" window)
-     ;(remove-window-from-workspace window)
      (policy. on-unmap-notify window)]
     
     [(DestroyNotify)
      ; When a window has been destroyed.
      (define window (XDestroyWindowEvent-window event))
+     (dprintf "Destroying ~a\n" window)
      (remove-window-from-workspace window)
      (policy. on-destroy-notify window)]
 

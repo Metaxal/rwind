@@ -24,15 +24,7 @@ The virtual root contains all the "top-level" windows of the clients.
 To switch between workspaces, it suffices to unmap the current workspace and map the new one
 (This is done by activate-workspace).
 
-|#
-
-#|
-- See sawfish/lisp/sawfish/wm/workspaces.jl
-- evilwm, make-new-client
-- Workspaces are organized into a list (no need for a vector since we don't expect more
-  than a dozen of them).
-  The layout (grid, sphere, etc.) will be implemented on top of that.
-- Convention: wk: workspace; wkn: workspace-number; w: window
+Convention: wk: workspace; wkn: workspace-number; w: window
 
 http://en.wikipedia.org/wiki/Root_window
 http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
@@ -40,6 +32,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 #| TODO
 - do not provide unnecessary procedures
+- How to add automatic tests? X makes it difficult as there are so many side effects.
 |#
 
 ;=================;
@@ -109,16 +102,16 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;=== Predicates ===;
 ;==================;
 
-(define*/contract (workspace-subwindow? wk window)
+(define*/contract (workspace-window? wk window)
   (workspace? window? . -> . any/c)
   "Returns non-#f if window is a mapped window of the specified workspace, or #f otherwise."
-  (member window (workspace-subwindows window)))
+  (member window (workspace-windows wk)))
 
 (define* (valid-workspace-number? wkn)
   (and (number? wkn) (>= wkn 0) (< wkn (count-workspaces))))
 
-(define* workspace-ref?
-  (or/c workspace? number? string?))
+(define* (workspace-ref? wk)
+  (or (workspace? wk) (number? wk) (string? wk)))
 
 (define*/contract (some-root-window? window)
   (window? . -> . any/c)
@@ -154,13 +147,13 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (find-head-workspace hd)
   (number? . -> . (or/c #f workspace?))
   "Returns the (current) root-window of the given head."
-  (debug-expr (and=> (debug-expr (head-root-window hd))
-                     find-root-window-workspace)))
+  (and=> (head-root-window hd)
+         find-root-window-workspace))
 
 (define*/contract (workspace-subwindows wk)
   (workspace? . -> . list?)
   "Returns the list of windows that are managed by the specified workspace,
-in the sense of `window-list'."
+in the sense of `window-list'. See also `workspace-windows'."
   ; Should be simply `workspace-windows', but not yet entirely functional.
   (window-list (workspace-root-window wk)))
 
@@ -193,7 +186,7 @@ in the sense of `window-list'."
 (define*/contract (find-window-workspace window)
   (window? . -> . (or/c #f workspace?))
   "Returns the workspace that contains window, or #f if none is found."
-  (findf (λ(wk)(member window (workspace-subwindows wk)))
+  (findf (λ(wk)(member window (workspace-windows wk)))
          workspaces))
 
 (define*/contract (guess-window-workspace window)
@@ -201,8 +194,8 @@ in the sense of `window-list'."
   "Returns the workspace that /should/ contain the window based on the window position,
 but that does not currently contain it.
 This is mainly meant to be used to restore windows to their proper workspaces."
-  (debug-expr (and=> (debug-expr (find-window-head window))
-                     find-head-workspace)))
+  (and=> (find-window-head window)
+         find-head-workspace))
 
 (define* (pointer-workspace)
   "Returns the workspace that contains the pointer or #f if none is found."
@@ -266,14 +259,16 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 (define*/contract (remove-workspace wkn)
   (valid-workspace-number? . -> . void?)
   (define-values (left right) (split-at workspaces wkn))
+  ;; TODO: Remove the workspace-window from the list of _NET_VIRTUAL_ROOTS
+  ;(change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window) 32)
   (set! workspaces (append left (rest right))))
 
 (define*/contract (remove-window-from-workspace window [wk (find-window-workspace window)])
   ([window?] [(or/c workspace? #f)] . ->* . any/c)
   "Removes the window from the workspace (by default the workspace of the window)
 if it is not #f."
-  ;; TODO: Remove the workspace-window from the list of _NET_VIRTUAL_ROOTS
-  ;(change-window-property (true-root-window) _NET_VIRTUAL_ROOTS 'XA_WINDOW 'PropModeAppend (list root-window) 32)
+  (unless wk
+    (dprintf "wk is #f in remove-window-from-workspace\n"))
   (when wk
     (set-workspace-windows! wk (remove window (workspace-windows wk)))
     (policy. on-remove-window-from-workspace window wk)))
@@ -417,7 +412,7 @@ If the window was in another workspace, it is removed from the latter."
   (define (scale-h hi)
     (round (/ (* hi hh) h-old)))
   (when (or move? resize?)
-    (for ([win (workspace-subwindows wk)])
+    (for ([win (workspace-windows wk)])
       (define-values (x y w h) (window-bounds win))
       (move-resize-window win
                           (if move? (scale-w x) x)
@@ -477,7 +472,7 @@ See also `split-head'."
   "Reparents all sub-windows of the specified workspace to the true root."
   ; This is necessary to avoid killing the windows when RWind quits.
   (define root (true-root-window))
-  (for ([w (workspace-subwindows wk)])
+  (for ([w (workspace-windows wk)])
     (reparent-window w root)))
 
 (define* (reset-workspaces)

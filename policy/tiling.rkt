@@ -52,7 +52,7 @@
               [else
                (define n (floor (/ (length wl) 2)))
                (define-values (wl1 wl2) (split-at wl n))
-               ;  we can also put a stronger ratio if we want to have more room for the highest windows
+               ;  we could put a stronger ratio if we want to have more room for the highest windows
                (define ratio (/ n (length wl)))
                (define-values (dx dy) 
                  (if (> w h)
