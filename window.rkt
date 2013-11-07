@@ -289,7 +289,7 @@ May kill the window manager if window is one of the virtual roots."
 (define*/contract (delete-window window)
   (window? . -> . any)
   "Tries to gently close the window and client if possible, otherwise kills it."
-  (if (can-delete-window? window)
+  (if (window-user-killable? window)
       (if (member WM_DELETE_WINDOW (window-protocols window))
           (send-client-message window WM_PROTOCOLS (list WM_DELETE_WINDOW CurrentTime))
           (kill-client window))

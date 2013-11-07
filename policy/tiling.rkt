@@ -1,5 +1,8 @@
 #lang racket/base
 
+;;; Author: Laurent Orseau
+;;; License: LGPL
+
 (require rwind/base
          rwind/util
          rwind/policy/base
@@ -92,6 +95,10 @@
                      (if dx (- w dx) w) (if dy (- h dy) h)
                      wl2)]
               )))
+    
+    (define/override (on-init-workspaces)
+      (relayout)
+      (give-focus))
     
     (define/override (on-activate-workspace wk)
       (give-focus))

@@ -1,5 +1,8 @@
 #lang racket/base
 
+;;; Author: Laurent Orseau
+;;; License: LGPL
+
 (require rwind/doc-string
          racket/class)
 ; Do not include window, workspace, etc., because it would lead to cycles.
@@ -64,6 +67,9 @@ and it must necessarily be  implemented to have a working WM.
       (void))
     
     (define/public (on-remove-window-from-workspace window wk)
+      (void))
+    
+    (define/public (on-init-workspaces)
       (void))
     
     (define/public (on-activate-workspace wk)

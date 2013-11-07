@@ -119,7 +119,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (or (find-root-window-workspace window)
       (window=? window (true-root-window))))
 
-(set-can-delete-window? (λ(w)(not (some-root-window? w))))
+(set-window-user-killable? (λ(w)(not (some-root-window? w))))
 
 ;=================;
 ;=== Selectors ===;
@@ -527,7 +527,8 @@ See also `split-head'."
            (add-window-to-save-set w)]
           [else 
            (dprintf "Warning: Could not guess workspace for window ~a\n" w)]))
-  )
+  
+  (policy. on-init-workspaces))
 
 (define* (exit-workspaces)
   "Reparents all sub-windows to the true root-window."

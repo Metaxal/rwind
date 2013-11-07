@@ -34,7 +34,7 @@ parameterization (and, thus, faster)."
 ; Defines if a window is proteced.
 ; Used (at least) in workspace.rkt to avoid circular dependencies with window.rkt
 ; (it's not pretty but that seems the most reasonnable thing to do for now.)
-(define* can-delete-window? #f)
-(define* (set-can-delete-window? proc)
-  (set! can-delete-window? proc))
+(define* window-user-killable? #f)
+(define* (set-window-user-killable? proc)
+  (set! window-user-killable? proc))
 
