@@ -181,10 +181,6 @@
        ; http://incise.org/tinywm.html
        #f]
 
-    #;[(FocusIn FocusOut) 
-       ; When the window receives/loses the keyboard focus
-       #f]
-
     #;[(ReparentNotify)
      ; When a window is reparented to another window
        ; TODO: We should monitor this event to remove windows from workspaces?
@@ -196,6 +192,7 @@
     
     [(ClientMessage)
      ; When a window communicates with the root window (i.e. with the window manager)
+     ; TODO: Honour client requests (fullscreen, etc.)
      (dprintf "Client message: window: ~a message-type: ~a format: ~a\n"
               (XClientMessageEvent-window event)
               (atom->string (XClientMessageEvent-message-type event))

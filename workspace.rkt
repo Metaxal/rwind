@@ -61,7 +61,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;====================;
 
 ;; window is the virtual root window of the workspace
-(struct workspace (id root-window windows)
+;; focus is the window that has the focus or #f
+(struct workspace (id root-window windows focus)
   #:transparent
   #:mutable)
 (provide (struct-out workspace))
@@ -94,7 +95,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
   ;; Make sure we will see the keymap events
   (virtual-root-apply-keymaps root-window)
-  (define wk (workspace id root-window '()))
+  (define wk (workspace id root-window '() root-window))
   (insert-workspace wk)
   wk)
 
@@ -226,10 +227,36 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 ;=== Operations ===;
 ;==================;
 
+(define*/contract (workspace-focus-in w [wk (find-window-workspace w)])
+  ([window?] [workspace?] . ->* . any)
+  "Remembers that window w has the focus for workspace wk."
+  (when wk
+    (dprintf "Remember focus ~a for ~a" w wk)
+    (set-workspace-focus! wk w)))
+
+(define*/contract (workspace-give-focus wk)
+  (workspace? . -> . any)
+  "Gives the focus to the window of the workspace that had it last.
+  If none is found, give it to the first window.
+  If there is none, give it to the root-window."
+  (define wf (workspace-focus wk))
+  (define root (workspace-root-window wk))
+  (when (or (not wf)
+            (window=? wf root)
+            (not (workspace-window? wk wf)))
+    (define wins (workspace-windows wk))
+    (set! wf (if (empty? wins)
+                 root
+                 (first wins))))
+  (dprintf "Giving the focus to ~a\n" wf)
+  (set-input-focus wf)
+  (set-workspace-focus! wk wf))
+
 (define*/contract (change-workspace-mode mode #:force? [force? #t])
   ([(one-of/c 'multi 'single)] [#:force? any/c] . ->* . any)
   "Controls the modes in which the workspaces are displayed.
-  'single: One workspace over all heads (monitors). The workspace is of the size of the heads bounding box.
+  'single: One workspace over all heads (monitors). The workspace is of the
+     size of the heads bounding box.
   'multi: One workspace per head. The workspace size is adapted to the head."
 
   ; (Warning) TODO: The multi mode should not be activated if some heads are superimposed!
@@ -272,6 +299,7 @@ if it is not #f."
     (dprintf "wk is #f in remove-window-from-workspace\n"))
   (when wk
     (set-workspace-windows! wk (remove window (workspace-windows wk)))
+    (workspace-give-focus wk) ; give the focus to another window
     (policy. on-remove-window-from-workspace window wk)))
 
 (define*/contract (add-window-to-workspace window wk)
@@ -307,15 +335,15 @@ If the window was in another workspace, it is removed from the latter."
   (workspace? . -> . any)
   ;; Places the specified workspace over all heads
 
-  #;(define old-root (head-info-root-window hd-info))
-
+  
   ; Make sure all workspace windows are unmapped:
   ; (could be optimized, but is safer)
   (for ([wk workspaces])
     (unmap-window (workspace-root-window wk)))
   ; Hide the old workspace:
+  #;(define old-root (head-info-root-window hd-info))
   #;(when old-root
-    (unmap-window old-root))
+      (unmap-window old-root))
 
   ;; Make the new workspace root window fit to the bounding box of all heads
   (workspace-fit-to-heads wk)
@@ -399,6 +427,7 @@ If the window was in another workspace, it is removed from the latter."
   (case (workspace-mode)
     [(single) (activate-workspace/single new-wk)]
     [(multi)  (activate-workspace/multi new-wk head)])
+  (workspace-give-focus new-wk)
   (policy. on-activate-workspace new-wk))
 
 (define* (workspace-fit-to wk hx hy hw hh [move? #t] [resize? move?])
@@ -488,7 +517,8 @@ See also `split-head'."
   ; Wait for sync to be sure that all pending windows (not currently managed by us) are mapped:
   (XSync (current-display) #f)
 
-  (change-window-property (true-root-window) _NET_SUPPORTED 'XA_WINDOW 'PropModeAppend (list _NET_VIRTUAL_ROOTS))
+  (change-window-property (true-root-window) _NET_SUPPORTED 'XA_WINDOW
+                          'PropModeAppend (list _NET_VIRTUAL_ROOTS))
 
 
   ; Get the window list *before* creating the workspace windows...
@@ -526,6 +556,10 @@ See also `split-head'."
            (add-window-to-save-set w)]
           [else 
            (dprintf "Warning: Could not guess workspace for window ~a\n" w)]))
+  
+  ; If the workspaces have a window, place the focus on it
+  (for ([wk workspaces])
+    (workspace-give-focus wk))
   
   (policy. on-init-workspaces))
 

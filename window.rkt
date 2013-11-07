@@ -751,22 +751,6 @@ This can be used to simulate several heads on a single monitor."
                                      (head-info 0 #f 100 300 800 300)))
   )
 
-(define* (activate-next-window)
-  "Gives the keyboard focus to the next window in the list of windows."
-  ; TODO: cycle only among windows that want focus
-  (define wl (viewable-windows))
-  (unless (empty? wl)
-    (let* ([wl (cons (last wl) wl)]
-           [w (focus-window)]
-           ; if no window has the focus (maybe the root has it)
-           [m (member w wl)])
-      (policy. activate-window
-               (if m
-                   ; the `second' should not be a problem because of the last that ensures
-                   ; that the list has at least 2 elements if w is found
-                   (second m)
-                   ; not found, give the focus to the first window
-                   (first wl))))))
 
 ;===================;
 ;=== Root Window ===;

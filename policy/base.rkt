@@ -56,13 +56,17 @@ and it must necessarily be  implemented to have a working WM.
     (define/public (on-create-notify window)
       (void))
     
-    (define/public (policy. on-configure-notify-true-root)
+    (define/public (on-configure-notify-true-root)
       (void))
     
-    ;; Called from click-to-activate and other places(?)
+    ;; Called from click-to-activate and other places
     (define/public (activate-window window)
       (void))
     
+    ;; Gives the keyboard focus to the next window in the list of windows.
+    (define/public (activate-next-window)
+      (void))
+
     (define/public (on-add-window-to-workspace window wk)
       (void))
     

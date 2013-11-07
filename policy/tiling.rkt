@@ -34,29 +34,22 @@
     ;; It's safer to use the pointer to identify the workspace than
     ;; the input-focus (because the focus might not be owned by any 
     ;; top-level window).
-    (define/public (give-focus)
-      (define wk (pointer-workspace))
+    (define/public (give-focus [wk (pointer-workspace)])
       (when wk
-        (define ws (workspace-windows wk))
-        (unless (empty? ws)
-          (set-input-focus (first ws)))))
+        (workspace-give-focus wk)))
 
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)
-      (activate-window window)
-      (relayout))
+      (relayout)
+      (activate-window window))
     
     (define/override (on-unmap-notify window)
-      ; todo: give focus to first window?
-      (relayout)
-      (give-focus))
+      (relayout))
     
     (define/override (on-destroy-notify window)
-      ; todo: give focus to first window?
-      (relayout)
-      (give-focus))
+      (relayout))
     
-    (define/override (policy. on-configure-notify-true-root)
+    (define/override (on-configure-notify-true-root)
       (relayout))
     
     (define/override (on-create-window window)
@@ -66,7 +59,27 @@
             (dprintf "Warning: Could not guess workspace for window ~a\n" window))))
     
     (define/override (activate-window window)
+      ; remember the window that has the focus
+      ; so that switching between workspaces will restore the correct focus
+      (workspace-focus-in window)
       (set-input-focus/raise window))
+    
+    ;; Gives the keyboard focus to the next window in the list of windows.
+    (define/override (activate-next-window)
+      ; TODO: cycle only among windows that want focus
+      (define wl (viewable-windows))
+      (unless (empty? wl)
+        (let* ([wl (cons (last wl) wl)]
+               [w (focus-window)]
+               ; if no window has the focus (maybe the root has it)
+               [m (member w wl)])
+          (activate-window
+           (if m
+               ; the `second' should not be a problem because of the last that ensures
+               ; that the list has at least 2 elements if w is found
+               (second m)
+               ; not found, give the focus to the first window
+               (first wl))))))
     
     (define/public (relayout [wk (focus-workspace)])
       ; Keep only mapped windows
@@ -92,18 +105,16 @@
                (loop x y (or dx w) (or dy h) wl1)
                (loop (+ x (or dx 0)) (+ y (or dy 0))
                      (if dx (- w dx) w) (if dy (- h dy) h)
-                     wl2)]
-              )))
+                     wl2)])))
     
     (define/override (on-init-workspaces)
       (for ([wk workspaces])
-        (relayout wk))
-      (give-focus))
+        (relayout wk)))
     
-    (define/override (on-activate-workspace wk)
-      (give-focus))
+    #;(define/override (on-activate-workspace wk)
+      (void))
     
-    (define/override (on-change-workspace-mode mode)
-      (give-focus))
+    #;(define/override (on-change-workspace-mode mode)
+      (void))
 
     (super-new)))

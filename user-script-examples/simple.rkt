@@ -8,6 +8,7 @@
          rwind/util
          rwind/user
          rwind/workspace
+         rwind/policy/base
          racket/function)
 
 ;;; Some key/mouse bindings
@@ -27,7 +28,7 @@
  ; Close window gracefully if possible, otherwise kill the client
  "M-F4"  (L* (delete-window (input-focus)))
  ; Give keyboard focus to the next window
- "M-Tab" (L* (activate-next-window))
+ "M-Tab" (L* (policy. activate-next-window))
  ; Place one workspace over all heads (monitors)
  "M-Super-F5" (L* (change-workspace-mode 'single))
  ; Place one workspace per head
