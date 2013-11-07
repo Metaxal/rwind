@@ -22,10 +22,23 @@
   (class policy%
     
     (init-field [layout 'matrix])
+    
+    (define/public (set-layout new-layout)
+      (set! layout new-layout)
+      (relayout))
 
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)
-      (activate-window window))
+      (activate-window window)
+      (relayout))
+    
+    (define/override (on-unmap-notify window)
+      ; todo: give focus to first window?
+      (relayout))
+    
+    (define/override (on-destroy-notify window)
+      ; todo: give focus to first window?
+      (relayout))
     
     (define/override (on-create-window window)
       (let ([wk (guess-window-workspace window)])
