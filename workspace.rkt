@@ -231,7 +231,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   ([window?] [workspace?] . ->* . any)
   "Remembers that window w has the focus for workspace wk."
   (when wk
-    (dprintf "Remember focus ~a for ~a" w wk)
+    (dprintf "Remember focus ~a for ~a\n" w wk)
     (set-workspace-focus! wk w)))
 
 (define*/contract (workspace-give-focus wk)

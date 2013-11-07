@@ -59,14 +59,21 @@
             (dprintf "Warning: Could not guess workspace for window ~a\n" window))))
     
     (define/override (activate-window window)
-      ; remember the window that has the focus
-      ; so that switching between workspaces will restore the correct focus
-      (workspace-focus-in window)
-      (set-input-focus/raise window))
+      ; Gives the focus to window.
+      ; Remembers the window that has the focus
+      ; so that switching between workspaces will restore the correct focus.
+      ; Removes the old focus window border and adds a border around the new focus.
+      (when window
+        (define old-focus (focus-window))
+        (unless (window=? old-focus window)
+          (when old-focus
+            (set-window-border-width old-focus 0))
+          (workspace-focus-in window)
+          (set-window-border-width window 3)
+          (set-input-focus/raise window))))
     
     ;; Gives the keyboard focus to the next window in the list of windows.
     (define/override (activate-next-window)
-      ; TODO: cycle only among windows that want focus
       (define wl (viewable-windows))
       (unless (empty? wl)
         (let* ([wl (cons (last wl) wl)]
