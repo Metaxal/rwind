@@ -31,13 +31,13 @@ All these features are in development stage.
 
 1) Install [Racket](http://www.racket-lang.org)
 
-2) Create a directory where to place Racket projects (e.g.,
-/home/me/Programming/Racket), then do, in this directory:
+2) Install RWind:
 ```shell
 raco pkg install rwind
 ```
+(`raco` is provided with Racket, so it should be in your path)
 
-3) Optional, but (really) recommended
+3) Optional, but (highly) recommended
 
 Copy (or link) and rename one of the files in the `user-script-examples` directory
 to `$XDG_CONFIG_HOME/rwind/config.rkt` (or to `$HOME/.config/rwind/config.rkt` if
@@ -58,8 +58,11 @@ The file `simple.rkt` defines a number of default key and mouse bindings:
  - Alt-Super-F5 switches to `single` workspace mode
  - Alt-Super-F6 switches to `multi` workspace mode
  - ...
+ - 
 
-4) In a login shell, in RWind's directory, type the following:
+4) Copy the file `.xinitrc-rwind` shipped with RWind into your home directory.
+
+5) In a _login_ shell, type the following:
 ```shell
 xinit .xinitrc-rwind -- :1 &
 ```
@@ -67,8 +70,9 @@ xinit .xinitrc-rwind -- :1 &
 You may need to modify the display ":1" to ":2" for example if ":1" is not
 available.
 
-Type `exit` in the bottom-right xterm to exit the session.
+Now RWind should be running. Type `exit` in the bottom-right xterm to exit the session.
 
+<!--
 ### Installation for use in lightdm/gdm
 
 Do steps 1-4) of the installation above.
@@ -81,7 +85,7 @@ raco exe main.rkt && sudo cp rwind /usr/bin
 2) Copy the provided file rwind.desktop to /usr/share/xsessions/rwind.desktop
 
 3) Close your session, choose RWind in the session menu and open your session.
-
+-->
 
 ## The client:
 
