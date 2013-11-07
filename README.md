@@ -50,7 +50,7 @@ The file `simple.rkt` defines a number of default key and mouse bindings:
  - Alt-left-button to move a window around
  - Alt-right-button to resize the window
  - Alt-tab to navigate between windows
- - Control-Alt-t to open xterm
+ - Ctrl-Alt-t to open xterm
  - Alt-F4 to close a window
  - Alt-F12 opens the client
  - Super-F{1-4} switches between workspaces
@@ -62,7 +62,7 @@ The file `simple.rkt` defines a number of default key and mouse bindings:
 
 4) Copy the file `.xinitrc-rwind` shipped with RWind into your home directory.
 
-5) In a _login_ shell, type the following:
+5) In a _login_ shell (try `Ctrl-Alt-F1`), type the following:
 ```shell
 xinit .xinitrc-rwind -- :1 &
 ```
