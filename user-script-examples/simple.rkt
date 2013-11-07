@@ -9,7 +9,13 @@
          rwind/user
          rwind/workspace
          rwind/policy/base
+         rwind/policy/tiling
+         racket/class
          racket/function)
+
+; Use a tiling policy
+(current-policy (new policy-tiling%))
+
 
 ;;; Some key/mouse bindings
 
