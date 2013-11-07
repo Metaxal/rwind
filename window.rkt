@@ -489,7 +489,7 @@ By default it is the virtual-root under the pointer."
 (define* (focus-head)
   "Returns the head number that contains the input focus window,
 in the sense of `find-window-head'."
-  (find-window-head (focus-window)))
+  (and=> (focus-window) find-window-head))
 
 (define* (pointer-root-window)
   "Returns the virtual root-window that contains the pointer."

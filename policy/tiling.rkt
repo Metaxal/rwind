@@ -68,8 +68,7 @@
     (define/override (activate-window window)
       (set-input-focus/raise window))
     
-    (define/public (relayout)
-      (define wk (focus-workspace))
+    (define/public (relayout [wk (focus-workspace)])
       ; Keep only mapped windows
       (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
@@ -97,7 +96,8 @@
               )))
     
     (define/override (on-init-workspaces)
-      (relayout)
+      (for ([wk workspaces])
+        (relayout wk))
       (give-focus))
     
     (define/override (on-activate-workspace wk)

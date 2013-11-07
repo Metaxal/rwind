@@ -196,16 +196,15 @@ in the sense of `window-list'. See also `workspace-windows'."
   "Returns the workspace that /should/ contain the window based on the window position,
 but that does not currently contain it.
 This is mainly meant to be used to restore windows to their proper workspaces."
-  (and=> (find-window-head window)
-         find-head-workspace))
+  (and=> (find-window-head window) find-head-workspace))
 
 (define* (pointer-workspace)
   "Returns the workspace that contains the pointer or #f if none is found."
-  (find-head-workspace (pointer-head)))
+  (and=> (pointer-head) find-head-workspace))
 
 (define* (focus-workspace)
   "Returns the workspace that contains the window having the focus or #f if none is found."
-  (find-head-workspace (focus-head)))
+  (and=> (focus-head) find-head-workspace))
 
 (define/contract (workspace-addn n0 inc warp?)
   (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
