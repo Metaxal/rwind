@@ -30,7 +30,3 @@ This class defines a simple policy for managing windows.
       (set-input-focus/raise window))
     
     (super-new)))
-
-; To be sure to have at least one working policy
-(current-policy (new policy-simple%))
-

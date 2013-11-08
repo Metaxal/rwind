@@ -3,12 +3,10 @@
 
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
-;;; Note that the standalone client.rkt is in GPL, because it uses readline, but rwind does not depend on it.
+;;; Note that the standalone client.rkt is in GPL, 
+;;; because it uses readline, but rwind does not depend on it.
 
 #| TODO:
-PRIORITIES:
-- *** make the basis so that extending and debugging is easy! ***
-
 Other:
 - security of the server: make sure the user at the other end of the tcp connection
   is the same as the one running the server!
@@ -19,12 +17,8 @@ Other:
 - shutdown more gracefully?
 - time-stamps are quite probably not handled properly
 
-- viewports?
-
 - grab the server here and there to speed up things
   Warning: Beware of deadlocks, especially with the gui thread
-
-- Planet 2 packaging
 |#
 
 #| Helpful resources:
@@ -52,21 +46,9 @@ Other:
 - X11: http://www.freebsd.org/cgi/man.cgi?query=X&sektion=7&manpath=XFree86+4.7.0
 |#
 
-#|
-- compilation and launch:
-X11_RACKET_DEBUG=1 raco setup x11 rwind && xinit .xinit-rwind -- :1 &
-
-- In rwind's directory: raco link rwind
-to be able to use (require rwind/keymap) for example
-(optional: raco setup rwind)
-
-- After trying hard to use threads (and failing) with Xlib, it seems anyway that it's better to not use them at all.
-  It's of no use of the user's script, and the client may be better off in a separate application.
-  Sawfish does not seem to use XInitThreads() either.
-|#
-
 (require ;"base.rkt" "window-util.rkt" "keymap.rkt" "util.rkt"
-         ;; WARNING! Requiring the files via a raco link or via relative file does not require it in the same "namespace" (or something)!!
+         ;; WARNING! Requiring the files via a raco link or via relative file does not 
+         ;; require it in the same "namespace" (or something)!!
          ;; Further requirement for the bug to appear: it must be started with xinit
          ;; see https://groups.google.com/forum/?fromgroups=#!topic/racket-users/jEXWq_24cOU
          ;; (is this still true today?)
@@ -82,7 +64,8 @@ to be able to use (require rwind/keymap) for example
          rwind/workspace
          rwind/policy/simple ; instantiate the simple policy and use it as default
          x11/x11 ; needs raco pkg install x11
-         ; WARNING: the x11.rkt lib still needs some work. Every function that one uses should be checked with the official documentation.
+         ; WARNING: the x11.rkt lib still needs some work. Every function that one uses
+         ; should be checked with the official documentation.
 
          racket/match
          )
@@ -109,7 +92,7 @@ to be able to use (require rwind/keymap) for example
         ;; Initialize thread support
         ;; This must be the first X procedure to call
         ;; Q: Is it useful since Racket threads are not C threads?
-        (XInitThreads)
+        ;(XInitThreads)
 
         (init-display)
         (init-debug)

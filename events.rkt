@@ -17,8 +17,8 @@
 
 ;;; See https://github.com/SawfishWM/sawfish/blob/master/src/events.c
 
+;; Main function to handle events received from the X server.
 (define (handle-event event)
-  #;"Main function to handle events received from the X server."
 
   (define event-type (XAnyEvent-type event))
   (dprintf "Event type: ~a\n" event-type)
@@ -198,6 +198,7 @@
     [(ClientMessage)
      ; When a window communicates with the root window (i.e. with the window manager)
      ; TODO: Honour client requests (fullscreen, etc.)
+     ; This may be dependent on the policy
      (dprintf "Client message: window: ~a message-type: ~a format: ~a\n"
               (XClientMessageEvent-window event)
               (atom->string (XClientMessageEvent-message-type event))
@@ -208,30 +209,6 @@
      (dprintf "Unhandled event ~a\n" (XEvent->list* event))]))
 
 (provide run-event-loop)
-
-#;(define (run-event-loop)
-  ; Jon Rafkind's version
-  (define events (make-channel))
-  (start-x11-event-thread (current-display) events)
-
-  (XFlush (current-display))
-  (let server-loop ()
-
-    ;(XSync (current-display) #f)
-    ;(XFlush (current-display)) ; normally XNextEvent flushes itself
-    (flush-output) ; to write to file
-
-    ;(define event (XNextEvent* (current-display))) ; waits for the next event
-    (sync/enable-break
-     (handle-evt events
-                 (lambda (event)
-                   (dynamic-wind
-                    (λ()(XLockDisplay (current-display)))
-                    (λ()(handle-event event))
-                    (λ()(XUnlockDisplay (current-display))))
-                   (unless (exit-rwind?)
-                     (server-loop))))))
-  )
 
 (define (run-event-loop)
   (XFlush (current-display))

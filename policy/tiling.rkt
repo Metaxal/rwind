@@ -62,9 +62,9 @@
         (unless (window=? old-focus window)
           (when old-focus
             (set-window-border-width old-focus 0))
-          (workspace-focus-in window)
           (set-window-border-width window 3)
-          (set-input-focus/raise window))))
+          (set-input-focus/raise window)
+          (workspace-focus-in window))))
     
     ;; Gives the keyboard focus to the next window in the list of windows.
     (define/override (activate-next-window)

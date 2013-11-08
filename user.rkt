@@ -6,7 +6,6 @@
 (require rwind/base
          rwind/util
          rwind/doc-string
-         ;rwind/gui/base ; for error-message-box
          racket/file
          )
 
@@ -32,6 +31,7 @@
      f #:mode 'text))
   (open-file f))
 
+;; TODO: If loading the user file fails, fall back to a default configuration (file)?
 (define* (init-user)
   ;; Read user configuration file
   ;; There must be a 'raco link' to the rwind directory (no real need to raco setup for now),
