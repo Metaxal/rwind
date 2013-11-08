@@ -9,13 +9,14 @@
          rwind/user
          rwind/workspace
          rwind/policy/base
+         rwind/policy/simple
          rwind/policy/tiling
          racket/class)
 
-; Use a tiling policy
-(current-policy (new policy-tiling%))
-; Uncomment this instead if you want a stacking policy
-#;(current-policy (new policy-simple%))
+; Use a stacking policy
+(current-policy (new policy-simple%))
+; Uncomment this instead if you want a tiling policy
+#;(current-policy (new policy-tiling%))
 
 ;;; Some key/mouse bindings
 
