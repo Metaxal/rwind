@@ -16,7 +16,7 @@ There is an [RWind mailing list](https://groups.google.com/forum/?fromgroups#!fo
 
 ## Current features
 
-* Simple tiling support
+* Simple stacking /and/ tiling support
 * Client command line (repl)
 * Customization of key bindings and mouse bindings
 * Workspaces with several modes:
@@ -29,7 +29,7 @@ All these features are in development stage.
 
 ## Installation
 
-### 1) Install Racket 
+### 1) Install Racket
 <!-- [Racket](http://www.racket-lang.org) -->
 
 Currently, you will need the [latest version of Racket](http://plt.eecs.northwestern.edu/snapshots/).
@@ -55,9 +55,9 @@ available.
 
 Now RWind should be running.
 
-## Default configuration 
+## Default configuration
 
-The default configuration file that you installed provide you with a number of keybinding and mouse bindings 
+The default configuration file that you installed provide you with a number of keybinding and mouse bindings
 that you can redefine by editing the file:
  - Alt-left-button to move a window around
  - Alt-right-button to resize the window
@@ -70,6 +70,9 @@ that you can redefine by editing the file:
  - Alt-Super-F5 switches to `single` workspace mode
  - Alt-Super-F6 switches to `multi` workspace mode
  - ...
+
+The default window policy is stacking, but you can easily change it to tiling
+in the configuration file.
 
 You can also modify the default `.xinitrc-rwind` to fit your needs.
 By default, you need to close the xterms to exit the session.
@@ -114,3 +117,4 @@ You can get help on a known identifier with:
 ```racket
 > (describe 'focus-window)
 ```
+
