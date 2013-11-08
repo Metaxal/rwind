@@ -171,7 +171,12 @@
      ; When a window has been created with Create(Simple)Window
      (define window (XCreateWindowEvent-window event))
      (define override? (XCreateWindowEvent-override-redirect event))
-     (policy. on-create-notify window)
+     (define wk (guess-window-workspace window))
+     (if wk
+         (begin
+           (add-window-to-workspace window wk)
+           (policy. on-create-notify window))
+         (dprintf "Warning: Could not guess workspace for window ~a\n" window))
      (dprintf "Create-notify ~a\n" window)
     ]
 

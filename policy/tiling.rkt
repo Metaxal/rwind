@@ -51,13 +51,7 @@
     
     (define/override (on-configure-notify-true-root)
       (relayout))
-    
-    (define/override (on-create-window window)
-      (let ([wk (guess-window-workspace window)])
-        (if wk
-            (add-window-to-workspace window wk)
-            (dprintf "Warning: Could not guess workspace for window ~a\n" window))))
-    
+        
     (define/override (activate-window window)
       ; Gives the focus to window.
       ; Remembers the window that has the focus

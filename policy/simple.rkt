@@ -25,13 +25,7 @@ This class defines a simple policy for managing windows.
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)
       (activate-window window))
-    
-    (define/override (on-create-window window)
-      (let ([wk (guess-window-workspace window)])
-        (if wk
-            (add-window-to-workspace window wk)
-            (dprintf "Warning: Could not guess workspace for window ~a\n" window))))
-    
+        
     (define/override (activate-window window)
       (set-input-focus/raise window))
     
