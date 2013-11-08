@@ -32,7 +32,7 @@
    (for ([e (in-port read)]
          #:break (or exit? (equal? e '(exit)))
          )
-     (print-wait "Sending: ~a" e)
+     #;(print-wait "Sending: ~a" e)
      ; Wrap the output in a list, otherwise it may not be sent/flushed (bug?)
      (write-data/flush e out)
      (print-ok)
