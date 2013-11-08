@@ -62,8 +62,7 @@ Other:
          rwind/util
          rwind/window
          rwind/workspace
-         rwind/policy/simple ; instantiate the simple policy and use it as default
-         x11/x11 ; needs raco pkg install x11
+         x11/x11
          ; WARNING: the x11.rkt lib still needs some work. Every function that one uses
          ; should be checked with the official documentation.
 

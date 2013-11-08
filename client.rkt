@@ -35,7 +35,7 @@
      #;(print-wait "Sending: ~a" e)
      ; Wrap the output in a list, otherwise it may not be sent/flushed (bug?)
      (write-data/flush e out)
-     (print-ok)
+     #;(print-ok)
      ; receiving from server, unwrap
      (define res (read in))
      (if (eof-object? res)

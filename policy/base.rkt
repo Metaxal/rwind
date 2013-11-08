@@ -3,7 +3,8 @@
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
 
-(require rwind/doc-string
+(require rwind/base
+         rwind/doc-string
          racket/class)
 ; Do not include window, workspace, etc., because it would lead to cycles.
 ; Instead, all code that requires these modules should be written in the 
@@ -88,5 +89,10 @@ and it must necessarily be  implemented to have a working WM.
     
     (super-new)))
 
-(define* current-policy (make-parameter (new policy%)))
+; Use a fun box instead of a parameter so that 
+; it is really a single global variable,
+; that can be change for example via the client.
+; (The client runs from a different thread, 
+; and parameters are thread-dependent.)
+(define* current-policy (make-fun-box (new policy%)))
 
