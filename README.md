@@ -5,18 +5,18 @@ An extensible window manager aiming to be similar to [Sawfish](http://sawfish.wi
 There is an [RWind mailing list](https://groups.google.com/forum/?fromgroups#!forum/rwind).
 
 
-## Warnings
+First some **warnings**:
 
 * This package is under current development and is in no way stable, and
   is intended for testing purposes only.
 * No backward compatibility will be ensured in the 0.x branch
 * Due to a security issue, the current version should not be used on multiple
-  user computers. Use at your own risk!
+  user computers. Use at your own risk.
 
 
 ## Current features
 
-* Simple stacking /and/ tiling support
+* Simple stacking _and_ tiling support
 * Client command line (repl)
 * Customization of key bindings and mouse bindings
 * Workspaces with several modes:
@@ -57,7 +57,7 @@ Now RWind should be running.
 
 ## Default configuration
 
-The default configuration file that you installed provide you with a number of keybinding and mouse bindings
+The default configuration file has a number of keybinding and mouse bindings
 that you can redefine by editing the file:
  - Alt-left-button to move a window around
  - Alt-right-button to resize the window
@@ -95,7 +95,7 @@ raco exe main.rkt && sudo cp rwind /usr/bin
 
 ## The client
 
-The client is a console where you can evaluate expressions.
+The client is a console where you can evaluate Racket expressions and communicate with the window manager.
 It can be opened in a terminal with:
 ```shell
 racket -l rwind/client
@@ -105,6 +105,11 @@ For example, place the mouse pointer on a window and type in the console:
 ```racket
 > (window-name (pointer-window))
 ```
+Or:
+```racket
+> (window-move (pointer-window) 10 40)
+```
+
 
 The list of available symbols provided by RWind is given by:
 ```racket
@@ -116,5 +121,10 @@ All bindings of `#lang racket` are available too.
 You can get help on a known identifier with:
 ```racket
 > (describe 'focus-window)
+```
+
+You can search among the list of identifiers with:
+```racket
+> (search-identifiers "window-")
 ```
 
