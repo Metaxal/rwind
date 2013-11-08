@@ -130,10 +130,11 @@ Other:
 
         (exit-workspaces)
 
-        (exit-display)
-        
         (set-input-focus (true-root-window))
 
+        ; Close the connection to the X server. Must be the last X operation.
+        (exit-display)
+        
         ))); log to file
 
   (dprintf "RWind terminated.\n")
