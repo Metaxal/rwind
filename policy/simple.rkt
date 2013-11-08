@@ -29,4 +29,14 @@ This class defines a simple policy for managing windows.
     (define/override (activate-window window)
       (set-input-focus/raise window))
     
+    (define/override (on-configure-request window value-mask
+                                           x y width height border-width above stack-mode)
+      ; honor configure request
+      ; This should probably depend on the window type,
+      ; e.g., splash windows should be centered
+      ; fullscreen windows, etc.
+      ; See the EWMH.
+      ; This behavior specification belongs to the policy.
+      (configure-window window value-mask x y width height border-width above stack-mode))
+    
     (super-new)))

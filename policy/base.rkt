@@ -56,6 +56,10 @@ and it must necessarily be  implemented to have a working WM.
     (define/public (on-create-notify window)
       (void))
     
+    (define/public (on-configure-request window value-mask
+                                         x y width height border-width above stack-mode)
+      (void))
+    
     (define/public (on-configure-notify-true-root)
       (void))
     

@@ -83,15 +83,8 @@
        (XConfigureRequestEvent type serial send-event _display parent window
                                x y width height border-width above stack-mode value-mask)
        event)
-     ; This should probably depend on the window type,
-     ; e.g., splash windows should be centered
-     ; fullscreen windows, etc.
-     ; See the EWMH.
-     ; This behavior specification belongs to the policy.
-     (XConfigureWindow (current-display) window value-mask
-                       (make-XWindowChanges x y (bound-value width 1 10000) (bound-value height 1 10000)
-                                            border-width above stack-mode))
-     #;(policy. on-configure-request ...)]
+     (policy. on-configure-request 
+              window value-mask x y width height border-width above stack-mode)]
 
     [(ConfigureNotify)
      ; When the configuration of a window changes.

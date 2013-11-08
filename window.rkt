@@ -354,6 +354,12 @@ May kill the window manager if window is one of the virtual roots."
 (define* (get-window-allowed-actions window)
   (get-window-property-atoms window _NET_WM_ALLOWED_ACTIONS))
 
+(define* (configure-window window value-mask x y width height border-width above stack-mode)
+  (XConfigureWindow
+      (current-display) window value-mask
+      (make-XWindowChanges x y (bound-value width 1 10000) (bound-value height 1 10000)
+                           border-width above stack-mode)))
+
 ;==============================;
 ;=== More window operations ===;
 ;==============================;
