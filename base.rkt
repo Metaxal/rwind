@@ -9,8 +9,7 @@
 ;; Their values are shared between all threads
 (define* (make-fun-box val)
   "Like a box, but the identifier is used like for parameters.
-Similar to make-parameter, but without all the thread safety and the 
-parameterization (and, thus, faster)."
+  On the contrary to parameters, the value of a fun-box is shared by all threads."
   (let ([var val])
     (case-lambda
       [() var]
@@ -22,7 +21,7 @@ parameterization (and, thus, faster)."
 (define* restart-rwind?   (make-fun-box #f))
 
 (define* rwind-app-name               "RWind")
-(define* rwind-version                '(1 0))
+(define* rwind-version                '(0 1))
 (define* rwind-app-description        "Window manager in the Racket programming language")
 (define* rwind-dir-name               "rwind")
 (define* rwind-user-config-file-name  "config.rkt")
