@@ -114,7 +114,6 @@
      (define parent (XMapRequestEvent-window event))
      (dprintf "window: ~a parent: ~a (vroot: ~a true root: ~a)\n" window parent 
               (workspace-root-window (pointer-workspace)) (true-root-window))
-     ; if override-redirect is true it is a top-level window
      (cond [(find-root-window-workspace window)
             ; This is a virtual root window, find the corresponding workspace
             => (λ(wk)
@@ -164,14 +163,14 @@
      ; When a window has been created with Create(Simple)Window
      (define window (XCreateWindowEvent-window event))
      (define override? (XCreateWindowEvent-override-redirect event))
-     (define wk (guess-window-workspace window))
-     (if wk
-         (begin
-           (add-window-to-workspace window wk)
-           (policy. on-create-notify window))
-         (dprintf "Warning: Could not guess workspace for window ~a\n" window))
-     (dprintf "Create-notify ~a\n" window)
-    ]
+     (unless override?
+       (define wk (guess-window-workspace window))
+       (if wk
+           (begin
+             (add-window-to-workspace window wk)
+             (policy. on-create-notify window))
+           (dprintf "Warning: Could not guess workspace for window ~a\n" window))
+       (dprintf "Create-notify ~a\n" window))]
 
     #;[(EnterNotify LeaveNotify)
        ; When the pointer enters or leaves a window
@@ -181,6 +180,7 @@
 
     #;[(ReparentNotify)
      ; When a window is reparented to another window
+       ; if override-redirect is true, we should ignore this
        ; TODO: We should monitor this event to remove windows from workspaces?
      ]
     
