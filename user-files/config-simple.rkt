@@ -10,11 +10,12 @@
          rwind/workspace
          rwind/policy/base
          rwind/policy/tiling
-         racket/class
-         racket/function)
+         racket/class)
 
 ; Use a tiling policy
 (current-policy (new policy-tiling%))
+; Uncomment this instead if you want a stacking policy
+#;(current-policy (new policy-simple%))
 
 ;;; Some key/mouse bindings
 
@@ -27,7 +28,7 @@
  ; Open gmrun (requires it to be installed)
  "M-F2"  (L* (rwind-system "gmrun"))
  ; Opens the client of rwind for console interaction
- "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -l rwind/client"))
+ "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -l rwind/client'"))
  ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
  "M-F10" (L* (open-user-config-file))
  ; Close window gracefully if possible, otherwise kill the client
@@ -64,6 +65,7 @@
  ; Quit RWind
  "M-Escape" (L* (dprintf "Now exiting.\n")
                 (exit-rwind? #t))
+ ; Quit and restart (e.g., if the config file has changed)
  "C-Escape" (L* (dprintf "Now exiting and restarting.\n")
                 (restart-rwind? #t)
                 (exit-rwind? #t))
