@@ -227,6 +227,23 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 ;=== Operations ===;
 ;==================;
 
+(define*/contract (workspace-circulate-windows-up wk)
+  (workspace? . -> . any)
+  "Moves the first window to the bottom, and raises all the other windows.
+  This has no effect on the X stacking order."
+  (define wl (workspace-windows wk))
+  (unless (empty? wk)
+    (set-workspace-windows! wk (append (rest wl) (list (first wl))))))
+
+(define*/contract (workspace-circulate-windows-down wk)
+  (workspace? . -> . any)
+  "Moves the last window to the top, and lowers all the other windows.
+  This has no effect on the X stacking order."
+  (define wl (workspace-windows wk))
+  (unless (empty? wk)
+    (define-values (a b) (split-at-right wl 1))
+    (set-workspace-windows! wk (append b a))))
+
 (define*/contract (workspace-focus-in w [wk (find-window-workspace w)])
   ([window?] [workspace?] . ->* . any)
   "Remembers that window w has the focus for workspace wk."

@@ -31,11 +31,11 @@
       (set! layout new-layout)
       (relayout))
     
-    ;; Gives the focus back to a window of the current workspace.
-    ;; It's safer to use the pointer to identify the workspace than
-    ;; the input-focus (because the focus might not be owned by any 
-    ;; top-level window).
-    (define/public (give-focus [wk (pointer-workspace)])
+    (define/public (current-workspace)
+      (or (focus-workspace)
+          (pointer-workspace)))
+    
+    (define/public (give-focus [wk (current-workspace)])
       (when wk
         (workspace-give-focus wk)))
 
@@ -52,15 +52,28 @@
     
     (define/override (on-configure-notify-true-root)
       (relayout))
+    
+    ;; TODO: Should circulate only between mapped windows!
+    ;; Plus maybe we should move only the focus window and leave the rest untouched?
+    (define/public (circulate-windows-up [wk (current-workspace)])
+      (when wk
+        (workspace-circulate-windows-up wk))
+      (relayout))
+    
+    (define/public (circulate-windows-down [wk (current-workspace)])
+      (when wk
+        (workspace-circulate-windows-down wk))
+      (relayout))
         
-    (define/public (relayout [wk (focus-workspace)])
+    (define/public (relayout [wk (current-workspace)])
       ; Keep only mapped windows
       (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
       (case layout
-        [(uniform) (relayout-uniform wl x y w h)]))
+        [(uniform) (uniform-layout wl x y w h)]
+        [(dwindle) (dwindle-layout wl x y w h)]))
     
-    (define/public (relayout-uniform wl x y w h)
+    (define/public (uniform-layout wl x y w h)
       (let loop ([x x] [y y] [w w] [h h] [wl wl])
         (cond [(empty? wl) (void)]
               [(empty? (rest wl))
@@ -78,6 +91,22 @@
                (loop (+ x (or dx 0)) (+ y (or dy 0))
                      (if dx (- w dx) w) (if dy (- h dy) h)
                      wl2)])))
+    
+    (define (dwindle-layout wl x y w h #:ratio [ratio 1/2])
+  (let loop ([x x] [y y] [w w] [h h] [wl wl])
+    (cond [(empty? wl) (void)]
+          [(empty? (rest wl))
+           (move-resize-window (first wl) x y w h)]
+          [else
+           (define-values (dx dy) 
+             (if (> w h)
+                 (values (* w ratio) #f)
+                 (values #f (* h ratio))))
+           (move-resize-window (first wl) x y (or dx w) (or dy h))
+           (loop (+ x (or dx 0)) (+ y (or dy 0))
+                 (if dx (- w dx) w) (if dy (- h dy) h)
+                 (rest wl))]
+          )))
     
     (define/override (on-init-workspaces)
       (for ([wk workspaces])

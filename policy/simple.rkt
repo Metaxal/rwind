@@ -11,12 +11,8 @@
          racket/list
          )
 
-#| Simple policy
-
-This class defines a simple policy for managing windows.
-
-|#
-
+;;; Simple policy
+;;; This class defines a simple policy for managing windows.
 
 (define* policy-simple%
   (class policy%

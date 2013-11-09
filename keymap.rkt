@@ -146,6 +146,14 @@
       ["W" default-mask]
       [else (error "Modifier not found:" s)]))
 
+;; Valid keysyms are found in keysymdef.h, e.g.:
+;; http://cgit.freedesktop.org/xorg/proto/x11proto/plain/keysymdef.h
+;; by removing the XK_ prefix.
+;; See also:
+;; http://tronche.com/gui/x/xlib/input/keyboard-encoding.html#KeySym
+;; It can be tested with:
+;; $ racket -l racket -li x11/x11
+;; > (XStringToKeysym "Page_Up")
 (define* (string->keysym str)
   "Returns the corresponding keysym if str is a keyboard key string.
 If it is a mouse key string, it returns a list of the corresponding number and type."

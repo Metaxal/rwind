@@ -14,16 +14,6 @@
          racket/contract
          )
 
-#| TODO
-- contracts and tests...
-- Xlib Vol I, p. 47, Performance Optimizing
-  "functions with Fetch, Get or Query should be avoided in the event loop" (for applications)
-  This is because the X server can be running on a different machine, 
-  and network latencies should be avoided.
-  This is why window managers store window properties locally
-  (but this requires carefully keeping such values up to date).
-|#
-
 (module+ test (require rackunit))
 
 (define* window? exact-nonnegative-integer?)
@@ -268,6 +258,7 @@ the visible name, the icon name and the visible icon name in order."
   (send-event window '() event)
   )
 
+;; Doesn't really belong here... -> keymap.rkt?
 (define* (allow-events event-mode)
   (XAllowEvents (current-display) event-mode CurrentTime))
 
