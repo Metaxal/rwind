@@ -3,9 +3,7 @@
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
 
-(require ;rwind/base
-         ;rwind/util
-         rwind/policy/simple
+(require rwind/policy/simple
          rwind/doc-string
          rwind/window
          rwind/workspace
@@ -19,13 +17,13 @@
 ;;; See other tiling policies from xmonad:
 ;;; http://xmonad.org/xmonad-docs/xmonad-contrib/
 
-;;; To try a layout, use the ../private/test-layout.rkt
+;;; To try a layout, use the ../private/try-layout.rkt
 
 (define* policy-tiling%
   (class policy-simple%
     ; Inherits from simple% to have the same focus behavior
     
-    (init-field [layout 'matrix])
+    (init-field [layout 'uniform])
     
     (inherit activate-window activate-next-window)
     
@@ -60,9 +58,9 @@
       (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
       (case layout
-        [(matrix) (relayout-matrix wl x y w h)]))
+        [(uniform) (relayout-uniform wl x y w h)]))
     
-    (define/public (relayout-matrix wl x y w h)
+    (define/public (relayout-uniform wl x y w h)
       (let loop ([x x] [y y] [w w] [h h] [wl wl])
         (cond [(empty? wl) (void)]
               [(empty? (rest wl))
