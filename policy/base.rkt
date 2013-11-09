@@ -86,6 +86,10 @@ and it must necessarily be  implemented to have a working WM.
     (define/public (activate-next-window)
       (void))
 
+    ;; Gives the keyboard focus to the previous window in the list of windows
+    (define/public (activate-previous-window)
+      (void))
+
     ;; Called after a window has been added to the workspace wk
     (define/public (on-add-window-to-workspace window wk)
       (void))

@@ -27,7 +27,7 @@
     
     (init-field [layout 'matrix])
     
-    (inherit activate-window)
+    (inherit activate-window activate-next-window)
     
     (define/public (set-layout new-layout)
       (set! layout new-layout)
@@ -83,7 +83,8 @@
     
     (define/override (on-init-workspaces)
       (for ([wk workspaces])
-        (relayout wk)))
+        (relayout wk))
+      (activate-next-window))
     
     #;(define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
