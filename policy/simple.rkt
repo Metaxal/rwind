@@ -3,9 +3,7 @@
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
 
-(require ;rwind/base
-         ;rwind/util
-         rwind/policy/base
+(require rwind/policy/base
          rwind/doc-string
          rwind/window
          rwind/workspace
@@ -42,20 +40,21 @@ This class defines a simple policy for managing windows.
           (workspace-focus-in window))))
     
     ;; Gives the keyboard focus to the next window in the list of windows.
+    ;; In (viewable-windows), the highest window is the last one (see XQueryTree).
+    ;; xmonad uses a zipper for that (but requires to keep a window list in sync 
+    ;; with the actual windows of the workspace)
     (define/override (activate-next-window)
+      (define wf (focus-window))
+      (when wf
+        (lower-window (focus-window)))
       (define wl (viewable-windows))
       (unless (empty? wl)
-        (let* ([wl (cons (last wl) wl)]
-               [w (focus-window)]
-               ; if no window has the focus (maybe the root has it)
-               [m (member w wl)])
-          (activate-window
-           (if m
-               ; the `second' should not be a problem because of the last that ensures
-               ; that the list has at least 2 elements if w is found
-               (second m)
-               ; not found, give the focus to the first window
-               (first wl))))))
+        (activate-window (last wl))))
+    
+    (define/override (activate-previous-window)
+      (define wl (viewable-windows))
+      (unless (empty? wl)
+        (activate-window (first wl))))
     
     (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)

@@ -543,6 +543,12 @@ in the sense of `find-window-head'."
 #;(define* (select-window)
   void)
 
+(define* (circulate-subwindows-up window)
+  (XCirculateSubwindowsUp (current-display) window))
+
+(define* (circulate-subwindows-down window)
+  (XCirculateSubwindowsDown (current-display) window))
+
 ;===========================================;
 ;=== Heads / Monitors / Physical Screens ===;
 ;===========================================;

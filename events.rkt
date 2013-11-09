@@ -192,10 +192,11 @@
      ; When a window communicates with the root window (i.e. with the window manager)
      ; TODO: Honour client requests (fullscreen, etc.)
      ; This may be dependent on the policy
-     (dprintf "Client message: window: ~a message-type: ~a format: ~a\n"
+     (dprintf "Client message: window: ~a message-type: ~a format: ~a data: ~a\n"
               (XClientMessageEvent-window event)
               (atom->string (XClientMessageEvent-message-type event))
-              (XClientMessageEvent-format event))
+              (XClientMessageEvent-format event)
+              (ClientMessage-data/vector event))
      ]
 
     [else

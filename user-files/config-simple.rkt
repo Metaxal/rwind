@@ -36,6 +36,8 @@
  "M-F4"  (L* (delete-window (input-focus)))
  ; Give keyboard focus to the next window
  "M-Tab" (L* (policy. activate-next-window))
+ ; Give keyboard focus to the previous window
+ "M-S-Tab" (L* (policy. activate-previous-window))
  ; Place one workspace over all heads (monitors)
  "M-Super-F5" (L* (change-workspace-mode 'single))
  ; Place one workspace per head
@@ -66,11 +68,13 @@
  ; Quit RWind
  "M-Escape" (L* (dprintf "Now exiting.\n")
                 (exit-rwind? #t))
- ; Quit and restart (e.g., if the config file has changed)
+ ; Quit and restart
+ ; (e.g., if the config file has changed)
  "C-Escape" (L* (dprintf "Now exiting and restarting.\n")
                 (restart-rwind? #t)
                 (exit-rwind? #t))
  ; Recompile RWind, quit and restart
+ ; (e.g., if rwind's code has changed)
  "M-C-Escape" (L* (when (recompile-rwind)
                     (dprintf "Restarting...\n")
                     (restart-rwind? #t)
