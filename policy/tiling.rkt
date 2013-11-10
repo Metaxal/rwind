@@ -25,19 +25,41 @@
     
     (init-field [layout 'uniform])
     
-    (inherit activate-window activate-next-window)
+    (inherit current-window current-workspace activate-window)
     
     (define/public (set-layout new-layout)
       (set! layout new-layout)
       (relayout))
     
-    (define/public (current-workspace)
-      (or (focus-workspace)
-          (pointer-workspace)))
-    
     (define/public (give-focus [wk (current-workspace)])
       (when wk
         (workspace-give-focus wk)))
+    
+    ;; Needs to be redefined over policy-simple% to keep the 
+    ;; order consistent with the layout (which is based on the workspace list)
+    (define/override (activate-next-window)
+      (define wf (focus-window))
+      (when wf
+        (define wk (find-window-workspace wf))
+        (when wk
+          (define wins (filter window-viewable? (workspace-windows wk)))
+          (define rst (member wf wins window=?))
+          (when rst
+            (if (<= (length rst) 1)
+                (activate-window (first wins))
+                (activate-window (second rst)))))))
+    
+    (define/override (activate-previous-window)
+      (define wf (focus-window))
+      (when wf
+        (define wk (find-window-workspace wf))
+        (when wk
+          (define wins (reverse (filter window-viewable? (workspace-windows wk))))
+          (define rst (member wf wins window=?))
+          (when rst
+            (if (<= (length rst) 1)
+                (activate-window (first wins))
+                (activate-window (second rst)))))))    
 
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)
@@ -53,8 +75,14 @@
     (define/override (on-configure-notify-true-root)
       (relayout))
     
-    ;; TODO: Should circulate only between mapped windows!
-    ;; Plus maybe we should move only the focus window and leave the rest untouched?
+    ;; `dir' is either 'up or 'down
+    (define/public (move-window dir [w (current-window)])
+      (when w
+        (define wk (find-window-workspace w))
+        (when wk
+          (workspace-move-window wk w dir)
+          (relayout))))
+    #|
     (define/public (circulate-windows-up [wk (current-workspace)])
       (when wk
         (workspace-circulate-windows-up wk))
@@ -63,7 +91,7 @@
     (define/public (circulate-windows-down [wk (current-workspace)])
       (when wk
         (workspace-circulate-windows-down wk))
-      (relayout))
+      (relayout))|#
     
     ;; This can be overriden, e.g. see ../private/try-layout.rkt
     (define/public (place-window window x y w h)
@@ -79,7 +107,9 @@
       (case layout
         [(uniform) (uniform-layout wl x y w h)]
         [(dwindle) (dwindle-layout wl x y w h)]
-        [else (printf "Unknown layout: ~a")]))
+        [(dwindle2/5) (dwindle-layout wl x y w h #:ratio 2/5)]
+        [else (printf "Warning: Unknown layout: ~a.\nFalling back to uniform layout.\n" layout)
+              (set-layout 'uniform)]))
     
     (define/public (uniform-layout wl x y w h)
       (let loop ([wl wl] [x x] [y y] [w w] [h h])

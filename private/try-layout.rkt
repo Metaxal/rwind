@@ -52,6 +52,12 @@
     (set-layout 'dwindle)
     (relayout)
     (get-root-window))
+  
+  (send* lay1
+    (clear-root-window)
+    (set-layout 'dwindle2/5)
+    (relayout)
+    (get-root-window))
 
   
   )

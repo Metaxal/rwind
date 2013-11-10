@@ -230,12 +230,12 @@ Warning: This assumes the process is started in the same working directory as th
   (let ([v obj])
     (and v (test v) ...)))
 
-(module+ main
+(module+ test
   (struct foo (x y))
   (define bar (foo 'a 8))
-  (and=> bar foo-x) ; -> 'a
-  (and=> #f foo-x) ; -> #f
-  (and=> 'a foo? foo-x)) ; -> #f
+  (check-equal? (and=> bar foo-x) 'a)
+  (check-false (and=> #f foo-x))
+  (check-false (and=> 'a foo? foo-x)))
 
 
 (define* (call/values->list proc . args)
@@ -303,3 +303,62 @@ waits for the delimiter to be read, and would thus hang)."
   (if (path? ps)
       (path->string ps)
       ps))
+
+(define* (split-at-item l item [=? equal?])
+  (let loop ([pre '()] [post l])
+    (if (empty? post)
+        (values l '())
+        (let ([a (first post)])
+          (if (=? a item)
+              (values (reverse pre) post)
+              (loop (cons a pre) (rest post)))))))
+
+(module+ test
+  (check-equal? (cvl split-at-item (range 5) 2)
+                '((0 1) (2 3 4)))
+  (check-equal? (cvl split-at-item (range 5) 10)
+                '((0 1 2 3 4) ()))
+  (check-equal? (cvl split-at-item (range 5) 0)
+                '(()(0 1 2 3 4)))
+  )
+
+(define* (move-item-down l a [=? equal?])
+  (define-values (pre post) (split-at-item l a =?))
+  (cond [(empty? post) l]
+        [(empty? (rest post))
+         (cons a pre)]
+        [else
+         (append pre (list (second post)) (list a) (cddr post))]))
+
+(module+ test
+  (check-equal? (move-item-down (range 5) 2)
+                '(0 1 3 2 4))
+  (check-equal? (move-item-down (range 5) 0)
+                '(1 0 2 3 4))
+  (check-equal? (move-item-down (range 5) 4)
+                '(4 0 1 2 3))
+  (check-equal? (move-item-down (range 5) 10)
+                '(0 1 2 3 4))
+  )
+
+(define* (move-item-up l item [=? equal?])
+  (let loop ([pre '()] [post l])
+    (if (empty? post)
+        l
+        (let ([a (first post)])
+          (if (=? a item)
+              (if (empty? pre)
+                  (append (rest post) (list a))
+                  (append (reverse (rest pre)) (list a (first pre)) (cdr post)))
+              (loop (cons a pre) (rest post)))))))
+
+(module+ test
+  (check-equal? (move-item-up (range 5) 2)
+                '(0 2 1 3 4))
+  (check-equal? (move-item-up (range 5) 0)
+                '(1 2 3 4 0))
+  (check-equal? (move-item-up (range 5) 4)
+                '(0 1 2 4 3))
+  (check-equal? (move-item-up (range 5) 10)
+                '(0 1 2 3 4))
+  )

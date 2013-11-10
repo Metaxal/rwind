@@ -16,6 +16,14 @@
 
 (define* policy-simple%
   (class policy%
+    
+    (define/public (current-workspace)
+      (or (focus-workspace)
+          (pointer-workspace)))
+    
+    (define/public (current-window)
+      (or (focus-window)
+          (pointer-window)))    
 
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)

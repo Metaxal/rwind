@@ -30,11 +30,6 @@ http://en.wikipedia.org/wiki/Root_window
 http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 |#
 
-#| TODO
-- do not provide unnecessary procedures
-- How to add automatic tests? X makes it difficult as there are so many side effects.
-|#
-
 ;=================;
 ;=== Variables ===;
 ;=================;
@@ -100,7 +95,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (workspace-window? wk window)
   (workspace? window? . -> . any/c)
   "Returns non-#f if window is a mapped window of the specified workspace, or #f otherwise."
-  (member window (workspace-windows wk)))
+  (member window (workspace-windows wk) window=?))
 
 (define* (valid-workspace-number? wkn)
   (and (number? wkn) (>= wkn 0) (< wkn (count-workspaces))))
@@ -183,7 +178,7 @@ in the sense of `window-list'. See also `workspace-windows'."
 (define*/contract (find-window-workspace window)
   (window? . -> . (or/c #f workspace?))
   "Returns the workspace that contains window, or #f if none is found."
-  (findf (λ(wk)(member window (workspace-windows wk)))
+  (findf (λ(wk)(member window (workspace-windows wk) window=?))
          workspaces))
 
 (define*/contract (guess-window-workspace window)
@@ -205,26 +200,40 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 ;=== Operations ===;
 ;==================;
 
-(define*/contract (workspace-circulate-windows-up wk)
-  (workspace? . -> . any)
-  "Moves the first window to the bottom, and raises all the other windows.
+(define*/contract (workspace-move-window wk w dir)
+  (workspace? window? (or/c 'up 'down). -> . any)
+  "Moves the specified window one level up (down in the workspace window list.
+  If it is the first (last) element, it becomes the last (first) one.
+  `dir' is either 'up or 'down.
   This has no effect on the X stacking order."
   (define-values (shown hidden) (partition window-viewable? (workspace-windows wk)))
-  (unless (or (empty? shown) 
+  (set-workspace-windows! 
+   wk 
+   ((if (eq? dir 'up) move-item-up move-item-down)
+    shown w)))
+
+#|
+;; Maybe obsolete now that we have workspace-move-window-up/down ?
+(define*/contract (workspace-circulate-windows-up wk)
+  (workspace? . -> . any)
+  "Moves the first window to the bottom of the workspace window list, and raises all the other 
+  windows. This has no effect on the X stacking order."
+  (define-values (shown hidden) (partition window-viewable? (workspace-windows wk)))
+  (unless (or (empty? shown)
               (empty? (rest shown)))
-    (set-workspace-windows! 
+    (set-workspace-windows!
      wk
      (append (rest shown) (list (first shown)) hidden))))
 
 (define*/contract (workspace-circulate-windows-down wk)
   (workspace? . -> . any)
-  "Moves the last window to the top, and lowers all the other windows.
+  "Moves the last window to the top of the workspace window list, and lowers all the other windows.
   This has no effect on the X stacking order."
   (define-values (shown hidden) (partition window-viewable? (workspace-windows wk)))
-  (unless (or (empty? shown) 
+  (unless (or (empty? shown)
               (empty? (rest shown)))
     (define-values (a b) (split-at-right shown 1))
-    (set-workspace-windows! wk (append b a hidden))))
+    (set-workspace-windows! wk (append b a hidden))))|#
 
 (define*/contract (workspace-focus-in w [wk (find-window-workspace w)])
   ([window?] [workspace?] . ->* . any)
@@ -303,7 +312,7 @@ if it is not #f."
 
 (define*/contract (add-window-to-workspace window wk)
   (window? workspace? . -> . any)
-  "Adds the window to the workspace. 
+  "Adds the window to the workspace.
 If the window was in another workspace, it is removed from the latter."
   (dprintf "Adding window ~a to workspace ~a\n" window wk)
   (define wk-src (find-window-workspace window))
@@ -334,7 +343,7 @@ If the window was in another workspace, it is removed from the latter."
   (workspace? . -> . any)
   ;; Places the specified workspace over all heads
 
-  
+
   ; Make sure all workspace windows are unmapped:
   ; (could be optimized, but is safer)
   (for ([wk workspaces])
@@ -536,12 +545,12 @@ See also `split-head'."
   ; Place the workspaces for a given mode
   ; We need to force to make sure the heads are place correctly.
   (change-workspace-mode 'single #:force? #t)
-  
+
   (dprintf "Workspaces:\n")
   (for ([wk workspaces])
     (dprintf "wk:~a\n" wk)
     (dprintf "bounds: ~a\n" (cvl workspace-bounds wk)))
-  
+
   (dprintf "Heads:~a\n" (head-infos))
 
   (dprintf "Trying to add windows:\n")
@@ -553,13 +562,13 @@ See also `split-head'."
     (cond [wk
            (add-window-to-workspace w wk)
            (add-window-to-save-set w)]
-          [else 
+          [else
            (dprintf "Warning: Could not guess workspace for window ~a\n" w)]))
-  
+
   ; If the workspaces have a window, place the focus on it
   (for ([wk workspaces])
     (workspace-give-focus wk))
-  
+
   (policy. on-init-workspaces))
 
 (define* (exit-workspaces)
