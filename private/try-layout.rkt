@@ -1,8 +1,5 @@
 #lang slideshow
-
-(define root-window #f)
-(define (set-root-window rw)
-  (set! root-window rw))
+(require "../policy/tiling.rkt")
 
 (define (at x y p)
   (ht-append
@@ -11,66 +8,50 @@
      (blank 0 y)
      p)))
 
-(define (move-resize-window win x2 y2 w2 h2)
-  (set! root-window
-        (lt-superimpose
-         root-window
-         (at x2 y2
-             (colorize
-              (cc-superimpose (rectangle w2 h2) (text (~a win)))
-              (shuffle (list (random 128) (+ 128 (random 128)) (+ 64 (random 128)))))))))
-
-(define (uniform-layout wl x y w h)
-  (let loop ([x x] [y y] [w w] [h h] [wl wl])
-    (cond [(empty? wl) (void)]
-          [(empty? (rest wl))
-           (move-resize-window (first wl) x y w h)]
-          [else
-           (define n (floor (/ (length wl) 2)))
-           (define-values (wl1 wl2) (split-at wl n))
-           ;  we can also put a stronger ratio if we want to have more room for the highest windows
-           (define ratio (/ n (length wl)))
-           (define-values (dx dy) 
-             (if (> w h)
-                 (values (* w ratio) #f)
-                 (values #f (* h ratio))))
-           (loop x y (or dx w) (or dy h) wl1)
-           (loop (+ x (or dx 0)) (+ y (or dy 0))
-                 (if dx (- w dx) w) (if dy (- h dy) h)
-                 wl2)]
-          )))
-
-; http://dwm.suckless.org/patches/fibonacci
-(define (dwindle-layout wl x y w h #:ratio [ratio 1/2])
-  (let loop ([x x] [y y] [w w] [h h] [wl wl])
-    (cond [(empty? wl) (void)]
-          [(empty? (rest wl))
-           (move-resize-window (first wl) x y w h)]
-          [else
-           (define-values (dx dy) 
-             (if (> w h)
-                 (values (* w ratio) #f)
-                 (values #f (* h ratio))))
-           (move-resize-window (first wl) x y (or dx w) (or dy h))
-           (loop (+ x (or dx 0)) (+ y (or dy 0))
-                 (if dx (- w dx) w) (if dy (- h dy) h)
-                 (rest wl))]
-          )))
+(define try-layout%
+  (class policy-tiling%
+    (super-new)
+    
+    (init-field x0 y0 w0 h0 windows)
+    
+    (inherit do-layout)
+    
+    (define root-window #f)
+    
+    (define/public (get-root-window)
+      root-window)
+    
+    (define/public (clear-root-window)
+      (set! root-window  (blank w0 h0)))
+    
+    (define/override (place-window window x y w h)
+      (set! root-window
+            (lt-superimpose
+             root-window
+             (at (- x x0) (- y y0)
+                 (colorize
+                  (cc-superimpose (rectangle w h) (text (~a window)))
+                  (shuffle (list (random 128) (+ 128 (random 128)) (+ 64 (random 128)))))))))
+    
+    (define/override (relayout [wk #f])
+      (do-layout windows x0 y0 w0 h0))
+    
+    (clear-root-window)
+    ))
 
 (module+ main
-  (define-values (x y w h) (values 10 20 620 410))
-  (define wl (range 10))
-  
-  (set-root-window (blank w h))
-  (uniform-layout wl x y w h)
-  root-window
-  
-  (set-root-window (blank w h))
-  (dwindle-layout (range 10) x y w h #:ratio 1/2)
-  root-window
+  (define lay1 (new try-layout% [x0 10] [y0 20] [w0 1024/2] [h0 768/2]
+                    [windows (range 10)]))
 
-  (set-root-window (blank w h))
-  (dwindle-layout (range 10) x y w h #:ratio 1/3)
-  root-window
+  (send* lay1
+    (relayout)
+    (get-root-window))
+  
+  (send* lay1
+    (clear-root-window)
+    (set-layout 'dwindle)
+    (relayout)
+    (get-root-window))
+
   
   )

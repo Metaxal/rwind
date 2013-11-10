@@ -12,7 +12,7 @@
          )
 
 ;;; Simple policy
-;;; This class defines a simple policy for managing windows.
+;;; This class defines a simple stacking policy for managing windows.
 
 (define* policy-simple%
   (class policy%
@@ -21,7 +21,7 @@
       ; give the window the input focus (if viewable)
       (activate-window window))
         
-(define/override (activate-window window)
+    (define/override (activate-window window)
       ; Gives the focus to window.
       ; Remembers the window that has the focus
       ; so that switching between workspaces will restore the correct focus.

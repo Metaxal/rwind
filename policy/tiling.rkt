@@ -64,20 +64,28 @@
       (when wk
         (workspace-circulate-windows-down wk))
       (relayout))
+    
+    ;; This can be overriden, e.g. see ../private/try-layout.rkt
+    (define/public (place-window window x y w h)
+      (move-resize-window window x y w h))
         
     (define/public (relayout [wk (current-workspace)])
       ; Keep only mapped windows
       (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
+      (do-layout wl x y w h))
+    
+    (define/public (do-layout wl x y w h)
       (case layout
         [(uniform) (uniform-layout wl x y w h)]
-        [(dwindle) (dwindle-layout wl x y w h)]))
+        [(dwindle) (dwindle-layout wl x y w h)]
+        [else (printf "Unknown layout: ~a")]))
     
     (define/public (uniform-layout wl x y w h)
-      (let loop ([x x] [y y] [w w] [h h] [wl wl])
+      (let loop ([wl wl] [x x] [y y] [w w] [h h])
         (cond [(empty? wl) (void)]
               [(empty? (rest wl))
-               (move-resize-window (first wl) x y w h)]
+               (place-window (first wl) x y w h)]
               [else
                (define n (floor (/ (length wl) 2)))
                (define-values (wl1 wl2) (split-at wl n))
@@ -87,26 +95,26 @@
                  (if (> w h)
                      (values (floor (* w ratio)) #f)
                      (values #f (floor (* h ratio)))))
-               (loop x y (or dx w) (or dy h) wl1)
-               (loop (+ x (or dx 0)) (+ y (or dy 0))
-                     (if dx (- w dx) w) (if dy (- h dy) h)
-                     wl2)])))
+               (loop wl1 x y (or dx w) (or dy h))
+               (loop wl2
+                     (+ x (or dx 0)) (+ y (or dy 0))
+                     (if dx (- w dx) w) (if dy (- h dy) h))])))
     
+    ; http://dwm.suckless.org/patches/fibonacci
     (define (dwindle-layout wl x y w h #:ratio [ratio 1/2])
-  (let loop ([x x] [y y] [w w] [h h] [wl wl])
-    (cond [(empty? wl) (void)]
-          [(empty? (rest wl))
-           (move-resize-window (first wl) x y w h)]
-          [else
-           (define-values (dx dy) 
-             (if (> w h)
-                 (values (* w ratio) #f)
-                 (values #f (* h ratio))))
-           (move-resize-window (first wl) x y (or dx w) (or dy h))
-           (loop (+ x (or dx 0)) (+ y (or dy 0))
-                 (if dx (- w dx) w) (if dy (- h dy) h)
-                 (rest wl))]
-          )))
+      (let loop ([wl wl] [x x] [y y] [w w] [h h])
+        (cond [(empty? wl) (void)]
+              [(empty? (rest wl))
+               (place-window (first wl) x y w h)]
+              [else
+               (define-values (dx dy) 
+                 (if (> w h)
+                     (values (* w ratio) #f)
+                     (values #f (* h ratio))))
+               (place-window (first wl) x y (or dx w) (or dy h))
+               (loop (rest wl)
+                     (+ x (or dx 0)) (+ y (or dy 0))
+                     (if dx (- w dx) w) (if dy (- h dy) h))])))
     
     (define/override (on-init-workspaces)
       (for ([wk workspaces])
