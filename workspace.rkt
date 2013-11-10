@@ -41,15 +41,6 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
 (define* workspaces '())
 
-(define* workspace-warp?
-  "Fun-box that holds whether moving after the last (first) workpsace returns to the first (last)."
-  (make-fun-box #f))
-
-#;(define*/contract current-workspace-number
-  (or/c #f number?)
-  "Current workspace number"
-  #f)
-
 (define workspace-mode
   #;"Controls the modes in which the workspaces are displayed.
 'single: One workspace over all heads (monitors). The workspace is of the size of the heads bounding box.
@@ -61,7 +52,10 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;====================;
 
 ;; window is the virtual root window of the workspace
-;; focus is the window that has the focus or #f
+;; focus is the window that has the focus or #f.
+;; Maybe a workspace should have a list of mapped windows and unmapped ones?
+;; Or maybe a window should have a set of client-side properties that we need to keep in sync
+;; with the X server?
 (struct workspace (id root-window windows focus)
   #:transparent
   #:mutable)
@@ -206,22 +200,6 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 (define* (focus-workspace)
   "Returns the workspace that contains the window having the focus or #f if none is found."
   (and=> (focus-head) find-head-workspace))
-
-(define/contract (workspace-addn n0 inc warp?)
-  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
-  (define nmax (count-workspaces))
-  (define wkn (+ n0 inc))
-  (if warp?
-      (modulo wkn nmax)
-      (min wkn (sub1 nmax))))
-
-(define/contract (workspace-subn n0 dec warp?)
-  (valid-workspace-number? number? any/c . -> . valid-workspace-number?)
-  (define nmax (count-workspaces))
-  (define wkn (- n0 dec))
-  (if warp?
-      (modulo wkn nmax)
-      (max wkn 0)))
 
 ;==================;
 ;=== Operations ===;
