@@ -110,6 +110,10 @@ and it must necessarily be  implemented to have a working WM.
     (define/public (on-change-workspace-mode mode)
       (void))
     
+    ;; Places the windows in way suitable way for the current policy
+    (define/public (relayout)
+      (void))
+    
     (super-new)))
 
 ; Use a fun box instead of a parameter so that 
