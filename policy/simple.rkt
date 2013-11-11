@@ -11,11 +11,13 @@
          racket/list
          )
 
-;;; Simple policy
+;;; Simple stacking policy
 ;;; This class defines a simple stacking policy for managing windows.
 
 (define* policy-simple%
   (class policy%
+    (init-field [selected-window-width 3]
+                [normal-window-width 1])
     
     (define/public (current-workspace)
       (or (focus-workspace)
@@ -38,8 +40,8 @@
         (define old-focus (focus-window))
         (unless (window=? old-focus window)
           (when old-focus
-            (set-window-border-width old-focus 0))
-          (set-window-border-width window 3)
+            (set-window-border-width old-focus normal-window-width))
+          (set-window-border-width window selected-window-width)
           (set-input-focus/raise window)
           (workspace-focus-in window))))
     
@@ -59,6 +61,12 @@
       (define wl (viewable-windows))
       (unless (empty? wl)
         (activate-window (first wl))))
+    
+    (define/override (on-init-workspaces)
+      (for* ([wk workspaces]
+             [win (workspace-windows wk)])
+        (set-window-border-width win normal-window-width))
+      (activate-next-window))
     
     (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
