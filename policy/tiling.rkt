@@ -8,6 +8,7 @@
          rwind/window
          rwind/workspace
          racket/list
+         racket/dict
          racket/class
          )
 
@@ -23,13 +24,23 @@
   (class policy-simple%
     ; Inherits from simple% to have the same focus behavior
     
-    (init-field [layout 'uniform])
-    
     (inherit current-window current-workspace activate-window)
     
+    (define/public (get-layouts)
+      (dict-keys layouts))
+    
     (define/public (set-layout new-layout)
-      (set! layout new-layout)
-      (relayout))
+      (define proc (dict-ref layouts new-layout #f))
+      (cond [proc
+             (set! layout new-layout)
+             (relayout)]
+            [else
+             (printf "Warning: Unknown layout: ~a.\n" layout)
+             (define l (get-layouts))
+             (printf "Existing layouts: ~a\n" l)
+             (define fallback (first l))
+             (printf "Falling back to ~a layout.\n" fallback)
+             (set-layout fallback)]))
     
     (define/public (give-focus [wk (current-workspace)])
       (when wk
@@ -97,22 +108,18 @@
     (define/public (place-window window x y w h)
       (move-resize-window window x y w h))
         
-    (define/public (relayout [wk (current-workspace)])
+    (define/override (relayout [wk (current-workspace)])
       ; Keep only mapped windows
       (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
       (do-layout wl x y w h))
     
     (define/public (do-layout wl x y w h)
-      (case layout
-        [(uniform) (uniform-layout wl x y w h)]
-        [(dwindle) (dwindle-layout wl x y w h)]
-        [(dwindle2/5) (dwindle-layout wl x y w h #:ratio 2/5)]
-        [else (printf "Warning: Unknown layout: ~a.\nFalling back to uniform layout.\n" layout)
-              (set-layout 'uniform)]))
+      (define proc (dict-ref layouts layout))
+      (proc wl x y w h))
     
-    (define/public (uniform-layout wl x y w h)
-      (let loop ([wl wl] [x x] [y y] [w w] [h h])
+    (define (uniform-layout)
+      (define (loop wl x y w h)
         (cond [(empty? wl) (void)]
               [(empty? (rest wl))
                (place-window (first wl) x y w h)]
@@ -128,28 +135,30 @@
                (loop wl1 x y (or dx w) (or dy h))
                (loop wl2
                      (+ x (or dx 0)) (+ y (or dy 0))
-                     (if dx (- w dx) w) (if dy (- h dy) h))])))
+                     (if dx (- w dx) w) (if dy (- h dy) h))]))
+      loop)
     
     ; http://dwm.suckless.org/patches/fibonacci
-    (define (dwindle-layout wl x y w h #:ratio [ratio 1/2])
-      (let loop ([wl wl] [x x] [y y] [w w] [h h])
+    (define (dwindle-layout ratio)
+      (define (loop wl x y w h)
         (cond [(empty? wl) (void)]
               [(empty? (rest wl))
                (place-window (first wl) x y w h)]
               [else
                (define-values (dx dy) 
                  (if (> w h)
-                     (values (* w ratio) #f)
-                     (values #f (* h ratio))))
+                     (values (floor (* w ratio)) #f)
+                     (values #f (floor (* h ratio)))))
                (place-window (first wl) x y (or dx w) (or dy h))
                (loop (rest wl)
                      (+ x (or dx 0)) (+ y (or dy 0))
-                     (if dx (- w dx) w) (if dy (- h dy) h))])))
+                     (if dx (- w dx) w) (if dy (- h dy) h))]))
+      loop)
     
     (define/override (on-init-workspaces)
+      (super on-init-workspaces)
       (for ([wk workspaces])
-        (relayout wk))
-      (activate-next-window))
+        (relayout wk)))
     
     #;(define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
@@ -162,4 +171,16 @@
     #;(define/override (on-change-workspace-mode mode)
       (void))
 
-    (super-new)))
+    (super-new)
+
+    ; Must be defined after the procedures.
+    ; The first layout is the fallback one.
+    (define layouts
+      `((uniform    . ,(uniform-layout))
+        (dwindle    . ,(dwindle-layout 1/2))
+        (dwindle2/5 . ,(dwindle-layout 2/5))
+        ))
+    
+    (init-field [layout 'uniform])
+    
+    ))
