@@ -41,23 +41,24 @@
 
 (module+ main
   (define lay1 (new try-layout% [x0 10] [y0 20] [w0 1024/2] [h0 768/2]
-                    [windows (range 10)]))
+                    [windows (range 10)]
+                    [layout 'dwindle]))
+  
+  (send lay1 relayout)
+  (print (send lay1 get-root-window))
+  (newline)
+  
+  (displayln "\n*** Existing layouts ***\n")
+  
+  (for ([sym (send lay1 get-layouts)])
+    (send* lay1
+      (clear-root-window)
+      (set-layout sym)
+      (relayout))
+    (newline)
+    (print sym)
+    (newline)
+    (print (send lay1 get-root-window))
+    (newline))
 
-  (send* lay1
-    (relayout)
-    (get-root-window))
-  
-  (send* lay1
-    (clear-root-window)
-    (set-layout 'dwindle)
-    (relayout)
-    (get-root-window))
-  
-  (send* lay1
-    (clear-root-window)
-    (set-layout 'dwindle2/5)
-    (relayout)
-    (get-root-window))
-
-  
   )
