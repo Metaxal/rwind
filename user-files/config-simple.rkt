@@ -26,9 +26,9 @@
  "M-C-t" (L* (rwind-system "xterm"))
  ; Open xclock
  "M-C-c" (L* (rwind-system "xclock -digital -update 1"))
- ; Open gmrun (requires it to be installed)
+ ; Open gmrun (requires it to be installed). See also 'dmenu'.
  "M-F2"  (L* (rwind-system "gmrun"))
- ; Opens the client of rwind for console interaction
+ ; Open the client of rwind for console interaction
  "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -l rwind/client'"))
  ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
  "M-F10" (L* (open-user-config-file))
@@ -42,6 +42,9 @@
  "M-Super-F5" (L* (change-workspace-mode 'single))
  ; Place one workspace per head
  "M-Super-F6" (L* (change-workspace-mode 'multi))
+ ; Tiling: Move the window up or down in the hierarchy
+ "Super-Page_Up"   (L* (policy. move-window 'up))
+ "Super-Page_Down" (L* (policy. move-window 'down))
  )
 
 (for ([i 4])
@@ -66,18 +69,18 @@
 (add-bindings 
  root-keymap 
  ; Quit RWind
- "M-Escape" (L* (dprintf "Now exiting.\n")
-                (exit-rwind? #t))
+ "Super-Escape" (L* (dprintf "Now exiting.\n")
+                    (exit-rwind? #t))
  ; Quit and restart
  ; (e.g., if the config file has changed)
- "C-Escape" (L* (dprintf "Now exiting and restarting.\n")
-                (restart-rwind? #t)
-                (exit-rwind? #t))
+ "Super-C-Escape" (L* (dprintf "Now exiting and restarting.\n")
+                      (restart-rwind? #t)
+                      (exit-rwind? #t))
  ; Recompile RWind, quit and restart
  ; (e.g., if rwind's code has changed)
- "M-C-Escape" (L* (when (recompile-rwind)
-                    (dprintf "Restarting...\n")
-                    (restart-rwind? #t)
-                    (exit-rwind? #t)))
+ "Super-C-S-Escape" (L* (when (recompile-rwind)
+                          (dprintf "Restarting...\n")
+                          (restart-rwind? #t)
+                          (exit-rwind? #t)))
  )
  
