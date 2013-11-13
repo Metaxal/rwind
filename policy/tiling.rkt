@@ -112,7 +112,8 @@
       ; Keep only mapped windows
       (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
-      (do-layout wl x y w h))
+      #;(do-layout wl x y w h)
+      (do-layout wl 0 0 w h)) ; relative to workspace root window?
     
     (define/public (do-layout wl x y w h)
       (define proc (dict-ref layouts layout))
