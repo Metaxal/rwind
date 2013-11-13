@@ -29,6 +29,8 @@
 (define* rwind-log-file
   (build-path (find-system-path 'home-dir) "rwind.log"))
 
+(define* user-files-dir "user-files")
+
 ; Defines if a window is protected.
 ; Used (at least) in workspace.rkt to avoid circular dependencies with window.rkt
 ; (it's not pretty but that seems the most reasonnable thing to do for now.)

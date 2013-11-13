@@ -5,13 +5,12 @@
 
 (provide installer)
 
-(define user-files-dir "user-files")
-
-
 ;; Ask to create the configuration files only if they are not already present.
 (define (installer dir-path collect-dir)
   
   (displayln "\n*** RWind Configuration ***\n")
+  
+  (define any-copied? #f)
   
   (define (create-default name src dst)
     (unless (file-exists? dst)
@@ -20,7 +19,8 @@
       (printf "[Y/n] ")
       (define create (read-line))
       (when (member create '("Y" "y" ""))
-        (copy-file src dst))
+        (copy-file src dst)
+        (set! any-copied? #t))
       (newline)))
   
   (create-default 
@@ -31,4 +31,9 @@
   (create-default
    ".xinit-rwind"
    (build-path collect-dir user-files-dir ".xinitrc-rwind")
-   (build-path (getenv "HOME") ".xinitrc-rwind")))
+   (build-path (getenv "HOME") ".xinitrc-rwind"))
+  
+  (when any-copied?
+    (printf "If you wish to install RWind in the session manager, type the following command:
+sudo racket -l rwind/install-session
+")))

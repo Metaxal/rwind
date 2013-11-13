@@ -27,7 +27,7 @@ First some **warnings**:
 
 All these features are in development stage.
 
-## Installation
+## Installation & quick Start
 
 ### 1) Install Racket
 <!-- [Racket](http://www.racket-lang.org) -->
@@ -45,7 +45,7 @@ It will ask you if you want to install `x11`. You should say yes as RWind cannot
 It will also ask you if you want to install the default configuration files.
 You should accept unless you know what you are doing.
 
-## Start RWind
+### 3a) Start RWind
 
 In a _login_ shell (try `Ctrl-Alt-F1`), type the following:
 ```shell
@@ -57,7 +57,26 @@ available.
 
 Now RWind should be running.
 
-## Default configuration and Customization
+### 3b) Installation for use in lightdm/gdm
+
+Alternatively, you can install RWind in the session manager, so that you can choose RWind in the
+options of the login screen.
+
+To do so, type:
+```shell
+sudo racket -l rwind/install-session
+```
+This will create (or overwrite if you say so) the following files:
+* `/usr/share/applications/rwind.desktop`
+* `/usr/share/xsessions/rwind.desktop`
+* `/usr/local/bin/rwind.start`
+
+Now go back to the login screen. You should see RWind in the login options.
+
+The `.xinitrc-rwind` file is not used for this configuration.
+If you wish to add startup applications and start some daemons, you can edit the `rwind.start` file.
+
+## Default configuration and customization
 
 Upon installation, you were asked to create the files `.xinitrc-rwind` and `config.rkt`.
 
@@ -96,21 +115,6 @@ To choose a layout, specify so in the file:
 If you edit the configuration file, you will need to restart RWind to be effective,
 probably by pressing the keybinding as defined in this very file.
 You don't need to recompile RWind, just restart it.
-
-<!--
-### Installation for use in lightdm/gdm
-
-Do steps 1-4) of the installation above.
-
-1) In RWind's directory, compile and install the executable with:
-```shell
-raco exe main.rkt && sudo cp rwind /usr/bin
-```
-
-2) Copy the provided file rwind.desktop to /usr/share/xsessions/rwind.desktop
-
-3) Close your session, choose RWind in the session menu and open your session.
--->
 
 ## The client
 

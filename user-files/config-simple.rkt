@@ -34,9 +34,8 @@
  "M-F10" (L* (open-user-config-file))
  ; Close window gracefully if possible, otherwise kill the client
  "M-F4"  (L* (delete-window (input-focus)))
- ; Give keyboard focus to the next window
- "M-Tab" (L* (policy. activate-next-window))
- ; Give keyboard focus to the previous window
+ ; Give keyboard focus to the next/previous window
+ "M-Tab"   (L* (policy. activate-next-window))
  "M-S-Tab" (L* (policy. activate-previous-window))
  ; Place one workspace over all heads (monitors)
  "M-Super-F5" (L* (change-workspace-mode 'single))
