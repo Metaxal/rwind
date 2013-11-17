@@ -142,7 +142,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (and=> (head-root-window hd)
          find-root-window-workspace))
 
-(define*/contract (workspace-subwindows wk)
+#;(define*/contract (workspace-subwindows wk)
   (workspace? . -> . list?)
   "Returns the list of windows that are managed by the specified workspace,
 in the sense of `window-list'. See also `workspace-windows'."
@@ -195,6 +195,60 @@ This is mainly meant to be used to restore windows to their proper workspaces."
 (define* (focus-workspace)
   "Returns the workspace that contains the window having the focus or #f if none is found."
   (and=> (focus-head) find-head-workspace))
+
+(define* (current-workspace)
+  "Returns the focus workspace if one is found, or the pointer-workspace if one is found, or #f."
+  (or (focus-workspace) (pointer-workspace)))
+
+;=============================;
+;=== Window List Selectors ===;
+;=============================;
+
+(define*/contract (filter-windows proc [wk (focus-workspace)])
+  ([(window? . -> . any/c)] [(or/c #f workspace?)] . ->* . (listof window?))
+  "Maps proc to the list of windows of the specified workspace `wk'.
+  If `wk' is #f, all workspaces are considered."
+  (filter (λ(w)(and w (proc w))) 
+          (if wk
+              (workspace-windows wk)
+              (append* (map workspace-windows workspaces)))))
+
+(define*/contract (find-windows rx [wk (focus-workspace)])
+  ([regexp*?] [(or/c #f workspace?)] . ->* . (listof window?))
+  "Returns the list of windows of the specified workspace which names match the regexp `rx'.
+  If `wk' is #f, all workspaces are considered."
+  (filter-windows (λ(w)(let ([n (window-name w)])
+                         (and n (regexp-match rx n))))
+                  wk))
+
+(define*/contract (find-windows-by-class rx [wk (focus-workspace)])
+  ([regexp*?] [(or/c #f workspace?)] . ->* . (listof window?))
+  "Returns the list of windows which classes matches the regexp `rx'.
+  If `wk' is #f, all workspaces are considered."
+  (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w))) wk))
+
+(define*/contract (viewable-windows [wk (focus-workspace)])
+  ([] [(or/c #f workspace?)] . ->* . (listof window?))
+  "Returns the list of windows of the specified workspace that are viewable
+  (i.e., mapped and all their ancestors are mapped).
+  If `wk' is #f, all workspaces are considered.
+  Use this procedure to retrieve the list of all the windows present on the screen(s)."
+  (filter-windows window-viewable? wk))
+
+(define*/contract (mapped-windows [wk (focus-workspace)])
+  ([] [(or/c #f workspace?)] . ->* . (listof window?))
+  "Returns the list of windows of the specified workspace that are viewable
+  (i.e., mapped and all their ancestors are mapped).
+  If `wk' is #f, all workspaces are considered.
+  Use this procedure to retrieve the list of all windows that are mapped in some workspace,
+  even if they are not visible on screen."
+  (filter-windows window-mapped? wk))
+
+(define*/contract (window-list [wk (focus-workspace)])
+  ([] [(or/c #f workspace?)] . ->* . (listof window?))
+  "Returns the list of windows (viewable or not) of the specified workspace.
+  If `wk' is #f, all workspaces are considered."
+  (filter-windows values wk))
 
 ;==================;
 ;=== Operations ===;
@@ -530,7 +584,7 @@ See also `split-head'."
 
 
   ; Get the window list *before* creating the workspace windows...
-  (define existing-windows (window-list (true-root-window)))
+  (define existing-windows (window-children (true-root-window)))
 
   (define color-list
     '("DarkSlateGray" "DarkSlateBlue" "Sienna" "DarkRed"))

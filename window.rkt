@@ -167,19 +167,26 @@ the visible name, the icon name and the visible icon name in order."
   (define attr (window-attributes window))
   (XWindowAttributes-border-width attr))
 
-(define* (window-map-state window)
-  "Returns 'IsUnmapped, 'IsUnviewable or 'IsViewable.
- IsUnviewable is used if the window is mapped but some ancestor is unmapped."
+(define*/contract (window-map-state window)
+  ((or/c #f window?) . -> . (or/c 'IsUnmapped 'IsUnviewable 'IsViewable #f))
+  "Returns 'IsUnmapped, 'IsUnviewable, 'IsViewable, or #f if the window is does not exist.
+  IsUnviewable is returned if the window is mapped but some ancestor is unmapped."
   (define attrs (and window (XGetWindowAttributes (current-display) window)))
   (and attrs (XWindowAttributes-map-state attrs)))
+
+(define* (window-viewable? window)
+  (eq? 'IsViewable (window-map-state window)))
+
+(define* (window-unmapped? window)
+  (eq? 'IsUnmapped (window-map-state window)))
+
+(define* (window-mapped? window)
+  (memq (window-map-state window) '(IsViewable IsUnviewable)))
 
 (define* (window-has-type? window type)
   "Returns non-#f if the window has the specified type, #f otherwise."
   (define types (get-window-type window))
   (and types (memq type types)))
-
-(define* (window-viewable? window)
-  (eq? 'IsViewable (window-map-state window)))
 
 (define* (window-user-movable? window)
   (define types (or (get-window-type window) '()))
@@ -190,6 +197,16 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (window-user-resizable? window)
   (window-user-movable? window))
+
+;=============================;
+;=== Window List Selectors ===;
+;=============================;
+
+(define*/contract (window-children parent)
+  (window? . -> . (listof window?))
+  "Returns the list of child windows of the specified parent window."
+  (define-values (_parent children) (query-tree parent))
+  (filter values children))
 
 ;=========================;
 ;=== Window operations ===;
@@ -418,46 +435,6 @@ Row and col range from 0 to rows-1 and cols-1."
   (define win-col (truncate (/ (* cols xc) wmax)))
   (define win-row (truncate (/ (* rows yc) hmax)))
   (move-resize-window-grid window cols #:rows rows win-col win-row 1))
-
-;==============================;
-;=== Window List Operations ===;
-;==============================;
-
-(define* (window-children window)
-  (define-values (parent children) (query-tree window))
-  children)
-
-(define* (window-list [parent (focus-root-window)])
-  "Returns the list of windows."
-  (filter values (window-children parent)))
-
-(define* (filter-windows proc [parent (focus-root-window)])
-  "Maps proc to the list of windows."
-  (filter (λ(w)(and w (proc w))) (window-list parent)))
-
-(define* (find-windows rx [parent (focus-root-window)])
-  "Returns the list of windows that matches the regexp rx."
-  (filter-windows (λ(w)(let ([n (window-name w)])
-                         (and n (regexp-match rx n))))
-                  parent))
-
-(define* (find-windows-by-class rx [parent (focus-root-window)])
-  "Returns the list of windows for which one of the window's classes matches the regexp rx."
-  (filter-windows (λ(w)(ormap (λ(c)(regexp-match rx c)) (window-class w))) parent))
-
-(define* (mapped-windows [parent (focus-root-window)])
-  "Returns the list of windows that are mapped but not necessarily viewable
-(i.e., the window is mapped but one ancestor is unmapped)."
-  (filter-windows (λ(w)(let ([s (window-map-state w)])
-                         (and s (not (eq? 'IsUnmapped s)))))
-                  parent))
-
-(define* (viewable-windows [parent (focus-root-window)])
-  (filter-windows (λ(w)(eq? 'IsViewable (window-map-state w))) parent))
-
-
-;; todo: send window to left/right/up/down, etc.
-;; Put all these procs in a separate window-utils.rkt file?
 
 ;=====================;
 ;=== Focus/Pointer ===;

@@ -7,6 +7,7 @@
          rwind/doc-string
          racket/system
          racket/list
+         racket/contract
          racket/string
          racket/file
          racket/function
@@ -362,3 +363,5 @@ waits for the delimiter to be read, and would thus hang)."
   (check-equal? (move-item-up (range 5) 10)
                 '(0 1 2 3 4))
   )
+
+(define* regexp*? (or/c string? bytes? regexp? byte-regexp?))
