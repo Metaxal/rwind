@@ -120,10 +120,10 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   "Returns the position and dimension of the virtual root window of the specified workspace."
   (window-bounds (workspace-root-window wk)))
 
-(define*/contract (workspace-dimensions wk)
+(define*/contract (workspace-size wk)
   (workspace? . -> . (values number? number?))
-  "Returns the dimensions of the virtual root window of the specified workspace."
-  (window-dimensions (workspace-root-window wk)))
+  "Returns the size of the virtual root window of the specified workspace."
+  (window-size (workspace-root-window wk)))
 
 (define*/contract (workspace-position wk)
   (workspace? . -> . (values number? number?))
@@ -445,7 +445,7 @@ If the window was in another workspace, it is removed from the latter."
          (set-head-info-root-window! other-head-info old-root)
          (set-head-info-root-window! hd-info new-root)
 
-         ; Reconfigure the workspace to the dimensions of the head/monitor on which it is displayed
+         ; Reconfigure the workspace to the size of the head/monitor on which it is displayed
          ; TODO: use find-root-window-heads ?
          (workspace-fit-to-heads old-wk (list other-head))
          (workspace-fit-to-heads new-wk (list head))
@@ -493,11 +493,11 @@ If the window was in another workspace, it is removed from the latter."
   (policy. on-activate-workspace new-wk))
 
 (define* (workspace-fit-to wk hx hy hw hh [move? #t] [resize? move?])
-  "Moves and resizes the workspace to the given dimensions.
+  "Moves and resizes the workspace to the given size.
   If move? is not #f, all top-level windows of the workspace are moved proportionally to the resizing ratio.
   If resize? is not #f, they are resized proportionally."
   (define window (workspace-root-window wk))
-  (define-values (w-old h-old) (window-dimensions window))
+  (define-values (w-old h-old) (window-size window))
   (move-resize-window window hx hy hw hh)
   (define (scale-w wi)
     (round (/ (* wi hw) w-old)))

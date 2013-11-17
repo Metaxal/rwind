@@ -143,7 +143,7 @@ the visible name, the icon name and the visible icon name in order."
           (XWindowAttributes-width attr)
           (XWindowAttributes-height attr)))
 
-(define* (window-dimensions window)
+(define* (window-size window)
   (define attr (window-attributes window))
   (values (XWindowAttributes-width attr)
           (XWindowAttributes-height attr)))
@@ -386,7 +386,7 @@ May kill the window manager if window is one of the virtual roots."
 
 (define* (maximize-window window)
   "Maximizes window horizontally and vertically."
-  (define-values (wmax hmax) (head-dimensions (find-window-head window)))
+  (define-values (wmax hmax) (head-size (find-window-head window)))
   (move-resize-window window 0 0 wmax hmax))
 
 (define* (center-window window)
@@ -556,7 +556,7 @@ screen is the physical head on which the (possibly virtual) head is mapped.
 It may be different from the position of the head in the xinerama-screen-infos 
 vector in the case a screen has been split.
 root-window be shared among several heads and thus may not have the same 
-dimensions as the head.")
+size as the head.")
 
 (define (heads-intersect? hd1 hd2)
   (with-head-info
@@ -577,7 +577,7 @@ dimensions as the head.")
          (match inf
            [(XineramaScreenInfo screen x y w h)
             (head-info screen #f x y w h)]))
-       ; otherwise create a single head with the display dimensions
+       ; otherwise create a single head with the display size
        (vector (head-info 0 #f 0 0 (display-width) (display-height))))))
 
 (define* (get-head-info hd)
@@ -596,8 +596,8 @@ dimensions as the head.")
            [(head-info screen win x y w h)
             body ...]))))
 
-(define* (head-dimensions hd)
-  "Returns the dimensions of the given head number."
+(define* (head-size hd)
+  "Returns the size of the given head number."
   (with-head-info
    hd (s win x y w h)
    (values w h)))
@@ -679,13 +679,13 @@ Returns #f if no corner and center is contained in any head
   (init-display)
   (split-head)
   (head-infos)
-  (head-dimensions 0)
+  (head-size 0)
   (find-head 0 0)
   (find-head 1000 1000)
   (exit-display))
 
 (define* (window+head-bounds window)
-  "Returns the bounds of the window and the dimensions of its enclosing head."
+  "Returns the bounds of the window and the size of its enclosing head."
   (define-values (x y w h) (window-bounds window))
   (define-values (xroot yroot wroot hroot) (head-bounds (find-window-head window)))
   (values x y w h wroot hroot))

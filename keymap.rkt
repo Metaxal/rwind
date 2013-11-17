@@ -537,7 +537,7 @@ Useful for 'MotionNotify events (where the button is not specified)."
         [(ButtonPress)
          (set! window (keymap-event-window ev))
          (set!-values (x-ini y-ini) (mouse-event-position ev))
-         (set!-values (w h) (window-dimensions window))]
+         (set!-values (w h) (window-size window))]
         [(ButtonMove)
          (when (and window (window-user-resizable? window))
            (define-values (x-ev y-ev) (mouse-event-position ev))
