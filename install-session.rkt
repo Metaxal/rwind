@@ -33,6 +33,9 @@ Try 'sudo racket -l rwind/install-session'.
  (build-path src-dir "xsessions-rwind.desktop")
  "/usr/share/xsessions/rwind.desktop")
 
+(printf "Would you like to start some Gnome daemons with your session? [y/N] ")
+(define gnome? (member (read-line) '("y" "Y")))
+
 (copy-file/print
- (build-path src-dir "rwind.start")
+ (build-path src-dir (if gnome? "rwind-gnome.start" "rwind.start"))
  "/usr/local/bin/rwind.start")
