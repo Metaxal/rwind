@@ -71,10 +71,26 @@ This will create (or overwrite if you say so) the following files:
 * `/usr/share/xsessions/rwind.desktop`
 * `/usr/local/bin/rwind.start`
 
+Note that this method is likely to give better results than the bare `.xinitrc-rwind` approach
+as more (X, non-RWind) modules are loaded automatically.
+
 Now go back to the login screen. You should see RWind in the login options.
 
 The `.xinitrc-rwind` file is not used for this configuration.
 If you wish to add startup applications and start some daemons, you can edit the `rwind.start` file.
+
+<!--
+### 3c) Replace your current window manager
+
+It is also possible to load a normal session with your usual window manager,
+then kill it and replace it with RWind.
+For example, supposing you are using Metacity:
+```shell
+killall metacity && racket -l rwind
+```
+
+Strange results are likely to show up though.
+-->
 
 ## Default configuration and customization
 

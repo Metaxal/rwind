@@ -16,6 +16,7 @@
 - compilation parameter to make contracts work either:
   - at procedure boundary
   - at module boundary
+  - for documentation only
   - not at all (disable)
 
 - Use doc-string.rkt as a wrapper for sribble/srcdoc
@@ -26,10 +27,6 @@
 #| Ideas
 - to speed up loading, once the doc is generated, it can be saved in a separate file
 that can be loaded only on demand (or reconstructed if outdated).
-
-- use (provide (contract-out ...)) instead of define/contract to avoid in-module checks.
-- use a compile-time (env?) variable to enable/disable macro for speed.
-
 |#
 
 (define doc-dict (make-hash))
