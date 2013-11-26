@@ -122,7 +122,7 @@ This file defines a number of keyboard and mouse bindings that you can easily re
 
 The default window policy is stacking (as for most traditional window managers),
 but you can easily change it to [tiling](http://en.wikipedia.org/wiki/Tiling_window_manager) in the configuration file.
-With the tiling policy, several layouts are possible: `uniform`, `dwindle` and `dwindle2/5` (and probably more to come).
+With the tiling policy, several layouts are possible (mainly `uniform` and `dwindle`).
 To choose a layout, specify so in the file:
 ```racket
 (current-policy (new policy-tiling% [layout 'dwindle]))
@@ -163,10 +163,14 @@ You can get help on a known identifier with:
 
 You can search among the list of identifiers with:
 ```racket
-> (search-identifiers "window-")
+> (search-identifiers "window")
 ```
 
-If the window policy is tiling, the layout can even be changed from the client:
+You can get the list of existing layouts for the tyling policy:
+```racket
+> (policy. get-layouts)
+```
+The layout can be changed immediately:
 ```racket
 > (policy. set-layout 'dwindle)
 ```
