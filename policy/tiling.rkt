@@ -112,8 +112,7 @@
       ; Keep only mapped windows
       (define wl (filter window-viewable? (workspace-windows wk)))
       (define-values (x y w h) (workspace-bounds wk))
-      #;(do-layout wl x y w h)
-      (do-layout wl 0 0 w h)) ; relative to workspace root window?
+      (do-layout wl 0 0 w h)) ; relative to workspace root window
     
     (define/public (do-layout wl x y w h)
       (define proc (dict-ref layouts layout))
@@ -127,7 +126,6 @@
               [else
                (define n (floor (/ (length wl) 2)))
                (define-values (wl1 wl2) (split-at wl n))
-               ;  we could put a stronger ratio if we want to have more room for the highest windows
                (define ratio (/ n (length wl)))
                (define-values (dx dy) 
                  (if (> w h)

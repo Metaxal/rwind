@@ -107,6 +107,7 @@ Other:
 
         (intern-atoms)
 
+        ; Initialises the number of workspaces, so must be before `init-workspaces'.
         (init-user)
 
         (init-keymap)
