@@ -34,6 +34,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;=== Variables ===;
 ;=================;
 
+(define* num-workspaces (make-fun-box 4))
+
 (define* workspaces '())
 
 (define workspace-mode
@@ -591,7 +593,9 @@ See also `split-head'."
 
   ; Create at least one workspace per head
   ; (This should move to the user's config file?)
-  (for ([i (max (head-count) 4)]
+  ;(for ([i (max (head-count) (num-workspaces))] ; nope. 
+  ; TODO: Checks should be made in switching to 'multi mode
+  (for ([i (num-workspaces)]
         [color (in-cycle color-list)])
     ; Create a workspace and apply the keymap to it
     (make-workspace (number->string i)  #:background-color (find-named-color color)))

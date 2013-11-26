@@ -13,6 +13,9 @@
          rwind/policy/tiling
          racket/class)
 
+; Set the number of workspaces
+(num-workspaces 4)
+
 ; Use a stacking policy
 (current-policy (new policy-simple%))
 ; Uncomment this instead if you want a tiling policy
@@ -46,7 +49,7 @@
  "Super-Page_Down" (L* (policy. move-window 'down))
  )
 
-(for ([i 4])
+(for ([i (num-workspaces)])
   (add-bindings
    global-keymap
    ; Switch to the i-th workspace with Super-F1, Super-F2, etc.
