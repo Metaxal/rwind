@@ -7,6 +7,7 @@
          rwind/doc-string
          rwind/window
          rwind/workspace
+         rwind/util
          racket/list
          racket/dict
          racket/class
@@ -153,6 +154,46 @@
                      (+ x (or dx 0)) (+ y (or dy 0))
                      (if dx (- w dx) w) (if dy (- h dy) h))]))
       loop)
+    
+    ;; The fullscreen state is workspace-dependent.
+    ;; Q: Should this go into workspace.rkt ?
+    (define fullscreen-workspace-save-state (make-hash))
+    
+    ;; Save the current state of the workspace (the set of viewable windows)
+    ;; and hides all the windows except window
+    (define/public (fullscreen [window (current-window)])
+      (when window
+        (define wk (find-window-workspace window))
+        (when wk
+          (define wl (viewable-windows wk))
+          (dict-update! fullscreen-workspace-save-state wk 
+                        (λ(wl-old)(remove-duplicates (append wl wl-old) window=?))
+                        '())
+          (for ([w wl])
+            (unless (window=? w window)
+              (hide-window w)))
+          (relayout))))
+    
+    ;; Restore the windows of the saved set to their shown status
+    (define/public (unfullscreen [window (current-window)])
+      (when window
+        (define wk (find-window-workspace window))
+        (when wk
+          (for-each show-window (dict-ref fullscreen-workspace-save-state wk))
+          (dict-set! fullscreen-workspace-save-state wk '())
+          (relayout))))
+    
+    (define/public (show-all [wk (current-workspace)])
+      (when wk
+        (for-each show-window (workspace-windows wk))
+        (relayout)))
+    
+    ;; Hide the window only if it belongs to a workspace
+    (define/public (hide [window (current-window)])
+      (when (and window (find-window-workspace window))
+        (hide-window window))
+      (give-focus) ; works?
+      (relayout))
     
     (define/override (on-init-workspaces)
       (super on-init-workspaces)
