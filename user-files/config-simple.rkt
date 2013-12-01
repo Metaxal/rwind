@@ -71,14 +71,14 @@
 (add-bindings 
  root-keymap 
  ; Quit RWind
- "Super-Escape" (L* (dprintf "Now exiting.\n")
+ "Super-S-Escape" (L* (dprintf "Now exiting.\n")
                     (exit-rwind? #t))
- ; Quit and restart
+ ; Restart RWind
  ; (e.g., if the config file has changed)
  "Super-C-Escape" (L* (dprintf "Now exiting and restarting.\n")
                       (restart-rwind? #t)
                       (exit-rwind? #t))
- ; Recompile RWind, quit and restart
+ ; Recompile and Restart RWind
  ; (e.g., if rwind's code has changed)
  "Super-C-S-Escape" (L* (when (recompile-rwind)
                           (dprintf "Restarting...\n")
