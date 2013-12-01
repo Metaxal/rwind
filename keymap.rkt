@@ -189,7 +189,7 @@ If it is a mouse key string, it returns a list of the corresponding number and t
     ["*" XK-asterisk]
     ["+" XK-plus]
     ["," XK-comma]
-    ["-" XK-minus]
+    [(or "-" "") XK-minus] ; because of (string-split str "-") ; too much of a hack?
     ["." XK-period]
     ["/" XK-slash]
     [":" XK-colon]
