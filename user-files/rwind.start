@@ -1,3 +1,6 @@
 #!/bin/sh
 
+# Set the cursor to a left arrow
+xsetroot -cursor_name left_ptr
+
 racket -l rwind
