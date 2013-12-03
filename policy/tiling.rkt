@@ -176,10 +176,14 @@
       (for ([wk workspaces])
         (relayout wk)))
     
-    #;(define/override (on-configure-request window value-mask
+    (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
       ; Do not honor configure requests
-      (void))
+      (if (window-place-above? window)
+          (super on-configure-request window value-mask
+                 x y width height border-width above stack-mode)
+          (relayout))
+      #;(void))
     
     #;(define/override (on-activate-workspace wk)
       (void))
