@@ -47,7 +47,7 @@ You should accept unless you know what you are doing.
 
 ### 3a) Start RWind
 
-In a _login_ shell (try `Ctrl-Alt-F1`), type the following:
+In a virtual terminal (`Ctrl-Alt-F1`), type the following:
 ```shell
 xinit .xinitrc-rwind -- :1 &
 ```
