@@ -60,9 +60,9 @@
 
 (add-bindings
  window-keymap
- ; Moving window with Meta-Button1
+ ; Move window with Meta-Button1
  "M-Move1" (motion-move-window)
- ; Resizing window with Meta-Button3
+ ; Resize window with Meta-Button3
  "M-Move3" (motion-resize-window)
  )
 

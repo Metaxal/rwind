@@ -105,6 +105,7 @@
     (define (place-above wl)
       (for-each raise-window wl))
     
+    ; todo: this should include "transient for" windows
     (define (window-place-above? window)
       (or (window-dialog? window) 
           (net-window-fullscreen? window)))
