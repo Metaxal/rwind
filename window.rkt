@@ -73,6 +73,7 @@
 
   _NET_WM_WINDOW_TYPE ; http://developer.gnome.org/wm-spec/#id2551529
   _NET_WM_WINDOW_TYPE_NORMAL
+  _NET_WM_WINDOW_TYPE_DIALOG
   _NET_WM_WINDOW_TYPE_DESKTOP
   _NET_WM_WINDOW_TYPE_DOCK
 
@@ -185,11 +186,14 @@ the visible name, the icon name and the visible icon name in order."
 
 (define* (window-has-type? window type)
   "Returns non-#f if the window has the specified type, #f otherwise."
-  (define types (get-window-type window))
+  (define types (get-window-types window))
   (and types (memq type types)))
 
+(define* (window-dialog? window)
+  (memq _NET_WM_WINDOW_TYPE_DIALOG (get-window-types window)))
+
 (define* (window-user-movable? window)
-  (define types (or (get-window-type window) '()))
+  (define types (or (get-window-types window) '()))
   (not (or (ormap (λ(t)(memq t types))
               (list _NET_WM_WINDOW_TYPE_DESKTOP
                     _NET_WM_WINDOW_TYPE_DOCK))
@@ -352,9 +356,10 @@ May kill the window manager if window is one of the virtual roots."
 
 ; For information on all the window types, see http://developer.gnome.org/wm-spec/#id2551529
 ; (use it with (map atom->string ...) for better reading)
-(define* (get-window-type window)
+(define*/contract (get-window-types window)
+  (window? . -> . list?)
   "Returns a list of types as atoms for the specified window."
-  (get-window-property-atoms window _NET_WM_WINDOW_TYPE))
+  (or (get-window-property-atoms window _NET_WM_WINDOW_TYPE) '()))
 
 (define* (get-window-state window)
   (get-window-property-atoms window _NET_WM_STATE))

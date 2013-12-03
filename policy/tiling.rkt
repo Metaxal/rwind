@@ -94,26 +94,24 @@
         (when wk
           (workspace-move-window wk w dir)
           (relayout))))
-    #|
-    (define/public (circulate-windows-up [wk (current-workspace)])
-      (when wk
-        (workspace-circulate-windows-up wk))
-      (relayout))
-    
-    (define/public (circulate-windows-down [wk (current-workspace)])
-      (when wk
-        (workspace-circulate-windows-down wk))
-      (relayout))|#
-    
+
     ;; This can be overriden, e.g. see ../private/try-layout.rkt
     (define/public (place-window window x y w h)
       (move-resize-window window x y w h))
+    
+    ;; Called after placing the non-dialog windows
+    ;; so that they can be placed on top of them, but do not resize them
+    (define (place-dialogs wl)
+      (for-each raise-window wl))
         
     (define/override (relayout [wk (current-workspace)])
-      ; Keep only mapped windows
-      (define wl (filter window-viewable? (workspace-windows wk)))
+      ; Keep only mapped windows, and treat dialogs differently
+      (define-values (dialogs wl) (partition window-dialog? 
+                                             (filter window-viewable?
+                                                     (workspace-windows wk))))
       (define-values (x y w h) (workspace-bounds wk))
-      (do-layout wl 0 0 w h)) ; relative to workspace root window
+      (do-layout wl 0 0 w h) ; relative to workspace root window
+      (place-dialogs dialogs))
     
     (define/public (do-layout wl x y w h)
       (define proc (dict-ref layouts layout))
@@ -155,6 +153,12 @@
                      (if dx (- w dx) w) (if dy (- h dy) h))]))
       loop)
     
+    ;;; NO! Bad way to do fullscreen
+    ;;; TODO: Layers. Each layer can have its own layout, and each layer can be in several workspaces?
+    ;;; Then we can define a "fullscreen" layer that uses a "fullscreen" layout where only one window 
+    ;;; is on top and takes the whole space.
+    ;;; How to handle floating windows properly?
+    
     ;; The fullscreen state is workspace-dependent.
     ;; Q: Should this go into workspace.rkt ?
     (define fullscreen-workspace-save-state (make-hash))
@@ -177,7 +181,8 @@
     ;; Restore the windows of the saved set to their shown status
     (define/public (unfullscreen [window (current-window)])
       (when window
-        (define wk (find-window-workspace window))
+        (define wk (or (find-window-workspace window)
+                       (current-workspace)))
         (when wk
           (for-each show-window (dict-ref fullscreen-workspace-save-state wk))
           (dict-set! fullscreen-workspace-save-state wk '())
@@ -218,7 +223,7 @@
     (define layouts
       `((uniform    . ,(uniform-layout))
         (dwindle    . ,(dwindle-layout 1/2))
-        (dwindle2/5 . ,(dwindle-layout 2/5))
+        (dwindle3/5 . ,(dwindle-layout 3/5))
         ))
     
     (init-field [layout 'uniform])
