@@ -31,10 +31,10 @@
  "M-C-c" (L* (rwind-system "xclock -digital -update 1"))
  ; Open gmrun (requires it to be installed). See also 'dmenu'.
  "M-F2"  (L* (rwind-system "gmrun"))
+ ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
+ "M-F11" (L* (open-user-config-file))
  ; Open the client of rwind for console interaction
  "M-F12" (L* (rwind-system "xterm -g 80x24+400+0 -T 'RWind Client' -e 'racket -l rwind/client'"))
- ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
- "M-F10" (L* (open-user-config-file))
  ; Close window gracefully if possible, otherwise kill the client
  "M-F4"  (L* (delete-window (input-focus)))
  ; Give keyboard focus to the next/previous window
