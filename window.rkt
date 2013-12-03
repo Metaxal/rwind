@@ -64,14 +64,36 @@
 (provide intern-atoms)
 ;; (intern-atoms) must be called on init.
 (define-atoms intern-atoms
+  WM_TAKE_FOCUS
+  WM_DELETE_WINDOW
+  WM_PROTOCOLS
+  WM_STATE
+  
+  __SWM_VROOT
+
   ; http://standards.freedesktop.org/wm-spec/latest/
   _NET_WM_NAME
   _NET_WM_VISIBLE_NAME
   _NET_WM_ICON_NAME
   _NET_WM_VISIBLE_ICON_NAME
-  _NET_WM_STATE ; http://developer.gnome.org/wm-spec/#id2551694
-
-  _NET_WM_WINDOW_TYPE ; http://developer.gnome.org/wm-spec/#id2551529
+  
+   ; http://developer.gnome.org/wm-spec/#id2551694
+  _NET_WM_STATE
+  _NET_WM_STATE_MODAL
+  _NET_WM_STATE_STICKY
+  _NET_WM_STATE_MAXIMIZED_VERT
+  _NET_WM_STATE_MAXIMIZED_HORZ
+  _NET_WM_STATE_SHADED
+  _NET_WM_STATE_SKIP_TASKBAR
+  _NET_WM_STATE_SKIP_PAGER
+  _NET_WM_STATE_HIDDEN
+  _NET_WM_STATE_FULLSCREEN
+  _NET_WM_STATE_ABOVE
+  _NET_WM_STATE_BELOW
+  _NET_WM_STATE_DEMANDS_ATTENTION
+  
+   ; http://developer.gnome.org/wm-spec/#id2551529
+  _NET_WM_WINDOW_TYPE
   _NET_WM_WINDOW_TYPE_NORMAL
   _NET_WM_WINDOW_TYPE_DIALOG
   _NET_WM_WINDOW_TYPE_DESKTOP
@@ -80,11 +102,6 @@
   _NET_WM_ALLOWED_ACTIONS ; http://developer.gnome.org/wm-spec/#id2551927
   _NET_SUPPORTED
   _NET_VIRTUAL_ROOTS
-  WM_TAKE_FOCUS
-  WM_DELETE_WINDOW
-  WM_PROTOCOLS
-  WM_STATE
-  __SWM_VROOT
   )
 
 (define* (atom->string atom)
@@ -361,9 +378,6 @@ May kill the window manager if window is one of the virtual roots."
   "Returns a list of types as atoms for the specified window."
   (or (get-window-property-atoms window _NET_WM_WINDOW_TYPE) '()))
 
-(define* (get-window-state window)
-  (get-window-property-atoms window _NET_WM_STATE))
-
 (define* (get-window-allowed-actions window)
   (get-window-property-atoms window _NET_WM_ALLOWED_ACTIONS))
 
@@ -372,6 +386,14 @@ May kill the window manager if window is one of the virtual roots."
       (current-display) window value-mask
       (make-XWindowChanges x y (bound-value width 1 10000) (bound-value height 1 10000)
                            border-width above stack-mode)))
+
+(define*/contract (net-window-state window)
+  (window? . -> . list?)
+  (or (get-window-property-atoms window _NET_WM_STATE)
+      '()))
+
+(define* (net-window-fullscreen? window)
+  (memq _NET_WM_STATE_FULLSCREEN (net-window-state window)))
 
 ;==============================;
 ;=== More window operations ===;

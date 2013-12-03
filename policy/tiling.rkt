@@ -99,19 +99,24 @@
     (define/public (place-window window x y w h)
       (move-resize-window window x y w h))
     
+    ;; Places the dialog and fullscreen windows
     ;; Called after placing the non-dialog windows
     ;; so that they can be placed on top of them, but do not resize them
-    (define (place-dialogs wl)
+    (define (place-above wl)
       (for-each raise-window wl))
+    
+    (define (window-place-above? window)
+      (or (window-dialog? window) 
+          (net-window-fullscreen? window)))
         
     (define/override (relayout [wk (current-workspace)])
       ; Keep only mapped windows, and treat dialogs differently
-      (define-values (dialogs wl) (partition window-dialog? 
+      (define-values (dialogs wl) (partition window-place-above?
                                              (filter window-viewable?
                                                      (workspace-windows wk))))
       (define-values (x y w h) (workspace-bounds wk))
       (do-layout wl 0 0 w h) ; relative to workspace root window
-      (place-dialogs dialogs))
+      (place-above dialogs))
     
     (define/public (do-layout wl x y w h)
       (define proc (dict-ref layouts layout))
@@ -152,42 +157,8 @@
                      (+ x (or dx 0)) (+ y (or dy 0))
                      (if dx (- w dx) w) (if dy (- h dy) h))]))
       loop)
-    
-    ;;; NO! Bad way to do fullscreen
-    ;;; TODO: Layers. Each layer can have its own layout, and each layer can be in several workspaces?
-    ;;; Then we can define a "fullscreen" layer that uses a "fullscreen" layout where only one window 
-    ;;; is on top and takes the whole space.
-    ;;; How to handle floating windows properly?
-    
-    ;; The fullscreen state is workspace-dependent.
-    ;; Q: Should this go into workspace.rkt ?
-    (define fullscreen-workspace-save-state (make-hash))
-    
-    ;; Save the current state of the workspace (the set of viewable windows)
-    ;; and hides all the windows except window
-    (define/public (fullscreen [window (current-window)])
-      (when window
-        (define wk (find-window-workspace window))
-        (when wk
-          (define wl (viewable-windows wk))
-          (dict-update! fullscreen-workspace-save-state wk 
-                        (λ(wl-old)(remove-duplicates (append wl wl-old) window=?))
-                        '())
-          (for ([w wl])
-            (unless (window=? w window)
-              (hide-window w)))
-          (relayout))))
-    
-    ;; Restore the windows of the saved set to their shown status
-    (define/public (unfullscreen [window (current-window)])
-      (when window
-        (define wk (or (find-window-workspace window)
-                       (current-workspace)))
-        (when wk
-          (for-each show-window (dict-ref fullscreen-workspace-save-state wk))
-          (dict-set! fullscreen-workspace-save-state wk '())
-          (relayout))))
-    
+
+    ; Show all windows of the specified workspace
     (define/public (show-all [wk (current-workspace)])
       (when wk
         (for-each show-window (workspace-windows wk))

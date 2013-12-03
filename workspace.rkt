@@ -198,7 +198,8 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   "Returns the workspace that contains the window having the focus or #f if none is found."
   (and=> (focus-head) find-head-workspace))
 
-(define* (current-workspace)
+; This belongs to the policy (the user chooses what current-workspace means
+#;(define* (current-workspace)
   "Returns the focus workspace if one is found, or the pointer-workspace if one is found, or #f."
   (or (focus-workspace) (pointer-workspace)))
 
@@ -213,7 +214,11 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (filter (λ(w)(and w (proc w))) 
           (if wk
               (workspace-windows wk)
-              (append* (map workspace-windows workspaces)))))
+              (if (empty? workspaces)
+                  ; not yet reparented, get the direct children of the root window
+                  (window-children (true-root-window))
+                  ; reparented, get the children of the workspaces
+                  (append* (map workspace-windows workspaces))))))
 
 (define*/contract (find-windows rx [wk (focus-workspace)])
   ([regexp*?] [(or/c #f workspace?)] . ->* . (listof window?))
@@ -601,7 +606,7 @@ See also `split-head'."
     (make-workspace (number->string i)  #:background-color (find-named-color color)))
 
   ; Place the workspaces for a given mode
-  ; We need to force to make sure the heads are place correctly.
+  ; We need to force to make sure the heads are placed correctly.
   (change-workspace-mode 'single #:force? #t)
 
   (dprintf "Workspaces:\n")
