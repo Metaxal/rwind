@@ -38,10 +38,16 @@
       ; Removes the old focus window border and adds a border around the new focus.
       (when window
         (define old-focus (focus-window))
-        (unless (window=? old-focus window)
+        (unless (and old-focus
+                     (window=? old-focus window)
+                     (let ([wk (find-window-workspace old-focus)])
+                       (and wk
+                            (window=? old-focus (workspace-focus wk)))))
           (when old-focus
             (set-window-border-width old-focus normal-window-width))
-          (set-window-border-width window selected-window-width)
+          (set-window-border-width window (if (net-window-fullscreen? window)
+                                              0
+                                              selected-window-width))
           (set-input-focus/raise window)
           (workspace-focus-in window))))
     
