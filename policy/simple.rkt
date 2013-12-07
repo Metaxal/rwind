@@ -9,6 +9,7 @@
          rwind/workspace
          racket/class
          racket/list
+         racket/match
          )
 
 ;;; Simple stacking policy
@@ -18,6 +19,8 @@
   (class policy%
     (init-field [selected-window-width 3]
                 [normal-window-width 1])
+    
+    (inherit relayout)
     
     (define/public (current-workspace)
       (or (focus-workspace)
@@ -83,5 +86,24 @@
       ; See the EWMH.
       ; This behavior specification belongs to the policy.
       (configure-window window value-mask x y width height border-width above stack-mode))
+    
+
+    (define/override (on-client-message window atom fmt data)
+     (cond [(atom=? atom _NET_WM_STATE)
+            ; http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html#id2731936
+            (match-define (vector action at1 at2 source _other) data)
+            (let do-atom ([at at1])
+              (cond [(atom=? at _NET_WM_STATE_FULLSCREEN)
+                     (define full? (net-window-fullscreen? window))
+                     (cond [(and full? (or (= action 0) (= action 2)))
+                            (delete-net-wm-state-property window at)
+                            ; TODO:
+                            #;(unmaximize-window window)]
+                         [(not full?)
+                          (add-net-wm-state-property window at)
+                          (maximize-window window)])])
+              (unless (zero? at2)
+                (do-atom at2)))
+            (relayout)]))
     
     (super-new)))
