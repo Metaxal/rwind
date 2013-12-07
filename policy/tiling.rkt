@@ -7,10 +7,10 @@
          rwind/doc-string
          rwind/window
          rwind/workspace
-         rwind/util
          racket/list
          racket/dict
          racket/class
+         racket/match
          )
 
 (provide policy-tiling%)
@@ -123,6 +123,7 @@
       (define proc (dict-ref layouts layout))
       (proc wl x y w h))
     
+    ; TODO: place the layouts in a separate class/file?
     (define (uniform-layout)
       (define (loop wl x y w h)
         (cond [(empty? wl) (void)]
@@ -179,12 +180,9 @@
     
     (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
-      ; Do not honor configure requests
-      (if (window-place-above? window)
-          (super on-configure-request window value-mask
-                 x y width height border-width above stack-mode)
-          (relayout))
-      #;(void))
+      (super on-configure-request window value-mask
+             x y width height border-width above stack-mode)
+      (relayout))
     
     #;(define/override (on-activate-workspace wk)
       (void))
@@ -192,6 +190,23 @@
     #;(define/override (on-change-workspace-mode mode)
       (void))
 
+    (define/override (on-client-message window atom fmt data)
+     (cond [(atom=? atom _NET_WM_STATE)
+            ; http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html#id2731936
+            (match-define (vector action at1 at2 source _other) data)
+            (let do-atom ([at at1])
+              (cond [(atom=? at _NET_WM_STATE_FULLSCREEN)
+                     (define full? (net-window-fullscreen? window))
+                     (cond [(or (= action 0)
+                                (and (= action 2) full?))
+                            (delete-net-wm-state-property window at)]
+                         [(not full?)
+                          (add-net-wm-state-property window at)
+                          (maximize-window window)])])
+              (unless (zero? at2)
+                (do-atom at2)))
+            (relayout)]))
+    
     (super-new)
 
     ; Must be defined after the procedures.

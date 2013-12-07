@@ -92,17 +92,23 @@
   _NET_WM_STATE_BELOW
   _NET_WM_STATE_DEMANDS_ATTENTION
   
-   ; http://developer.gnome.org/wm-spec/#id2551529
+  ; http://developer.gnome.org/wm-spec/#id2551529
   _NET_WM_WINDOW_TYPE
   _NET_WM_WINDOW_TYPE_NORMAL
   _NET_WM_WINDOW_TYPE_DIALOG
   _NET_WM_WINDOW_TYPE_DESKTOP
   _NET_WM_WINDOW_TYPE_DOCK
 
-  _NET_WM_ALLOWED_ACTIONS ; http://developer.gnome.org/wm-spec/#id2551927
+  ; http://developer.gnome.org/wm-spec/#id2551927
+  _NET_WM_ALLOWED_ACTIONS
+
   _NET_SUPPORTED
   _NET_VIRTUAL_ROOTS
   )
+
+(define* _NET_WM_STATE_REMOVE  0) ; remove/unset property
+(define* _NET_WM_STATE_ADD     1) ; add/set property
+(define* _NET_WM_STATE_TOGGLE  2) ; toggle property
 
 (define* (atom->string atom)
   (if (symbol? atom)
@@ -111,6 +117,9 @@
 
 ;; That's a bit too loose though. It would be bette to check if the symbol is known.
 (define* atom? (or/c symbol? number?))
+
+(define* (atom=? a1 a2)
+  (= (atom->number a1) (atom->number a2)))
 
 ;=================;
 ;=== Selectors ===;
@@ -339,6 +348,10 @@ May kill the window manager if window is one of the virtual roots."
 (define* (clear-window window)
   (XClearWindow (current-display) window))
 
+(define*/contract (delete-window-property window property)
+  (window? atom? . -> . any)
+  (XDeleteProperty (current-display) window property))
+
 (define*/contract (change-window-property window property type mode data-list [format 32])
   ([window? atom? atom? PropMode? list?] [(one-of/c 8 16 32)] . ->* . any)
   (ChangeProperty (current-display) window property type mode data-list format))
@@ -347,10 +360,9 @@ May kill the window manager if window is one of the virtual roots."
   (window? (one-of/c 'withdrawn 'normal 'iconic) . -> . any)
   (define s (case state 
               [(withdrawn) 0]
-              [(normal) 1]
-              [(iconic) 3]))
+              [(normal)    1]
+              [(iconic)    3]))
   (change-window-property window WM_STATE 'XA_ATOM 'PropModeReplace (list s))
-  ; TODO: udpdate _NET_WM_STATE too?
   )
 
 (define* (add-window-to-save-set window)
@@ -395,6 +407,21 @@ May kill the window manager if window is one of the virtual roots."
 (define* (net-window-fullscreen? window)
   (memq _NET_WM_STATE_FULLSCREEN (net-window-state window)))
 
+(define*/contract (change-net-wm-state-properties window updater)
+  (window? [(listof atom?) . -> . (listof atom?)] . -> . any)
+  (change-window-property window _NET_WM_STATE 'XA_ATOM 'PropModeReplace 
+                          (updater (net-window-state window))))
+
+(define*/contract (delete-net-wm-state-property window prop)
+  (window? atom? . -> . any)
+  (change-net-wm-state-properties window (λ(l)(remove prop l atom=?))))
+
+(define*/contract (add-net-wm-state-property window prop)
+  (window? atom? . -> . any)
+  (change-net-wm-state-properties window (λ(l)(if (member prop l atom=?)
+                                                  l
+                                                  (cons prop l)))))
+
 ;==============================;
 ;=== More window operations ===;
 ;==============================;
@@ -402,17 +429,17 @@ May kill the window manager if window is one of the virtual roots."
 ;; TODO? Parameterize the following procedurs by either the head or the workspace?
 
 (define* (h-maximize-window window)
-  "Maximizes window horizontally."
+  "Maximizes window horizontally in the window's head."
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (move-resize-window window 0 y wmax h))
 
 (define* (v-maximize-window window)
-  "Maximizes window vertically."
+  "Maximizes window vertically in the window's head."
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (move-resize-window window x 0 w hmax))
 
 (define* (maximize-window window)
-  "Maximizes window horizontally and vertically."
+  "Maximizes window horizontally and vertically in the window's head."
   (define-values (wmax hmax) (head-size (find-window-head window)))
   (move-resize-window window 0 0 wmax hmax))
 

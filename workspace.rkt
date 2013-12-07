@@ -307,7 +307,7 @@ This is mainly meant to be used to restore windows to their proper workspaces."
   (workspace? . -> . any)
   "Gives the focus to the window of the workspace that had it last.
   If none is found, give it to the first window.
-  If there is none, give it to the root-window."
+  If there is none, give it to the virtual root."
   (define wf (workspace-focus wk))
   (define root (workspace-root-window wk))
   (when (or (not wf)

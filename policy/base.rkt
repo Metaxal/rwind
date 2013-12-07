@@ -110,6 +110,10 @@ and it must necessarily be  implemented to have a working WM.
     (define/public (on-change-workspace-mode mode)
       (void))
     
+    ;; Called when a client message is received
+    (define/public (on-client-message window atom fmt data)
+     (void))
+    
     ;; Places the windows in way suitable way for the current policy
     (define/public (relayout)
       (void))
