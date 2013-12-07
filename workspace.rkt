@@ -147,7 +147,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 #;(define*/contract (workspace-subwindows wk)
   (workspace? . -> . list?)
   "Returns the list of windows that are managed by the specified workspace,
-in the sense of `window-list'. See also `workspace-windows'."
+  in the sense of `window-list'. See also `workspace-windows'."
   ; Should be simply `workspace-windows', but not yet entirely functional.
   (window-list (workspace-root-window wk)))
 
@@ -186,8 +186,8 @@ in the sense of `window-list'. See also `workspace-windows'."
 (define*/contract (guess-window-workspace window)
   (window? . -> . (or/c #f workspace?))
   "Returns the workspace that /should/ contain the window based on the window position,
-but that does not currently contain it.
-This is mainly meant to be used to restore windows to their proper workspaces."
+  but that does not currently contain it.
+  This is mainly meant to be used to restore windows to their proper workspaces."
   (and=> (find-window-head window) find-head-workspace))
 
 (define* (pointer-workspace)
@@ -374,7 +374,7 @@ if it is not #f."
 (define*/contract (add-window-to-workspace window wk)
   (window? workspace? . -> . any)
   "Adds the window to the workspace.
-If the window was in another workspace, it is removed from the latter."
+  If the window was in another workspace, it is removed from the latter."
   (dprintf "Adding window ~a to workspace ~a\n" window wk)
   (define wk-src (find-window-workspace window))
   (cond [(some-root-window? window)
@@ -523,10 +523,10 @@ If the window was in another workspace, it is removed from the latter."
 (define*/contract (workspace-fit-to-heads wk [heads #f] [move? #t] [resize? move?])
   ([workspace?] [(or/c #f (listof number?)) any/c any/c] . ->* . any)
   "Like `workspace-fit-to', but fits to a given list of heads (numbers), i.e.,
-the workspace window will then span over all the given heads.
-If heads is #f, then all heads are considered.
-Furthermore, it also changes the root-windows of the heads."
-  (unless heads (set! heads (head-count)))
+  the workspace window will then span over all the given heads.
+  If heads is #f, then all heads are considered.
+  Furthermore, it also changes the root-windows of the heads."
+    (unless heads (set! heads (head-count)))
   (define-values (gx gy gw gh) (head-list-bounds heads))
   ; make the virtual root fit to the head
   (workspace-fit-to wk gx gy gw gh move? resize?)
@@ -537,7 +537,7 @@ Furthermore, it also changes the root-windows of the heads."
 
 (define* (update-workspaces)
   "Updates the information about the screens and maps one workspace in each screen.
-See `change-workspace-mode' for more information on the different modes."
+  See `change-workspace-mode' for more information on the different modes."
 
   ; First make sure that all root windows are unmapped
   (for-each unmap-workspace workspaces)
@@ -558,8 +558,8 @@ See `change-workspace-mode' for more information on the different modes."
 (define*/contract (split-workspace [style 'horiz])
   ([] [(one-of/c 'horiz 'vert)] . ->* . any)
   "Splits the current workspace horizontally or vertically.
-This allows for multiple workspaces on a single monitor.
-See also `split-head'."
+  This allows for multiple workspaces on a single monitor.
+  See also `split-head'."
   (if (eq? (workspace-mode) 'multi)
       (begin
         (split-head #:style style)

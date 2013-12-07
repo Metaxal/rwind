@@ -146,7 +146,7 @@
 
 (define* (window-names window)
   "Returns the list of list of strings for the name,
-the visible name, the icon name and the visible icon name in order."
+  the visible name, the icon name and the visible icon name in order."
   (map (λ(v)(window-text-property window v))
        (list 'XA_WM_NAME 'XA_WM_ICON_NAME)))
 
@@ -317,7 +317,7 @@ the visible name, the icon name and the visible icon name in order."
 (define*/contract (kill-client window)
   (window? . -> . any)
   "Attempts to kill the window without warning. 
-May kill the window manager if window is one of the virtual roots."
+  May kill the window manager if window is one of the virtual roots."
   (XKillClient (current-display) window))
 
 ;; Does not seem to work properly... 
@@ -426,7 +426,8 @@ May kill the window manager if window is one of the virtual roots."
 ;=== More window operations ===;
 ;==============================;
 
-;; TODO? Parameterize the following procedurs by either the head or the workspace?
+;; TODO: save the current state of the window before maximizing
+;; so as to restore it on unmaximize
 
 (define* (h-maximize-window window)
   "Maximizes window horizontally in the window's head."
@@ -450,14 +451,14 @@ May kill the window manager if window is one of the virtual roots."
 (define*/contract (move-window-frac window frac-x frac-y)
   (window? (real-in 0 1) (real-in 0 1) . -> . any/c)
   "Places the window at a fraction of its head.
-Ex: (move-window (pointer-head) 1/4 3/4)"
+  Ex: (move-window (pointer-head) 1/4 3/4)"
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (move-window window (truncate (* frac-x (- wmax w))) (truncate (* frac-y (- hmax h)))))
 
 (define*/contract (move-resize-window-frac window frac-x frac-y frac-w [frac-h frac-w])
   ([window? (real-in 0 1) (real-in 0 1) (real-in 0 1)] [(real-in 0 1)] . ->* . any/c)
   "Places the window at a fraction of its head.
-Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
+  Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define new-w (truncate (* frac-w wmax)))
   (define new-h (truncate (* frac-h hmax)))
@@ -471,8 +472,8 @@ Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
    [(integer-in 1 100) #:rows (integer-in 0 99)]
    . ->* . any/c)
   "Places window in the grid of size (rows, cols) at the cell (row, col) 
-spanning over col-span and row-span cells.
-Row and col range from 0 to rows-1 and cols-1."
+  spanning over col-span and row-span cells.
+  Row and col range from 0 to rows-1 and cols-1."
   (define-values (x y w h wmax hmax) (window+head-bounds window))
   (define cell-w (truncate (/ wmax cols)))
   (define cell-h (truncate (/ hmax rows)))
@@ -496,12 +497,12 @@ Row and col range from 0 to rows-1 and cols-1."
 
 (define* (query-pointer [root (pointer-root-window)])
   "Returns a list of the following values:
-  win: the targeted window
-  x: the x coordinate in the root window
-  y: the y coordinate in the root window
-  mask: the modifier mask
-root is the window relative to which the query is made, and the child window win is returned.
-By default it is the virtual-root under the pointer."
+    win: the targeted window
+    x: the x coordinate in the root window
+    y: the y coordinate in the root window
+    mask: the modifier mask
+  root is the window relative to which the query is made, and the child window win is returned.
+  By default it is the virtual-root under the pointer."
   (define-values (rc _root win x y win-x win-y mask)
     (XQueryPointer (current-display)
                    ;(true-root-window)
@@ -516,7 +517,7 @@ By default it is the virtual-root under the pointer."
 
 (define* (focus-head)
   "Returns the head number that contains the input focus window,
-in the sense of `find-window-head'."
+  in the sense of `find-window-head'."
   (and=> (focus-window) find-window-head))
 
 (define* (pointer-root-window)
@@ -606,12 +607,12 @@ in the sense of `find-window-head'."
 (provide (struct-out head-info))
 (doc head-info
      "Structure holding information about heads (monitors, screens).
-screen is the physical head on which the (possibly virtual) head is mapped.
-It may be different from the position of the head in the xinerama-screen-infos 
-vector in the case a screen has been split.
-root-window be shared among several heads and thus may not have the same 
-size as the head.")
-
+  screen is the physical head on which the (possibly virtual) head is mapped.
+  It may be different from the position of the head in the xinerama-screen-infos 
+  vector in the case a screen has been split.
+  root-window be shared among several heads and thus may not have the same 
+  size as the head.")
+  
 (define (heads-intersect? hd1 hd2)
   (with-head-info
    hd1 (s1 win1 x1 y1 w1 h1)
@@ -699,7 +700,7 @@ size as the head.")
 
 (define* (head-list-bounds [heads #f])
   "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
-If heads is #f, all heads are considered."
+  If heads is #f, all heads are considered."
   (define (app1 op a b)
     (if a (op a b) b))
   (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers
@@ -714,9 +715,9 @@ If heads is #f, all heads are considered."
 
 (define* (find-window-head win)
   "Returns the head number that contains one of the corners or the center
-of the window that has the input focus.
-Returns #f if no corner and center is contained in any head
-(which should be rare if the window is visible)."
+  of the window that has the input focus.
+  Returns #f if no corner and center is contained in any head
+  (which should be rare if the window is visible)."
   (and win
        (let*-values ([(x y w h) (window-bounds win)]
                      [(x y) (window-absolute-position win)])
@@ -755,8 +756,8 @@ Returns #f if no corner and center is contained in any head
 (define*/contract (split-head [fraction 1/2] [hd (pointer-head)] #:style [style 'horiz])
   ([] [(real-in 0 1) natural-number/c #:style (one-of/c 'horiz 'vert)] . ->* . any)
   "Splits the specified head in two new heads, vertically or horizontally
-depending on the specified style.
-This can be used to simulate several heads on a single monitor."
+  depending on the specified style.
+  This can be used to simulate several heads on a single monitor."
   (with-head-info
    hd (s win x y w h)
    (define w1 (* w fraction))
