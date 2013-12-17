@@ -106,7 +106,8 @@
     
     ; todo: this should include "transient for" windows
     (define (window-place-above? window)
-      (or (window-dialog? window) 
+      (or (window-dialog? window)
+          (window-transient-for window) ; Ex: Shotwell
           (net-window-fullscreen? window)))
         
     (define/override (relayout [wk (current-workspace)])
