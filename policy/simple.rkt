@@ -99,9 +99,9 @@
                             (delete-net-wm-state-property window at)
                             ; TODO:
                             #;(unmaximize-window window)]
-                         [(not full?)
-                          (add-net-wm-state-property window at)
-                          (maximize-window window)])])
+                           [(and (not full?) (or (= action 1) (= action 2)))
+                            (add-net-wm-state-property window at)
+                            (maximize-window window)])])
               (unless (zero? at2)
                 (do-atom at2)))
             (relayout)]))
