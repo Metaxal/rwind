@@ -6,20 +6,24 @@
 (require rwind/base
          rwind/doc-string
          racket/class)
-; Do not include window, workspace, etc., because it would lead to cycles.
-; Instead, all code that requires these modules should be written in the 
-; derived classes (which other files should not depend on).
 
 #| Policies
 
-A policy defines most of the behavior of the window manager,
+The policy is the interface between the core functions and the user.
+It implements most of the behavior of the window manager,
 like the layout policy (where to place windows, what size, what order, etc.)
 and the focus policy (to what window do we give the focus when a window is destroyed
 or added, etc.).
-Key/mouse-bindings are not handled by policies.
+Key/mouse-bindings are not handled by policies (yet?).
 
 The policy% class is virtual in the sense that no method does anything,
-and it must necessarily be  implemented to have a working WM.
+so as to avoid cycles in `require's, since many other files depends on this file.
+Instead, all dependencies on "window.rkt", "workspace.rkt", etc. are added in children
+classes.
+
+Callbacks can be added when needed.
+Just insert a (policy. <callback-name>) in the relevant portion of the code,
+add a stub method here and implement it in the adequate child class.
 
 |#
 
