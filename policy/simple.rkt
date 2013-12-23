@@ -20,8 +20,8 @@
   (class policy%
     (init-field [selected-border-width 3]
                 [normal-border-width 1]
-                [selected-border-color "DarkSlateGray"]
-                [normal-border-color "Black"])
+                [selected-border-color "DarkRed"]
+                [normal-border-color "DarkGreen"])
     
     (inherit relayout)
     
