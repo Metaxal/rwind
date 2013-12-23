@@ -5,6 +5,7 @@
 
 (require rwind/policy/base
          rwind/doc-string
+         rwind/util
          rwind/window
          rwind/workspace
          racket/class
@@ -77,6 +78,9 @@
         (set-window-border-width win normal-window-width))
       (activate-next-window))
     
+    ; XXX: 64 bit problem with Xlib?
+    ; There seems to be an offset in the data... (try a fullscreen event)
+    ; May be relevent: https://groups.google.com/forum/#!topic/linux.debian.bugs.dist/nQ6DJwG6mhk
     (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
       ; honor configure request
@@ -88,6 +92,8 @@
       (configure-window window value-mask x y width height border-width above stack-mode))
     
 
+    ; TODO: _NET_WM_DESKTOP message:
+    ; http://standards.freedesktop.org/wm-spec/1.3/ar01s05.html
     (define/override (on-client-message window atom fmt data)
      (cond [(atom=? atom _NET_WM_STATE)
             ; http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html#id2731936
@@ -96,10 +102,12 @@
               (cond [(atom=? at _NET_WM_STATE_FULLSCREEN)
                      (define full? (net-window-fullscreen? window))
                      (cond [(and full? (or (= action 0) (= action 2)))
+                            (dprintf "Switching back from fullscreen")
                             (delete-net-wm-state-property window at)
                             ; TODO:
                             #;(unmaximize-window window)]
                            [(and (not full?) (or (= action 1) (= action 2)))
+                            (dprintf "Switching to fullscreen")
                             (add-net-wm-state-property window at)
                             (maximize-window window)])])
               (unless (zero? at2)

@@ -53,14 +53,19 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;; Maybe a workspace should have a list of mapped windows and unmapped ones?
 ;; Or maybe a window should have a set of client-side properties that we need to keep in sync
 ;; with the X server?
-(struct workspace (id root-window windows focus)
+;; index : number? ; index of the workspace in the workspace list
+;; id : string? ; name of the workspace
+;; root-window : window? ;  the virtual root window
+;; windows : (listof window?) ; top level windows which parents are the root-window
+;; focus : window among the windows that has the focus when the workspace is activated
+(struct workspace (index id root-window windows focus)
   #:transparent
   #:mutable)
 (provide (struct-out workspace))
 
-(define*/contract (make-workspace [id #f]
+(define*/contract (make-workspace idx [id #f]
                                   #:background-color [bk-color black-pixel])
-  ([] [(or/c string? #f) #:background-color exact-nonnegative-integer?] . ->* . workspace?)
+  ([0+-integer?] [(or/c string? #f) #:background-color 0+-integer?] . ->* . workspace?)
   "Returns a newly created workspace, which contains a new unmapped window of the size of the display.
   The new workspace is inserted into the workspace list."
   ;; Sets the new window attributes so that it will report any events
@@ -86,7 +91,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 
   ;; Make sure we will see the keymap events
   (virtual-root-apply-keymaps root-window)
-  (define wk (workspace id root-window '() root-window))
+  (define wk (workspace idx id root-window '() root-window))
   (insert-workspace wk)
   wk)
 
@@ -188,7 +193,10 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   "Returns the workspace that /should/ contain the window based on the window position,
   but that does not currently contain it.
   This is mainly meant to be used to restore windows to their proper workspaces."
-  (and=> (find-window-head window) find-head-workspace))
+  (define old-wkn (net-window-desktop window))
+  (if old-wkn
+      (find-workspace (min old-wkn (num-workspaces)))
+      (and=> (find-window-head window) find-head-workspace)))
 
 (define* (pointer-workspace)
   "Returns the workspace that contains the pointer or #f if none is found."
@@ -369,6 +377,7 @@ if it is not #f."
   (when wk
     (set-workspace-windows! wk (remove window (workspace-windows wk)))
     (workspace-give-focus wk) ; give the focus to another window
+    #;(remove-net-wm-desktop window) ; TODO
     (policy. on-remove-window-from-workspace window wk)))
 
 (define*/contract (add-window-to-workspace window wk)
@@ -383,6 +392,8 @@ if it is not #f."
          ; The found workspace (or #f) is not the target workspace
          (remove-window-from-workspace window wk-src)
          (reparent-window window (workspace-root-window wk))
+         (dprintf "Workspace index: ~a\n" (workspace-index wk))
+         (set-net-window-desktop window (workspace-index wk))
          (define wk-ws (workspace-windows wk))
          (unless (memq window wk-ws)
            ; This can happen if closed windows get reused for new ones, like xterm
@@ -550,7 +561,8 @@ if it is not #f."
      ; otherwise we should fall back to 'single mode!
      (for ([hd (head-count)])
        (define wk (or (find-workspace hd)
-                      (make-workspace (number->string hd))))
+                      (make-workspace hd (number->string hd))))
+       (num-workspaces (length workspaces))
        (workspace-fit-to-heads wk (list hd))
        (activate-workspace/multi wk hd))])
   )
@@ -596,14 +608,11 @@ if it is not #f."
   (define color-list
     '("DarkSlateGray" "DarkSlateBlue" "Sienna" "DarkRed"))
 
-  ; Create at least one workspace per head
-  ; (This should move to the user's config file?)
-  ;(for ([i (max (head-count) (num-workspaces))] ; nope. 
-  ; TODO: Checks should be made in switching to 'multi mode
+  ; Create the workspaces
   (for ([i (num-workspaces)]
         [color (in-cycle color-list)])
     ; Create a workspace and apply the keymap to it
-    (make-workspace (number->string i)  #:background-color (find-named-color color)))
+    (make-workspace i (number->string i)  #:background-color (find-named-color color)))
 
   ; Place the workspaces for a given mode
   ; We need to force to make sure the heads are placed correctly.
@@ -637,5 +646,4 @@ if it is not #f."
 (define* (exit-workspaces)
   "Reparents all sub-windows to the true root-window."
   ; TODO: unmap all workspace virtual-root-windows?
-  (for-each exit-workspace workspaces)
-  )
+  (for-each exit-workspace workspaces))

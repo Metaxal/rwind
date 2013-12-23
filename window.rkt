@@ -16,7 +16,7 @@
 
 (module+ test (require rackunit))
 
-(define* window? exact-nonnegative-integer?)
+(define* window? 0+-integer?)
 
 (define*/contract (window=? w1 w2)
   ((or/c #f window?) (or/c #f window?) . -> . boolean?)
@@ -77,7 +77,8 @@
   _NET_WM_VISIBLE_NAME
   _NET_WM_ICON_NAME
   _NET_WM_VISIBLE_ICON_NAME
-  
+  _NET_WM_DESKTOP
+
    ; http://developer.gnome.org/wm-spec/#id2551694
   _NET_WM_STATE
   _NET_WM_STATE_MODAL
@@ -213,14 +214,14 @@
 
 (define* (window-has-type? window type)
   "Returns non-#f if the window has the specified type, #f otherwise."
-  (define types (get-window-types window))
+  (define types (net-window-types window))
   (and types (memq type types)))
 
 (define* (window-dialog? window)
-  (memq _NET_WM_WINDOW_TYPE_DIALOG (get-window-types window)))
+  (memq _NET_WM_WINDOW_TYPE_DIALOG (net-window-types window)))
 
 (define* (window-user-movable? window)
-  (define types (or (get-window-types window) '()))
+  (define types (or (net-window-types window) '()))
   (not (or (ormap (λ(t)(memq t types))
               (list _NET_WM_WINDOW_TYPE_DESKTOP
                     _NET_WM_WINDOW_TYPE_DOCK))
@@ -373,30 +374,28 @@
 (define* (window-properties window)
   (XListProperties (current-display) window))
 
-(define* (get-window-property window property type data-type)
-  "Returns a list of elements corresponding to property, or #f.
-  property: Atom
-  type: Atom
-  data-type: any; Type of the elements of the data list to be returned."
-  (GetWindowProperty (current-display) window property type data-type))
+(define*/contract (get-window-property window property)
+  (window? atom? . -> . (or/c list? #f))
+  "Returns a list of elements corresponding to `property', or #f if the property is not found or in case of error."
+  (GetWindowProperty (current-display) window property))
 
 (define* (get-window-property-atoms window property)
   "Returns a list of Atoms for the given property and window."
-  (or (get-window-property window property 'XA_ATOM Atom) #f))
+  (or (get-window-property window property) '()))
 
 (define*/contract (window-transient-for window)
   (window? . -> . (or/c #f window?))
   "Returns the window for which `window` is transient, or #f if `window` is not a transient window."
-  (get-window-property window WM_TRANSIENT_FOR 'XA_WINDOW Window))
+  (get-window-property window WM_TRANSIENT_FOR))
 
 ; For information on all the window types, see http://developer.gnome.org/wm-spec/#id2551529
 ; (use it with (map atom->string ...) for better reading)
-(define*/contract (get-window-types window)
+(define*/contract (net-window-types window)
   (window? . -> . list?)
   "Returns a list of types as atoms for the specified window."
-  (or (get-window-property-atoms window _NET_WM_WINDOW_TYPE) '()))
+  (get-window-property-atoms window _NET_WM_WINDOW_TYPE))
 
-(define* (get-window-allowed-actions window)
+(define* (net-window-allowed-actions window)
   (get-window-property-atoms window _NET_WM_ALLOWED_ACTIONS))
 
 (define* (configure-window window value-mask x y width height border-width above stack-mode)
@@ -407,26 +406,35 @@
 
 (define*/contract (net-window-state window)
   (window? . -> . list?)
-  (or (get-window-property-atoms window _NET_WM_STATE)
-      '()))
+  (get-window-property-atoms window _NET_WM_STATE))
 
 (define* (net-window-fullscreen? window)
   (memq _NET_WM_STATE_FULLSCREEN (net-window-state window)))
 
-(define*/contract (change-net-wm-state-properties window updater)
+(define*/contract (change-net-window-state-properties window updater)
   (window? [(listof atom?) . -> . (listof atom?)] . -> . any)
   (change-window-property window _NET_WM_STATE 'XA_ATOM 'PropModeReplace 
                           (updater (net-window-state window))))
 
 (define*/contract (delete-net-wm-state-property window prop)
   (window? atom? . -> . any)
-  (change-net-wm-state-properties window (λ(l)(remove prop l atom=?))))
+  (change-net-window-state-properties window (λ(l)(remove prop l atom=?))))
 
 (define*/contract (add-net-wm-state-property window prop)
   (window? atom? . -> . any)
-  (change-net-wm-state-properties window (λ(l)(if (member prop l atom=?)
+  (change-net-window-state-properties window (λ(l)(if (member prop l atom=?)
                                                   l
                                                   (cons prop l)))))
+
+(define*/contract (set-net-window-desktop window num)
+  (window? 0+-integer? . -> . any)
+  (change-window-property window _NET_WM_DESKTOP 'XA_CARDINAL 'PropModeReplace (list num)))
+
+(define*/contract (net-window-desktop window)
+  (window? . -> . (or/c #f 0+-integer?))
+  (define n (get-window-property window _NET_WM_DESKTOP))
+  (and n (first n)))
+
 
 ;==============================;
 ;=== More window operations ===;
@@ -555,7 +563,8 @@
 
 (define* (set-input-focus window)
   "Gives the keyboard focus to the window if it is viewable."
-  ; TODO: focus should not be given to windows that don't want it
+  ; TODO: focus should not be given to windows that don't want it?
+  ; But may still be useful to select a window, e.g. to close it.
   (when (and window (window-viewable? window))
     (XSetInputFocus (current-display) window 'RevertToParent CurrentTime)))
 

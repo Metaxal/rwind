@@ -125,6 +125,7 @@
             => (λ(wk)
                  (dprintf "Mapping existing window in ~a\n" wk)
                  (show-window window)
+                 (set-net-window-desktop window (workspace-index wk))
                  (policy. on-map-request window #f)
                  #f)]
            [else

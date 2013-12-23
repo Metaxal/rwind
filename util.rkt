@@ -365,3 +365,5 @@ waits for the delimiter to be read, and would thus hang)."
   )
 
 (define* regexp*? (or/c string? bytes? regexp? byte-regexp?))
+
+(define* 0+-integer? exact-nonnegative-integer?)
