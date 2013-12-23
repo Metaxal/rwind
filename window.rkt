@@ -338,6 +338,14 @@
 (define* (set-window-border-width window width)
   (XSetWindowBorderWidth (current-display) window width))
 
+(define*/contract (set-window-border-color window color)
+  (window? (or/c string? 1+-integer?) . -> . any)
+  (define attrs (make-XSetWindowAttributes #:border-pixel (if (string? color)
+                                                              (find-named-color color)
+                                                              color)))
+  (define mask (XSetWindowAttributes->mask attrs))
+  (XChangeWindowAttributes (current-display) window mask attrs))
+
 (define* (set-window-background-color window color)
   "Color is either a color-pixel or a string suitable for `find-named-color'."
   (XSetWindowBackground (current-display) window 

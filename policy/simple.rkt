@@ -18,8 +18,10 @@
 
 (define* policy-simple%
   (class policy%
-    (init-field [selected-window-width 3]
-                [normal-window-width 1])
+    (init-field [selected-border-width 3]
+                [normal-border-width 1]
+                [selected-border-color "DarkSlateGray"]
+                [normal-border-color "Black"])
     
     (inherit relayout)
     
@@ -48,10 +50,12 @@
                        (and wk
                             (window=? old-focus (workspace-focus wk)))))
           (when old-focus
-            (set-window-border-width old-focus normal-window-width))
+            (set-window-border-color old-focus normal-border-color)
+            (set-window-border-width old-focus normal-border-width))
+          (set-window-border-color window selected-border-color)
           (set-window-border-width window (if (net-window-fullscreen? window)
                                               0
-                                              selected-window-width))
+                                              selected-border-width))
           (set-input-focus/raise window)
           (workspace-focus-in window))))
     
@@ -75,7 +79,8 @@
     (define/override (on-init-workspaces)
       (for* ([wk workspaces]
              [win (workspace-windows wk)])
-        (set-window-border-width win normal-window-width))
+        (set-window-border-color win normal-border-color)
+        (set-window-border-width win normal-border-width))
       (activate-next-window))
     
     ; XXX: 64 bit problem with Xlib?
