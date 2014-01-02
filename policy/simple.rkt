@@ -31,7 +31,12 @@
     
     (define/public (current-window)
       (or (focus-window)
-          (pointer-window)))    
+          (pointer-window)))
+    
+    (define/public (give-focus [wk (current-workspace)])
+      (activate-window (focus-window))
+      #;(when wk
+        (workspace-give-focus wk)))
 
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)
@@ -43,13 +48,11 @@
       ; so that switching between workspaces will restore the correct focus.
       ; Removes the old focus window border and adds a border around the new focus.
       (when window
-        (define old-focus (focus-window))
-        (unless (and old-focus
-                     (window=? old-focus window)
-                     (let ([wk (find-window-workspace old-focus)])
-                       (and wk
-                            (window=? old-focus (workspace-focus wk)))))
-          (when old-focus
+        (define wk (find-window-workspace window))
+        (when wk
+          (define old-focus (focus-window))
+          (define old-wk (and old-focus (find-window-workspace old-focus)))
+          (when (and old-wk (not (window=? old-focus window)))
             (set-window-border-color old-focus normal-border-color)
             (set-window-border-width old-focus normal-border-width))
           (set-window-border-color window selected-border-color)
@@ -81,11 +84,8 @@
              [win (workspace-windows wk)])
         (set-window-border-color win normal-border-color)
         (set-window-border-width win normal-border-width))
-      (activate-next-window))
+      (give-focus))
     
-    ; XXX: 64 bit problem with Xlib?
-    ; There seems to be an offset in the data... (try a fullscreen event)
-    ; May be relevent: https://groups.google.com/forum/#!topic/linux.debian.bugs.dist/nQ6DJwG6mhk
     (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
       ; honor configure request
@@ -103,7 +103,7 @@
      (cond [(atom=? atom _NET_WM_STATE)
             ; http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html#id2731936
             (match-define (vector action at1 at2 source _other) data)
-            (let do-atom ([at at1])
+            (for ([at (list at1 at2)])
               (cond [(atom=? at _NET_WM_STATE_FULLSCREEN)
                      (define full? (net-window-fullscreen? window))
                      (cond [(and full? (or (= action 0) (= action 2)))
@@ -114,9 +114,7 @@
                            [(and (not full?) (or (= action 1) (= action 2)))
                             (dprintf "Switching to fullscreen")
                             (add-net-wm-state-property window at)
-                            (maximize-window window)])])
-              (unless (zero? at2)
-                (do-atom at2)))
+                            (maximize-window window)])]))
             (relayout)]))
     
     (super-new)))

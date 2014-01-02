@@ -319,7 +319,6 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
   (define wf (workspace-focus wk))
   (define root (workspace-root-window wk))
   (when (or (not wf)
-            (window=? wf root)
             (not (workspace-window? wk wf)))
     (define wins (workspace-windows wk))
     (set! wf (if (empty? wins)

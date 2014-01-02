@@ -24,7 +24,7 @@
   (class policy-simple%
     ; Inherits from simple% to have the same focus behavior
     
-    (inherit current-window current-workspace activate-window)
+    (inherit current-window current-workspace activate-window give-focus)
     
     (define/public (get-layouts)
       (dict-keys layouts))
@@ -42,10 +42,6 @@
              (printf "Falling back to ~a layout.\n" fallback)
              (set-layout fallback)]))
     
-    (define/public (give-focus [wk (current-workspace)])
-      (when wk
-        (workspace-give-focus wk)))
-    
     ;; Needs to be redefined over policy-simple% to keep the 
     ;; order consistent with the layout (which is based on the workspace list)
     (define/override (activate-next-window)
@@ -53,7 +49,7 @@
       (when wf
         (define wk (find-window-workspace wf))
         (when wk
-          (define wins (filter window-viewable? (workspace-windows wk)))
+          (define wins (viewable-windows wk))
           (define rst (member wf wins window=?))
           (when rst
             (if (<= (length rst) 1)
@@ -65,7 +61,7 @@
       (when wf
         (define wk (find-window-workspace wf))
         (when wk
-          (define wins (reverse (filter window-viewable? (workspace-windows wk))))
+          (define wins (reverse (viewable-windows wk)))
           (define rst (member wf wins window=?))
           (when rst
             (if (<= (length rst) 1)
@@ -78,9 +74,11 @@
       (activate-window window))
     
     (define/override (on-unmap-notify window)
+      (give-focus)
       (relayout))
     
     (define/override (on-destroy-notify window)
+      (give-focus)
       (relayout))
     
     (define/override (on-configure-notify-true-root)
