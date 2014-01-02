@@ -23,6 +23,16 @@
   "Returns #t if w1 and w2 are the same non-#f windows, #f otherwise."
   (and w1 w2 (eq? w1 w2)))
 
+(provide (struct-out rect)
+         (struct-out pos)
+         (struct-out size))
+(struct rect (x y w h) ; rectangle
+  #:transparent)
+(struct pos (x y) ; position
+  #:transparent)
+(struct size (w h)
+  #:transparent)
+
 ;=======================;
 ;=== Window creators ===;
 ;=======================;
@@ -165,36 +175,40 @@
   (XGetWindowAttributes (current-display) window))
 
 (define* (window-bounds window)
-  "Returns the values (x y w h) of the attributes of window."
+  "Returns the rectangle (x y w h) of the attributes of window."
   (define attr (window-attributes window))
-  (values (XWindowAttributes-x attr)
-          (XWindowAttributes-y attr)
-          (XWindowAttributes-width attr)
-          (XWindowAttributes-height attr)))
+  (and attr
+       (rect (XWindowAttributes-x attr)
+             (XWindowAttributes-y attr)
+             (XWindowAttributes-width attr)
+             (XWindowAttributes-height attr))))
 
 (define* (window-size window)
   (define attr (window-attributes window))
-  (values (XWindowAttributes-width attr)
-          (XWindowAttributes-height attr)))
+  (and attr
+       (size (XWindowAttributes-width attr)
+             (XWindowAttributes-height attr))))
 
 (define* (window-position window)
   "Returns the position of the window relatively to its parent."
   (define attr (window-attributes window))
-  (values (XWindowAttributes-x attr)
-          (XWindowAttributes-y attr)))
+  (and attr
+       (pos (XWindowAttributes-x attr)
+            (XWindowAttributes-y attr))))
 
 (define* (window-absolute-position window)
   "Returns the position of the window relative to the root window."
   (let loop ([window window] [x 0] [y 0])
     (if window
-        (let*-values ([(xw yw) (window-position window)]
-                      [(parent children) (query-tree window)])
-          (loop parent (+ x xw) (+ y yw)))
-        (values x y))))
+        (match (window-position window)
+          [(pos xw yw)
+           (let-values ([(parent children) (query-tree window)])
+             (loop parent (+ x xw) (+ y yw)))])
+        (pos x y))))
 
 (define* (window-border-width window)
   (define attr (window-attributes window))
-  (XWindowAttributes-border-width attr))
+  (and attr (XWindowAttributes-border-width attr)))
 
 (define*/contract (window-map-state window)
   ((or/c #f window?) . -> . (or/c 'IsUnmapped 'IsUnviewable 'IsViewable #f))
@@ -289,9 +303,10 @@
 
 (define* (reparent-window window new-parent)
   "Changes the parent of window to new-parent."
-  (define-values (x y) (window-position window))
-  (XReparentWindow (current-display) window new-parent
-                   x y))
+  (match (window-position window)
+    [(pos x y)
+     (XReparentWindow (current-display) window new-parent
+                      x y)]))
 
 (define* (send-event window event-mask event [propagate #f])
   (XSendEvent (current-display) window propagate event-mask event))
@@ -453,18 +468,21 @@
 
 (define* (h-maximize-window window)
   "Maximizes window horizontally in the window's head."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (move-resize-window window 0 y wmax h))
+  (match/values (window+head-bounds window)
+    [((rect x y w h) (size wmax hmax))
+     (move-resize-window window 0 y wmax h)]))
 
 (define* (v-maximize-window window)
   "Maximizes window vertically in the window's head."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (move-resize-window window x 0 w hmax))
+  (match/values (window+head-bounds window)
+    [((rect x y w h) (size wmax hmax))
+     (move-resize-window window x 0 w hmax)]))
 
 (define* (maximize-window window)
   "Maximizes window horizontally and vertically in the window's head."
-  (define-values (wmax hmax) (head-size (find-window-head window)))
-  (move-resize-window window 0 0 wmax hmax))
+  (match (head-size (find-window-head window))
+    [(size wmax hmax)
+     (move-resize-window window 0 0 wmax hmax)]))
 
 (define* (center-window window)
   "Centers the window in the current head."
@@ -474,19 +492,24 @@
   (window? (real-in 0 1) (real-in 0 1) . -> . any/c)
   "Places the window at a fraction of its head.
   Ex: (move-window (pointer-head) 1/4 3/4)"
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (move-window window (truncate (* frac-x (- wmax w))) (truncate (* frac-y (- hmax h)))))
+  (match/values (window+head-bounds window)
+    [((rect x y w h) (size wmax hmax))
+     (move-window window
+                  (truncate (* frac-x (- wmax w)))
+                  (truncate (* frac-y (- hmax h))))]))
 
 (define*/contract (move-resize-window-frac window frac-x frac-y frac-w [frac-h frac-w])
   ([window? (real-in 0 1) (real-in 0 1) (real-in 0 1)] [(real-in 0 1)] . ->* . any/c)
   "Places the window at a fraction of its head.
   Ex: (move-resize-window (pointer-head) 1/2 3/4 1/4 1/4)"
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (define new-w (truncate (* frac-w wmax)))
-  (define new-h (truncate (* frac-h hmax)))
-  (move-resize-window window
-                      (truncate (* frac-x (- wmax new-w))) (truncate (* frac-y (- hmax new-h)))
-                      new-w new-h))
+  (match/values (window+head-bounds window)
+    [((rect x y w h) (size wmax hmax))
+     (define new-w (truncate (* frac-w wmax)))
+     (define new-h (truncate (* frac-h hmax)))
+     (move-resize-window window
+                         (truncate (* frac-x (- wmax new-w)))
+                         (truncate (* frac-y (- hmax new-h)))
+                         new-w new-h)]))
 
 (define*/contract (move-resize-window-grid window cols win-col win-row col-span [row-span col-span]
                                            #:rows [rows cols])
@@ -496,22 +519,24 @@
   "Places window in the grid of size (rows, cols) at the cell (row, col) 
   spanning over col-span and row-span cells.
   Row and col range from 0 to rows-1 and cols-1."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (define cell-w (truncate (/ wmax cols)))
-  (define cell-h (truncate (/ hmax rows)))
-  (move-resize-window window
-                      (* win-col cell-w) (* win-row cell-h)
-                      (* col-span cell-w) (* row-span cell-h)))
+  (match/values (window+head-bounds window)
+    [((rect x y w h) (size wmax hmax))
+     (define cell-w (truncate (/ wmax cols)))
+     (define cell-h (truncate (/ hmax rows)))
+     (move-resize-window window
+                         (* win-col cell-w) (* win-row cell-h)
+                         (* col-span cell-w) (* row-span cell-h))]))
 
 (define*/contract (move-resize-window-grid-auto window cols [rows cols])
   ([window? (integer-in 1 100)] [(integer-in 1 100)] . ->* . any/c)
   "Places window in the grid in the row and column of its gravity center."
-  (define-values (x y w h wmax hmax) (window+head-bounds window))
-  (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
-  (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))
-  (define win-col (truncate (/ (* cols xc) wmax)))
-  (define win-row (truncate (/ (* rows yc) hmax)))
-  (move-resize-window-grid window cols #:rows rows win-col win-row 1))
+  (match/values (window+head-bounds window)
+    [((rect x y w h) (size wmax hmax))
+     (define xc (max 0 (min (sub1 wmax) (+ x (quotient w 2)))))
+     (define yc (max 0 (min (sub1 hmax) (+ y (quotient h 2)))))
+     (define win-col (truncate (/ (* cols xc) wmax)))
+     (define win-row (truncate (/ (* rows yc) hmax)))
+     (move-resize-window-grid window cols #:rows rows win-col win-row 1)]))
 
 ;=====================;
 ;=== Focus/Pointer ===;
@@ -678,19 +703,19 @@
   "Returns the size of the given head number."
   (with-head-info
    hd (s win x y w h)
-   (values w h)))
+   (size w h)))
 
 (define* (head-position hd)
   "Returns the x and y offset of the given head number."
   (with-head-info
    hd (s win x y w h)
-   (values x y)))
+   (pos x y)))
 
 (define* (head-bounds hd)
   "Returns the (x y w h) values of the specified head number."
   (with-head-info
    hd (s win x y w h)
-  (values x y w h)))
+  (rect x y w h)))
 
 (define* (head-root-window hd)
   "Returns the (current) root window of the specified head number."
@@ -724,17 +749,16 @@
 (define* (head-list-bounds [heads #f])
   "Returns the values (x y w h) of the enclosing rectangle (bounding box) of the given list of heads.
   If heads is #f, all heads are considered."
-  (define (app1 op a b)
-    (if a (op a b) b))
+  (define f inexact->exact) ; needed because inf.0 only has an inexact representation
   (let ([heads (or heads (head-count))]) ; if #f, make the for loop iterate through all numbers
     (define-values (x1 y1 x2 y2)
-      (for/fold ([x1 #f] [y1 #f] [x2 #f] [y2 #f])
+      (for/fold ([x1 +inf.0] [y1 +inf.0] [x2 -inf.0] [y2 -inf.0])
         ([hd heads])
-        (match (get-head-info hd)
-          [(head-info s win x y w h)
-           (values (app1 min x1 x) (app1 min y1 y)
-                   (app1 max x2 (+ x w)) (app1 max y2 (+ y h)))])))
-    (values x1 y1 (- x2 x1) (- y2 y1))))
+        (with-head-info 
+         hd (s win x y w h)
+         (values (min x1 x) (min y1 y)
+                 (max x2 (+ x w)) (max y2 (+ y h))))))
+    (rect (f x1) (f y1) (f (- x2 x1)) (f (- y2 y1)))))
 
 (define* (find-window-head win)
   "Returns the head number that contains one of the corners or the center
@@ -742,13 +766,14 @@
   Returns #f if no corner and center is contained in any head
   (which should be rare if the window is visible)."
   (and win
-       (let*-values ([(x y w h) (window-bounds win)]
-                     [(x y) (window-absolute-position win)])
-         (or (find-head x                     y)
-             (find-head (+ x w)               y)
-             (find-head x                     (+ y h))
-             (find-head (+ x w)               (+ y h))
-             (find-head (+ x (quotient w 2))  (+ y (quotient h 2)))))))
+       (match/values (values (window-size win)
+                             (window-absolute-position win))
+         [((size w h) (pos x y))
+          (or (find-head x                     y)
+              (find-head (+ x w)               y)
+              (find-head x                     (+ y h))
+              (find-head (+ x w)               (+ y h))
+              (find-head (+ x (quotient w 2))  (+ y (quotient h 2))))])))
 
 
 
@@ -764,17 +789,12 @@
 
 (define* (window+head-bounds window)
   "Returns the bounds of the window and the size of its enclosing head."
-  (define-values (x y w h) (window-bounds window))
-  (define-values (xroot yroot wroot hroot) (head-bounds (find-window-head window)))
-  (values x y w h wroot hroot))
+  (values (window-bounds window) (head-size (find-window-head window))))
 
 (define* (window+vroot-bounds window)
   "Returns the bounds of the window and its enclosing virtual root."
-  (define-values (x y w h) (window-bounds window))
-  (define-values (xroot yroot wroot hroot) 
-    (window-bounds (head-root-window (find-window-head window))))
-  (values x y w h xroot yroot wroot hroot))
-
+  (values (window-bounds window)
+          (window-bounds (head-root-window (find-window-head window)))))
 
 (define*/contract (split-head [fraction 1/2] [hd (pointer-head)] #:style [style 'horiz])
   ([] [(real-in 0 1) natural-number/c #:style (one-of/c 'horiz 'vert)] . ->* . any)

@@ -14,6 +14,7 @@
          x11/x11
          racket/list
          racket/contract
+         racket/match
          rackunit
          )
 
@@ -123,17 +124,17 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;=================;
 
 (define*/contract (workspace-bounds wk)
-  (workspace? . -> . (values number? number? number? number?))
+  (workspace? . -> . rect?)
   "Returns the position and dimension of the virtual root window of the specified workspace."
   (window-bounds (workspace-root-window wk)))
 
 (define*/contract (workspace-size wk)
-  (workspace? . -> . (values number? number?))
+  (workspace? . -> . size?)
   "Returns the size of the virtual root window of the specified workspace."
   (window-size (workspace-root-window wk)))
 
 (define*/contract (workspace-position wk)
-  (workspace? . -> . (values number? number?))
+  (workspace? . -> . pos?)
   "Returns the position of the virtual root window of the specified workspace."
   (window-position (workspace-root-window wk)))
 
@@ -280,29 +281,6 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
    wk 
    ((if (eq? dir 'up) move-item-up move-item-down)
     shown w)))
-
-#|
-;; Maybe obsolete now that we have workspace-move-window-up/down ?
-(define*/contract (workspace-circulate-windows-up wk)
-  (workspace? . -> . any)
-  "Moves the first window to the bottom of the workspace window list, and raises all the other 
-  windows. This has no effect on the X stacking order."
-  (define-values (shown hidden) (partition window-viewable? (workspace-windows wk)))
-  (unless (or (empty? shown)
-              (empty? (rest shown)))
-    (set-workspace-windows!
-     wk
-     (append (rest shown) (list (first shown)) hidden))))
-
-(define*/contract (workspace-circulate-windows-down wk)
-  (workspace? . -> . any)
-  "Moves the last window to the top of the workspace window list, and lowers all the other windows.
-  This has no effect on the X stacking order."
-  (define-values (shown hidden) (partition window-viewable? (workspace-windows wk)))
-  (unless (or (empty? shown)
-              (empty? (rest shown)))
-    (define-values (a b) (split-at-right shown 1))
-    (set-workspace-windows! wk (append b a hidden))))|#
 
 (define*/contract (workspace-focus-in w [wk (find-window-workspace w)])
   ([window?] [workspace?] . ->* . any)
@@ -514,7 +492,7 @@ if it is not #f."
   If move? is not #f, all top-level windows of the workspace are moved proportionally to the resizing ratio.
   If resize? is not #f, they are resized proportionally."
   (define window (workspace-root-window wk))
-  (define-values (w-old h-old) (window-size window))
+  (match-define (size w-old h-old) (window-size window))
   (move-resize-window window hx hy hw hh)
   (define (scale-w wi)
     (round (/ (* wi hw) w-old)))
@@ -522,7 +500,7 @@ if it is not #f."
     (round (/ (* hi hh) h-old)))
   (when (or move? resize?)
     (for ([win (workspace-windows wk)])
-      (define-values (x y w h) (window-bounds win))
+      (match-define (rect x y w h) (window-bounds win))
       (move-resize-window win
                           (if move? (scale-w x) x)
                           (if move? (scale-h y) y)
@@ -537,7 +515,7 @@ if it is not #f."
   If heads is #f, then all heads are considered.
   Furthermore, it also changes the root-windows of the heads."
     (unless heads (set! heads (head-count)))
-  (define-values (gx gy gw gh) (head-list-bounds heads))
+  (match-define (rect gx gy gw gh) (head-list-bounds heads))
   ; make the virtual root fit to the head
   (workspace-fit-to wk gx gy gw gh move? resize?)
   (define wk-root (workspace-root-window wk))

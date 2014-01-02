@@ -10,6 +10,7 @@
          racket/list
          racket/dict
          racket/class
+         racket/match
          )
 
 (provide policy-tiling%)
@@ -113,7 +114,7 @@
       (define-values (dialogs wl) (partition window-place-above?
                                              (filter window-viewable?
                                                      (workspace-windows wk))))
-      (define-values (x y w h) (workspace-bounds wk))
+      (match-define (rect x y w h) (workspace-bounds wk))
       (do-layout wl 0 0 w h) ; relative to workspace root window
       (place-above dialogs))
     

@@ -6,6 +6,9 @@
          (for-syntax "base.rkt"
                      racket/runtime-path))
 
+;;; Warning: This file must be run *without* sudo to install the config.rkt and xinit files
+;;;   but it must be run with sudo for the session manager files.
+
 (define-runtime-path src-dir user-files-dir)
 
 (define (copy-file/print src dst)
