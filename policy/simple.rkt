@@ -83,8 +83,7 @@
       (for* ([wk workspaces]
              [win (workspace-windows wk)])
         (set-window-border-color win normal-border-color)
-        (set-window-border-width win normal-border-width))
-      (give-focus))
+        (set-window-border-width win normal-border-width)))
     
     (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)
