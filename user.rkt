@@ -31,18 +31,16 @@
      f #:mode 'text))
   (open-file f))
 
-;; TODO: If loading the user file fails, fall back to a default configuration (file)?
+;; TODO:
+;; - If loading the user file fails, fall back to a default configuration (file)?
+;; - replace the `printf' by `log-error'
 (define* (init-user)
   ;; Read user configuration file
-  ;; There must be a 'raco link' to the rwind directory (no real need to raco setup for now),
-  ;; so that it can be easily used with (require rwind/keymap) for example.
-  ;; (a language might even be better, e.g., to redefine define (or just give a new 'define/doc'?)
   ;; It would be useless to thread it, as one would still need to call XLockDisplay
   (let ([user-f (rwind-user-config-file)])
-    (with-handlers ([exn:fail? #;error-message-box
-                               (λ(e)(printf "Error while loading user config file ~a:\n~a\n"
-                                            user-f
-                                            (exn-message e)))])
-      (when (file-exists? user-f)
-        (dynamic-require user-f #f))))
-  )
+    (when (file-exists? user-f)
+      (with-handlers ([exn:fail? #;error-message-box
+                                 (λ(e)(printf "Error while loading user config file ~a:\n~a\n"
+                                              user-f
+                                              (exn-message e)))])
+        (dynamic-require user-f #f)))))
