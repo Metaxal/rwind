@@ -6,21 +6,6 @@
 ;;; Note that the standalone client.rkt is in GPL, 
 ;;; because it uses readline, but rwind does not depend on it.
 
-#| TODO:
-Other:
-- security of the server: make sure the user at the other end of the tcp connection
-  is the same as the one running the server!
-  Use Unix uid's? ask for password?
-
-- (select-window)
-  plus look at all the window utilities in Sawfish (lisp/sawfish/wm/windows.jl)
-- shutdown more gracefully?
-- time-stamps are quite probably not handled properly
-
-- grab the server here and there to speed up things
-  Warning: Beware of deadlocks, especially with the gui thread
-|#
-
 #| Helpful resources:
 - tinywm: http://incise.org/tinywm.html
 - evilwm: http://www.6809.org.uk/evilwm/
@@ -72,7 +57,7 @@ Other:
 (provide main)
 
 (debug-prefix "RW: ")
-;; Backup the current ports handlers
+;; Backup the current ports
 (define-values (out0 in0 err0)
   (values (current-output-port) (current-input-port) (current-error-port)))
 
@@ -88,41 +73,47 @@ Other:
                      ;; Set the current directory to the user's dir
                      [current-directory (find-user-config-dir rwind-dir-name)])
 
-        ;; Initialize thread support
-        ;; This must be the first X procedure to call
-        ;; Q: Is it useful since Racket threads are not C threads?
+        ; Initializes thread support
+        ; This must be the first X procedure to call
+        ; Q: Is it useful since Racket threads are not C threads?
         ;(XInitThreads)
 
+        (dprintf ">> init-display\n")
         (init-display)
         (init-debug)
 
         (XLockDisplay (current-display))
 
+        (dprintf ">> init-root-window\n")
         (init-root-window)
 
+        (dprintf ">> init-colors\n")
         (init-colors)
 
-        ;; Find which ModMask are the *-Lock modifiers
+        ;; Finds which ModMask are the *-Lock modifiers
         (find-modifiers)
 
         (intern-atoms)
 
         ; Initialises the number of workspaces, so must be before `init-workspaces'.
+        (dprintf ">> init-user\n")
         (init-user)
 
+        (dprintf ">> init-keymap\n")
         (init-keymap)
 
         ; This adds all mapped windows to the first workspace:
+        (dprintf ">> init-workspaces\n")
         (init-workspaces)
 
+        (dprintf ">> init-server\n")
         (init-server)
 
-        ;--------------;
-        ;- Event loop -;
-        ;--------------;
+        ; Main loop
+        (dprintf ">> run-event-loop\n")
         (run-event-loop)
 
-        (dprintf "Terminating... ")
+        (dprintf "Terminating...\n")
 
         ; Need to unlock to avoid deadlock with the server-thread break
         (XUnlockDisplay (current-display))
@@ -138,7 +129,7 @@ Other:
         
         ))); log to file
 
-  (dprintf "RWind terminated.\n")
+  (dprintf "RWind terminated\n")
   ; Make sure to exit the process, e.g., in case somethings hangs, like gui frames
   (restart-rwind?))
 
