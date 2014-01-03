@@ -214,7 +214,7 @@
   (define x11-port (open-fd-input-port (XConnectionNumber (current-display))
                                        #;'x11-connection))
   (let loop ()
-    (with-handlers ([exn:fail? (λ(e)(dprintf (exn-message e))
+    (with-handlers ([exn:fail? (λ(e)(dprintf (string-append "Error: " (exn-message e) "\n"))
                                  #;(thread (λ()(error-message-box e))))])
       (sync/enable-break
        (handle-evt x11-port
