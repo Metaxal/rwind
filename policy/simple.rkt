@@ -83,7 +83,10 @@
       (for* ([wk workspaces]
              [win (workspace-windows wk)])
         (set-window-border-color win normal-border-color)
-        (set-window-border-width win normal-border-width)))
+        (set-window-border-width win normal-border-width))
+      ; FIXME: Can't do this yet because crashes on BadWindow
+      ; (the exception could be caught, but it seems to be a deeper problem)
+      #;(relayout))
     
     (define/override (on-configure-request window value-mask
                                            x y width height border-width above stack-mode)

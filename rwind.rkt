@@ -94,8 +94,8 @@
         (find-modifiers)
 
         (intern-atoms)
-
-        ; Initialises the number of workspaces, so must be before `init-workspaces'.
+        
+        ; Initialises the number of workspaces, so must be before `init-workspaces'
         (dprintf ">> init-user\n")
         (init-user)
 
@@ -124,7 +124,7 @@
 
         (set-input-focus (true-root-window))
 
-        ; Close the connection to the X server. Must be the last X operation.
+        ; Close the connection to the X server. Must be the last X operation
         (exit-display)
         
         ))); log to file

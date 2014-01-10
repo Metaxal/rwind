@@ -10,8 +10,10 @@
          rwind/policy/base
          rwind/color
          x11/x11
-         racket/list
+         x11/xinerama
          racket/contract
+         racket/list
+         racket/match
          )
 
 (module+ test (require rackunit))
@@ -641,8 +643,6 @@
 - see (get-display-count)
 |#
 
-(require x11/xinerama racket/match)
-
 (define* head-infos (make-fun-box #f))
 (define* (head-count)
   "Returns the number of (virtual) heads."
@@ -848,6 +848,8 @@
                             #:event-mask '(SubstructureRedirectMask
                                            SubstructureNotifyMask
                                            StructureNotifyMask)))
+  (unless (XineramaIsActive (current-display))
+    (dprintf "Warning: Xinerama not yet active\n"))
 
   (xinerama-update-infos)
   )
