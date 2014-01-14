@@ -456,7 +456,9 @@
   (change-window-property window _NET_WM_DESKTOP 'XA_CARDINAL 'PropModeReplace (list num)))
 
 (define*/contract (net-window-desktop window)
-  (window? . -> . (or/c #f 0+-integer?))
+  (window? . -> . (or/c #f 0+-integer? -1))
+  "Returns the _NET_WM_DESKTOP number of window, or #f if none is found.
+  A value of -1 indicates that the window should appear on all desktops."
   (define n (get-window-property window _NET_WM_DESKTOP))
   (and n (first n)))
 
