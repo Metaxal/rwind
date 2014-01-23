@@ -12,13 +12,8 @@
          racket/match
          )
 
-;; TODO: update when xrandr is invoked (ConfigureNotify)
-;; But should better use the (head-infos)
-(define* (display-size [screen 0])
-  "Returns the values of width and height of the given screen.
-  Warning: These values may not reflect the current screen widths if they have changed?!"
-  (values (XDisplayWidth (current-display) screen)
-          (XDisplayHeight (current-display) screen)))
+;; Use (head-infos) if you want information about the size of the heads.
+;; Display size may not be up to date with actual screens.
 
 (define* (display-width [screen 0])
   (XDisplayWidth (current-display) screen))
