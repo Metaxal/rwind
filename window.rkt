@@ -404,14 +404,15 @@
   "Returns a list of elements corresponding to `property', or #f if the property is not found or in case of error."
   (GetWindowProperty (current-display) window property))
 
-(define* (get-window-property-atoms window property)
+(define*/contract (get-window-property-atoms window property)
+  (window? atom? . -> . list?)
   "Returns a list of Atoms for the given property and window."
   (or (get-window-property window property) '()))
 
 (define*/contract (window-transient-for window)
   (window? . -> . (or/c #f window?))
   "Returns the window for which `window` is transient, or #f if `window` is not a transient window."
-  (get-window-property window WM_TRANSIENT_FOR))
+  (and=> (get-window-property window WM_TRANSIENT_FOR) first))
 
 ; For information on all the window types, see http://developer.gnome.org/wm-spec/#id2551529
 ; (use it with (map atom->string ...) for better reading)

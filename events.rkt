@@ -227,4 +227,5 @@
                      (lambda (e)
                        (printf "INPUT ~a ~a\n" e (read-line e))))))
     (unless (exit-rwind?)
+      (policy. after-event)
       (loop))))

@@ -24,6 +24,8 @@
                 [normal-border-color "DarkGreen"])
     
     (inherit relayout)
+
+    (define bad-windows '())
     
     (define/public (current-workspace)
       (or (focus-workspace)
@@ -118,5 +120,22 @@
                             (add-net-wm-state-property window at)
                             (maximize-window window)])]))
             (relayout)]))
+
+    (define/override (after-event)
+      ; bad-windows are removed between events to avoid infinite loops 
+      ; if removing them triggers a bad-window event
+      (for ([w bad-windows])
+        (define wk (find-window-workspace w))
+        (when wk
+          (dprintf "Removing bad window (~a) from its workspace\n" w)
+          (remove-window-from-workspace w)))
+      (set! bad-windows '()))
+    
+    (define/override (on-bad-window window)
+      ; We just caught the error, but don't remove it now to avoid infinite loops
+      ; One one computer, I had some uncaught bad-window errors after waking up from sleep mode
+      ; (gnome-related problem?)
+      (unless (member window bad-windows window=?)
+        (set! bad-windows (cons window bad-windows))))
     
     (super-new)))

@@ -117,11 +117,19 @@ add a stub method here and implement it in the adequate child class.
     ;; Called when a client message is received
     (define/public (on-client-message window atom fmt data)
      (void))
+
+    ;; Called after the process of one event in the event loop
+    (define/public (after-event)
+      (void))
     
     ;; Places the windows in way suitable way for the current policy
     (define/public (relayout)
       (void))
-    
+
+    ;; Called when an Xlib BadWindow error is caught
+    (define/public (on-bad-window window)
+      (void))
+
     (super-new)))
 
 ; Use a fun box instead of a parameter so that 

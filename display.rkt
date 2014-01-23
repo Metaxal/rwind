@@ -6,15 +6,17 @@
 (require rwind/base
          rwind/doc-string
          rwind/util
+         rwind/policy/base
          x11/x11
          racket/date
+         racket/match
          )
 
 ;; TODO: update when xrandr is invoked (ConfigureNotify)
 ;; But should better use the (head-infos)
 (define* (display-size [screen 0])
   "Returns the values of width and height of the given screen.
-Warning: These values may not reflect the current screen widths if they have changed?!"
+  Warning: These values may not reflect the current screen widths if they have changed?!"
   (values (XDisplayWidth (current-display) screen)
           (XDisplayHeight (current-display) screen)))
 
@@ -41,7 +43,6 @@ Warning: These values may not reflect the current screen widths if they have cha
     ; For debugging purposes only, because very slow!
     #;(XSynchronize (current-display) #t)
 
-    ; TODO: set _XDebug to #t !
     #;(XSetAfterFunction (current-display)
                          (λ(display) ; -> int
                            ; This function is called after each X function
@@ -50,13 +51,20 @@ Warning: These values may not reflect the current screen widths if they have cha
 
   ;; Errors and error-handlers:
   ;; http://tronche.com/gui/x/xlib/event-handling/protocol-errors/default-handlers.html
+  ;; https://github.com/SawfishWM/sawfish/blob/47e09a56bffb17e1deda7adff175ae67c9a48daa/src/display.c
   (XSetErrorHandler
    (λ(display err-ev)
      ;(printf "Error received: ~a\n" (XErrorEvent->list* err-ev))
-     (printf "*** Error: ~a\n" (XGetErrorText
-                                (XErrorEvent-display err-ev)
-                                (XErrorEvent-error-code err-ev)
-                                500)) ; Sufficient bytes?
+     (match-define
+       (XErrorEvent _ disp resourceid _ err-code request-code minor-code)
+       err-ev)
+     (printf "*** Error: ~a\n" (XGetErrorText disp err-code 500)) ; Sufficient bytes?
+     
+     (when (eq? err-code 'BadWindow)
+       (unless (and (eq? request-code 'X_ConfigureWindow)
+                    (eq? minor-code 0))
+         (policy. on-bad-window resourceid)))
+     
      1)) ; must return an _int
   )
 

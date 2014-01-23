@@ -348,7 +348,7 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (remove-window-from-workspace window [wk (find-window-workspace window)])
   ([window?] [(or/c workspace? #f)] . ->* . any/c)
   "Removes the window from the workspace (by default the workspace of the window)
-if it is not #f."
+if the latter is not #f."
   (unless wk
     (dprintf "wk is #f in remove-window-from-workspace\n"))
   (when wk
