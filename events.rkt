@@ -147,7 +147,7 @@
     [(UnmapNotify)
      ; When a window has been unmapped.
      (define window (XUnmapEvent-window event))
-     (dprintf "Unmapping ~a\n" window)
+     (dprintf "Unmapping ~a (~a)\n" window (window-name window))
      (policy. on-unmap-notify window)]
     
     [(DestroyNotify)

@@ -252,7 +252,8 @@
 
 (define*/contract (window-children parent)
   (window? . -> . (listof window?))
-  "Returns the list of child windows of the specified parent window."
+  "Returns the list of child windows of the specified parent window.
+   The windows are in stacking order, bottom (first) to top (last)."
   (define-values (_parent children) (query-tree parent))
   (filter values children))
 

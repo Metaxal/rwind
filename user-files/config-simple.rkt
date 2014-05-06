@@ -72,7 +72,7 @@
  root-keymap 
  ; Quit RWind
  "Super-S-Escape" (L* (dprintf "Now exiting.\n")
-                    (exit-rwind? #t))
+                      (exit-rwind? #t))
  ; Restart RWind
  ; (e.g., if the config file has changed)
  "Super-C-Escape" (L* (dprintf "Now exiting and restarting.\n")

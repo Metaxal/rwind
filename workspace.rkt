@@ -292,16 +292,16 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 (define*/contract (workspace-give-focus wk)
   (workspace? . -> . any)
   "Gives the focus to the window of the workspace that had it last.
-  If none is found, give it to the first window.
+  If none is found, give it to the topmost viewable window.
   If there is none, give it to the virtual root."
   (define wf (workspace-focus wk))
   (define root (workspace-root-window wk))
   (when (or (not wf)
             (not (workspace-window? wk wf)))
-    (define wins (workspace-windows wk))
+    (define wins (viewable-windows wk))
     (set! wf (if (empty? wins)
                  root
-                 (first wins))))
+                 (last wins))))
   (dprintf "Giving the focus to ~a\n" wf)
   (set-input-focus wf)
   (set-workspace-focus! wk wf))

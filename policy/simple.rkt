@@ -36,8 +36,8 @@
           (pointer-window)))
     
     (define/public (give-focus [wk (current-workspace)])
-      (activate-window (focus-window))
-      #;(when wk
+      #;(activate-window (focus-window)) ; bad
+      (when wk
         (workspace-give-focus wk)))
 
     (define/override (on-map-request window new?)
