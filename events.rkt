@@ -153,7 +153,7 @@
     [(DestroyNotify)
      ; When a window has been destroyed.
      (define window (XDestroyWindowEvent-window event))
-     (dprintf "Destroying ~a\n" window)
+     (dprintf "Destroying ~a (~a)\n" window (window-name window))
      (when (some-root-window? window)
        (dprintf "Destroying a virtual root?!"))
      (remove-window-from-workspace window)

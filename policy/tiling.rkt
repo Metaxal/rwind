@@ -75,11 +75,11 @@
       (activate-window window))
     
     (define/override (on-unmap-notify window)
-      (give-focus)
+      (give-focus #:except (list window))
       (relayout))
     
     (define/override (on-destroy-notify window)
-      (give-focus)
+      (give-focus #:except (list window))
       (relayout))
     
     (define/override (on-configure-notify-true-root)
@@ -111,9 +111,9 @@
         
     (define/override (relayout [wk (current-workspace)])
       ; Keep only mapped windows, and treat dialogs differently
-      (define-values (dialogs wl) (partition window-place-above?
-                                             (filter window-viewable?
-                                                     (workspace-windows wk))))
+      (define-values (dialogs wl) 
+        (partition window-place-above?
+                   (viewable-windows wk)))
       (match-define (rect x y w h) (workspace-bounds wk))
       (do-layout wl 0 0 w h) ; relative to workspace root window
       (place-above dialogs))

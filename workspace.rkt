@@ -289,22 +289,24 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
     (dprintf "Remember focus ~a for ~a\n" w wk)
     (set-workspace-focus! wk w)))
 
-(define*/contract (workspace-give-focus wk)
-  (workspace? . -> . any)
-  "Gives the focus to the window of the workspace that had it last.
+(define*/contract (workspace-give-focus wk #:except [except '()])
+  ([workspace?] [#:except (listof window?)] . ->* . any)
+  "Gives the focus to the window of the workspace that had it last;
+  the window is not part of the `except` list.
   If none is found, give it to the topmost viewable window.
   If there is none, give it to the virtual root."
   (define wf (workspace-focus wk))
   (define root (workspace-root-window wk))
-  (when (or (not wf)
-            (not (workspace-window? wk wf)))
-    (define wins (viewable-windows wk))
-    (set! wf (if (empty? wins)
-                 root
-                 (last wins))))
-  (dprintf "Giving the focus to ~a\n" wf)
-  (set-input-focus wf)
-  (set-workspace-focus! wk wf))
+  (define view-wins 
+    #;(viewable-windows wk) ; NO! We need the stacking order, not the workspace order!
+    (filter window-viewable? (window-children root)))
+  (define wins (remove* except view-wins))
+  (define new-wf (if (empty? wins)
+                     root
+                     (last wins)))
+  (dprintf "Giving the focus to ~a\n" new-wf)
+  (set-input-focus new-wf)
+  (workspace-focus-in new-wf wk))
 
 (define*/contract (change-workspace-mode mode #:force? [force? #t])
   ([(one-of/c 'multi 'single)] [#:force? any/c] . ->* . any)

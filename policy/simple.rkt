@@ -35,10 +35,11 @@
       (or (focus-window)
           (pointer-window)))
     
-    (define/public (give-focus [wk (current-workspace)])
+    (define/public (give-focus [wk (current-workspace)] #:except [except '()])
       #;(activate-window (focus-window)) ; bad
       (when wk
-        (workspace-give-focus wk)))
+        (workspace-give-focus wk #:except except)
+        (activate-window (workspace-focus wk)))) ; some redundancy with wk-give-focus...
 
     (define/override (on-map-request window new?)
       ; give the window the input focus (if viewable)
