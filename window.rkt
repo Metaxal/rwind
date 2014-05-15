@@ -234,7 +234,10 @@
   (and types (memq type types)))
 
 (define* (window-dialog? window)
-  (memq _NET_WM_WINDOW_TYPE_DIALOG (net-window-types window)))
+  (window-has-type? window _NET_WM_WINDOW_TYPE_DIALOG))
+
+(define* (net-window-desktop? window)
+  (window-has-type? window _NET_WM_WINDOW_TYPE_DESKTOP))
 
 (define* (window-user-movable? window)
   (define types (or (net-window-types window) '()))

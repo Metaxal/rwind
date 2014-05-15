@@ -103,20 +103,20 @@
     (define (place-above wl)
       (for-each raise-window wl))
     
-    ; todo: this should include "transient for" windows
     (define (window-place-above? window)
       (or (window-dialog? window)
           (window-transient-for window) ; Ex: Shotwell
           (net-window-fullscreen? window)))
-        
+    
+    ;; TODO: DESKTOPs and DOCKs
     (define/override (relayout [wk (current-workspace)])
-      ; Keep only mapped windows, and treat dialogs differently
-      (define-values (dialogs wl) 
+      ; Keep only mapped windows, and place some windows above
+      (define-values (aboves wl) 
         (partition window-place-above?
                    (viewable-windows wk)))
       (match-define (rect x y w h) (workspace-bounds wk))
       (do-layout wl 0 0 w h) ; relative to workspace root window
-      (place-above dialogs))
+      (place-above aboves))
     
     (define/public (do-layout wl x y w h)
       (define proc (dict-ref layouts layout))

@@ -58,6 +58,8 @@ http://stackoverflow.com/questions/2431535/top-level-window-on-x-window-system
 ;; id : string? ; name of the workspace
 ;; root-window : window? ;  the virtual root window
 ;; windows : (listof window?) ; top level windows which parents are the root-window
+;;   The windows are kept in "workspace order", in contrast to stacking order.
+;;   (The stacking order can be retrieved with `(window-children (workspace-root-window wk))'.)
 ;; focus : window among the windows that has the focus when the workspace is activated
 (struct workspace (index id root-window windows focus)
   #:transparent
