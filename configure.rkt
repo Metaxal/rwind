@@ -61,9 +61,15 @@ Try 'sudo racket -l rwind/install-session'.
    (build-path src-dir "config-simple.rkt")
    (find-user-config-file rwind-dir-name rwind-user-config-file-name)))
 
+;; Installs launcher into ~/bin
+(define (install-launcher)
+  (copy-file/print
+   (build-path src-dir "launcher.rkt")
+   (build-path (getenv "HOME") "bin/launcher.rkt")))
+
 ;; Installs file for lightdm/gdm style login screens
 (define (session-config)
-  (copy-file/print 
+  (copy-file/print
    (build-path src-dir "applications-rwind.desktop")
    "/usr/share/applications/rwind.desktop")
   
@@ -92,6 +98,7 @@ Try 'sudo racket -l rwind/install-session'.
 
 (module+ main
   (config-config)
+  (install-launcher)
   (define kind
     (text-choice 
      #:text "What kind of configuration do you want?"

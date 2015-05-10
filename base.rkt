@@ -24,10 +24,18 @@
 (define* rwind-dir-name               "rwind")
 (define* rwind-user-config-file-name  "config.rkt")
 (define* rwind-env-config-var         "RWIND_CONFIG_FILE")
-(define* rwind-website                "http://github/Metaxal/rwind")
+(define* rwind-website                "http://github.com/Metaxal/rwind")
 (define* rwind-tcp-port               54321)
 (define* rwind-log-file
   (build-path (find-system-path 'home-dir) "rwind.log"))
+
+; ~/bin
+(define bin-dir
+  (build-path (find-system-path 'home-dir) "bin"))
+
+; ~/bin/launcher.rkt
+(define* rwind-launcher
+  (build-path bin-dir "launcher.rkt"))
 
 (define* user-files-dir "user-files")
 
