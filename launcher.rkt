@@ -30,3 +30,4 @@
   (send launcher-tfield enable #t))
 
 (send launcher-frame show #t)
+(send launcher-tfield focus)
