@@ -154,7 +154,7 @@ You can search among the list of identifiers with:
 > (search-identifiers "window")
 ```
 
-You can get the list of existing layouts for the tyling policy:
+You can get the list of existing layouts for the tiling policy:
 ```racket
 > (policy. get-layouts)
 ```
