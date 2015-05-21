@@ -35,7 +35,7 @@
 
 ; ~/bin/launcher.rkt
 (define* rwind-launcher
-  (build-path bin-dir "launcher.rkt"))
+  (build-path bin-dir "rwind-launcher.rkt"))
 
 (define* user-files-dir "user-files")
 

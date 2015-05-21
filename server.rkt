@@ -27,7 +27,7 @@
          rwind/workspace
          rwind/policy/base
          racket/tcp
-         )
+         rwind/launcher-base)
 
 (provide start-rwind-server)
 
