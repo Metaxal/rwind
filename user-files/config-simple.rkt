@@ -29,9 +29,9 @@
  "M-C-t" (L* (rwind-system "xterm"))
  ; Open xclock
  "M-C-c" (L* (rwind-system "xclock -digital -update 1"))
- ; Open gmrun (requires it to be installed). See also 'dmenu'.
+ ; Open the application launcher. Consider also 'dmenu' or 'gmrun'.
+ "M-F2"  (L* (rwind-system "racket -l rwind/launcher"))
  ;"M-F2"  (L* (rwind-system "gmrun"))
- "M-F2"  (L* (rwind-system rwind-launcher))
  ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
  "M-F11" (L* (open-user-config-file))
  ; Open the client of rwind for console interaction

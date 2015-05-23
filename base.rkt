@@ -29,14 +29,6 @@
 (define* rwind-log-file
   (build-path (find-system-path 'home-dir) "rwind.log"))
 
-; ~/bin
-(define bin-dir
-  (build-path (find-system-path 'home-dir) "bin"))
-
-; ~/bin/launcher.rkt
-(define* rwind-launcher
-  (build-path bin-dir "launcher.rkt"))
-
 (define* user-files-dir "user-files")
 
 ; Defines if a window is protected.
