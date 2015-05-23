@@ -26,8 +26,7 @@
          rwind/doc-string
          rwind/workspace
          rwind/policy/base
-         racket/tcp
-         )
+         racket/tcp)
 
 (provide start-rwind-server)
 

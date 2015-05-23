@@ -3,7 +3,8 @@
 ; launcher.rkt
 ; Lehi Toskin
 
-(require racket/gui/base
+(require rwind/launcher-base
+         racket/gui/base
          racket/class
          racket/system
          racket/list
@@ -31,24 +32,71 @@
 ;; (mutable) List of commands matching the current string in the text-field
 (define command-cycle '())
 
+;; Zipper for history cycling
+(define hist-init (launcher-history))
+(define up-hist #f)
+(define down-hist #f)
+(define (reset-zipper!)
+  (set! up-hist hist-init)
+  (set! down-hist '()))
+(reset-zipper!)
+
+(define (hist-up!)
+  (unless (empty? up-hist)
+    (define cmd (first up-hist))
+    (set! up-hist (rest up-hist))
+    (set! down-hist (cons cmd down-hist))
+    (send launcher-tfield set-value cmd)))
+
+(define (hist-down!)
+  (if (empty? down-hist)
+      (send launcher-tfield set-value "")
+      (let ([cmd (first down-hist)])
+        (set! down-hist (rest down-hist))
+        (set! up-hist (cons cmd up-hist))
+        (send launcher-tfield set-value cmd))))
+
+(define (enter-callback tf e)
+  (define type (send e get-event-type))
+  (when (eq? type 'text-field)
+    ; New character typed, reset the matching commands and history cycle
+    (reset-zipper!)
+    (set! command-cycle '()))
+  (when (eq? type 'text-field-enter)
+    (define str (send tf get-value))
+    (define plst (process str))
+    ; close the launcher window
+    (send launcher-frame show #f)
+    (send tf set-value "")
+    ; add to history
+    (add-launcher-history! str)
+    ; explicitly close input/output ports
+    (close-input-port (first plst))
+    (close-output-port (second plst))
+    (close-input-port (fourth plst))))
+
 (define my-dialog%
   (class dialog%
     ;; Catch the Tab character before the text-field to perform command completion
     ;; and cycle through matching commands
     (define/override (on-traverse-char ev)
       (define ret (super on-traverse-char ev))
-      (cond [(equal? (send ev get-key-code) #\tab)
-             (when (empty? command-cycle)
-               (set! command-cycle
-                     (find-prefix (send launcher-tfield get-value))))
-             (unless (empty? command-cycle)
-               (define cmd (first command-cycle))
-               (send launcher-tfield set-value cmd)
-               ; Place the first command in last position
-               (set! command-cycle
-                     (append (rest command-cycle) (list cmd))))
-             #t] ; don't propagate the Tab
-            [else ret]))
+      (define key-code (send ev get-key-code))
+      (case key-code
+        [(up) (hist-up!)]
+        [(down) (hist-down!)]
+        [(#\tab)
+         (when (empty? command-cycle)
+           (set! command-cycle
+                 (find-prefix (send launcher-tfield get-value))))
+         (unless (empty? command-cycle)
+           (define cmd (first command-cycle))
+           (send launcher-tfield set-value cmd)
+           ; Place the first command in last position
+           (set! command-cycle
+                 (append (rest command-cycle) (list cmd))))
+         #t] ; don't propagate the Tab
+        [else ret]))
     (super-new)))
 
 (define launcher-frame
@@ -61,26 +109,8 @@
        [parent launcher-frame]
        [label "Enter a command:"]
        [style '(single vertical-label)]
-       [callback (λ (tf e)
-                   (define type (send e get-event-type))
-                   (when (eq? type 'text-field)
-                     ; New character typed, reset the matching commands
-                     (set! command-cycle '()))
-                   (when (eq? type 'text-field-enter)
-                     (let ([plst (process (send tf get-value))])
-                       ; close the launcher window
-                       (send tf set-value "")
-                       (send launcher-frame show #f)
-                       ; explicitly close input/output ports
-                       (close-input-port (first plst))
-                       (close-output-port (second plst))
-                       (close-input-port (fourth plst)))))]))
+       [callback enter-callback]))
 
-#;(define* (show-launcher)
-  "Show the program launcher."
-  (send launcher-frame show #t)
-  (send launcher-frame enable #t)
-  (send launcher-tfield enable #t))
 
 (send launcher-tfield focus) ; needs to be before, as `show` is blocking in a dialog%
 (send launcher-frame show #t)
