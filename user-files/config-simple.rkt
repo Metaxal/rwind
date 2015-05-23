@@ -7,6 +7,7 @@
          rwind/window
          rwind/util
          rwind/user
+         rwind/launcher-base
          rwind/workspace
          rwind/policy/base
          rwind/policy/simple
@@ -30,8 +31,7 @@
  ; Open xclock
  "M-C-c" (L* (rwind-system "xclock -digital -update 1"))
  ; Open the application launcher. Consider also 'dmenu' or 'gmrun'.
- "M-F2"  (L* (rwind-system "racket -l rwind/launcher"))
- ;"M-F2"  (L* (rwind-system "gmrun"))
+ "M-F2"  (L* (open-launcher))
  ; Open the config file for editing, with "open" on mac or "xdg-open" or "mimeopen" on Linux
  "M-F11" (L* (open-user-config-file))
  ; Open the client of rwind for console interaction

@@ -1,86 +1,104 @@
 #!/usr/bin/env racket
-#lang racket/base
+#lang racket/gui
 ; launcher.rkt
-; Lehi Toskin
+(require rwind/base
+         rwind/doc-string
+         rwind/util
+         rwind/launcher-base)
 
-(require racket/gui/base
-         racket/class
-         racket/system
-         racket/list
-         racket/string)
+; history cycling
+(define hist-hash (make-hash `((prime . ,(launcher-history))
+                               (previous . ,empty)
+                               (current . ,empty)
+                               (next . ,(launcher-history)))))
 
-;; Create the list of executable commands found in the directories of the
-;; PATH environment variable
-(define commands
-  (filter values
-          (for*/list ([l (string-split(getenv "PATH") ":")]
-                      [f (directory-list l)])
-            (define p (build-path l f))
-            (and (file-exists? p)
-                 (memq 'execute (file-or-directory-permissions p))
-                 (path->string f) #;(list (path->string f) p)))))
+(define (hist-up!)
+  (define prime (hash-ref hist-hash 'prime))
+  (define current (hash-ref hist-hash 'current))
+  (define previous (hash-ref hist-hash 'previous))
+  (define next (hash-ref hist-hash 'next))
+  (unless (empty? next)
+    ; clear current contents
+    (send launcher-editor select-all)
+    (send launcher-editor clear)
+    (if (empty? current)
+        (hash-set*! hist-hash
+                    'current (first prime)
+                    'next (rest prime))
+        (hash-set*! hist-hash
+                    'previous (cons current previous)
+                    'current (first next)
+                    'next (rest next)))
+    ; insert from history
+    (send launcher-editor insert (hash-ref hist-hash 'current))))
 
-;; Returns the list of commands for which str is a prefix
-(define (find-prefix str)
-  (define len (string-length str))
-  (filter
-   (λ(c)(and (>= (string-length c) len)
-             (string=? str (substring c 0 len))))
-   commands))
+(define (hist-down!)
+  (define prime (hash-ref hist-hash 'prime))
+  (define current (hash-ref hist-hash 'current))
+  (define previous (hash-ref hist-hash 'previous))
+  (define next (hash-ref hist-hash 'next))
+  ; clear current contents
+  (send launcher-editor select-all)
+  (send launcher-editor clear)
+  (unless (empty? previous)
+    (hash-set*! hist-hash
+                'next (cons current next)
+                'current (first previous)
+                'previous (rest previous))
+    ; insert from history
+    (send launcher-editor insert (hash-ref hist-hash 'current))))
 
-;; (mutable) List of commands matching the current string in the text-field
-(define command-cycle '())
-
-(define my-dialog%
-  (class dialog%
-    ;; Catch the Tab character before the text-field to perform command completion
-    ;; and cycle through matching commands
-    (define/override (on-traverse-char ev)
-      (define ret (super on-traverse-char ev))
-      (cond [(equal? (send ev get-key-code) #\tab)
-             (when (empty? command-cycle)
-               (set! command-cycle
-                     (find-prefix (send launcher-tfield get-value))))
-             (unless (empty? command-cycle)
-               (define cmd (first command-cycle))
-               (send launcher-tfield set-value cmd)
-               ; Place the first command in last position
-               (set! command-cycle
-                     (append (rest command-cycle) (list cmd))))
-             #t] ; don't propagate the Tab
-            [else ret]))
-    (super-new)))
-
-(define launcher-frame
-  (new my-dialog%
-       [label "RWind Launcher"]
+(define launcher-dialog
+  (new dialog%
+       [label "Rwind Launcher"]
        [min-width 400]))
 
-(define launcher-tfield
-  (new text-field%
-       [parent launcher-frame]
-       [label "Enter a command:"]
-       [style '(single vertical-label)]
-       [callback (λ (tf e)
-                   (define type (send e get-event-type))
-                   (when (eq? type 'text-field)
-                     ; New character typed, reset the matching commands
-                     (set! command-cycle '()))
-                   (when (eq? type 'text-field-enter)
-                     (let ([plst (process (send tf get-value))])
-                       ; close the launcher window
-                       (send tf set-value "")
-                       (send launcher-frame show #f)
-                       ; explicitly close input/output ports
-                       (close-input-port (first plst))
-                       (close-output-port (second plst))
-                       (close-input-port (fourth plst)))))]))
+(define msg-hpanel
+  (new horizontal-panel%
+       [parent launcher-dialog]
+       [alignment '(left center)]))
 
-#;(define* (show-launcher)
-  "Show the program launcher."
-  (send launcher-frame show #t)
-  (send launcher-frame enable #t)
-  (send launcher-tfield enable #t))
+(define msg
+  (new message%
+       [parent msg-hpanel]
+       [label "Please enter a command:"]))
 
-(send launcher-tfield focus) ; needs to be before, as `show` is blocking in a dialog%
-(send launcher-frame show #t)
+(define mtxt%
+  (class text%
+    (super-new)
+    
+    (define/override (on-char evt)
+      (define key-code (send evt get-key-code))
+      (cond [(eq? key-code 'up) (hist-up!)]
+            [(eq? key-code 'down) (hist-down!)]
+            [(eq? key-code #\return) (enter-callback)]
+            [(eq? key-code 'numpad-enter) (enter-callback)]
+            [else (send this on-default-char evt)]))))
+
+(define launcher-editor (new mtxt%))
+(send launcher-editor change-style
+      (make-object style-delta% 'change-size 10))
+
+(define (enter-callback)
+  (define plst (process (send launcher-editor get-text)))
+  ; add to history
+  (add-launcher-history! (send launcher-editor get-text))
+  ; close the launcher window
+  (send launcher-editor select-all)
+  (send launcher-editor clear)
+  (send launcher-dialog show #f)
+  ; explicitly close input/output ports
+  (close-input-port (first plst))
+  (close-output-port (second plst))
+  (close-input-port (fourth plst)))
+
+(define launcher-ecanvas
+  (new editor-canvas%
+       [parent launcher-dialog]
+       [editor launcher-editor]
+       [min-height 45]
+       [min-width 400]
+       [style '(no-vscroll)]))
+
+(send launcher-ecanvas focus)
+(send launcher-dialog show #t)
