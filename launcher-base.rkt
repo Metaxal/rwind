@@ -3,16 +3,27 @@
 (require rwind/base
          rwind/util
          rwind/doc-string)
-(provide open-launcher)
 
-(define* rwind-launcher-history-file
+(define history-max-length 50)
+
+(define rwind-launcher-history-file
   (find-user-config-file rwind-dir-name "rwind-launcher-history.txt"))
 
 (define* (launcher-history)
   "History of launched commands from the Rwind launcher."
-  (if (file-exists? rwind-launcher-history-file)
-      (reverse (file->lines rwind-launcher-history-file))
-      null))
+  (define hist
+    (if (file-exists? rwind-launcher-history-file)
+        (reverse (file->lines rwind-launcher-history-file))
+        null))
+  ;; If history is too long, truncate it and rewrite the file
+  ;; (we don't want the history to grow indefinitely)
+  (when (> (length hist) (* 2 history-max-length))
+    (display-lines-to-file
+     (reverse (take hist history-max-length))
+     rwind-launcher-history-file
+     #:mode 'text
+     #:exists 'replace))
+  hist)
 
 (define* (add-launcher-history! command)
   "Add to the history of launched commands."
