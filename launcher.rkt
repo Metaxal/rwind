@@ -10,6 +10,10 @@
          racket/list
          racket/string)
 
+;==========================;
+;=== Command completion ===;
+;==========================;
+
 ;; Create the list of executable commands found in the directories of the
 ;; PATH environment variable
 (define commands
@@ -31,6 +35,23 @@
 
 ;; (mutable) List of commands matching the current string in the text-field
 (define command-cycle '())
+(define (reset-command-cycle!)
+  (set! command-cycle '()))
+
+(define (completion-cycle!)
+  (when (empty? command-cycle)
+    (set! command-cycle
+          (find-prefix (send launcher-tfield get-value))))
+  (unless (empty? command-cycle)
+    (define cmd (first command-cycle))
+    (send launcher-tfield set-value cmd)
+    ; Place the first command in last position
+    (set! command-cycle
+          (append (rest command-cycle) (list cmd)))))
+
+;=======================;
+;=== History cycling ===;
+;=======================;
 
 ;; Zipper for history cycling
 (define hist-init (launcher-history))
@@ -56,12 +77,16 @@
         (set! up-hist (cons cmd up-hist))
         (send launcher-tfield set-value cmd))))
 
+;===========;
+;=== Gui ===;
+;===========;
+
 (define (enter-callback tf e)
   (define type (send e get-event-type))
   (when (eq? type 'text-field)
     ; New character typed, reset the matching commands and history cycle
     (reset-zipper!)
-    (set! command-cycle '()))
+    (reset-command-cycle!))
   (when (eq? type 'text-field-enter)
     (define str (send tf get-value))
     (define plst (process str))
@@ -85,17 +110,8 @@
       (case key-code
         [(up) (hist-up!)]
         [(down) (hist-down!)]
-        [(#\tab)
-         (when (empty? command-cycle)
-           (set! command-cycle
-                 (find-prefix (send launcher-tfield get-value))))
-         (unless (empty? command-cycle)
-           (define cmd (first command-cycle))
-           (send launcher-tfield set-value cmd)
-           ; Place the first command in last position
-           (set! command-cycle
-                 (append (rest command-cycle) (list cmd))))
-         #t] ; don't propagate the Tab
+        [(#\tab) (completion-cycle!)
+                 #t] ; don't propagate the Tab
         [else ret]))
     (super-new)))
 
@@ -110,7 +126,6 @@
        [label "Enter a command:"]
        [style '(single vertical-label)]
        [callback enter-callback]))
-
 
 (send launcher-tfield focus) ; needs to be before, as `show` is blocking in a dialog%
 (send launcher-frame show #t)
