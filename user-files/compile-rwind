@@ -1,0 +1,30 @@
+#!/bin/bash
+
+function raco_dir {
+    local _res=$(raco pkg show -dl "$2" | sed -n 's/.*(link.*)\s*"\(.*\)"\s*/\1/p')
+    echo "$1: $_res"
+    if [ -z "$_res" -o ! -d "$_res" ]; then
+        echo "Directory not found. Exiting."
+        exit
+    fi
+    eval "$1=\$_res"
+}
+
+function raco_clean {
+    find "$1" -name compiled -type d -exec rm -r {} \;
+    # may output some "file or directory not found" error messages
+}
+
+raco_dir rwind_dir "rwind"
+raco_dir x11_dir "x11"
+#exit
+raco_clean "$rwind_dir"
+raco_clean "$x11_dir"
+#exit
+
+if [ "$1" == "debug" ]; then
+    export PLTCOMPILEDROOTS='compiled/debug:'
+    X11_RACKET_DEBUG=1 raco setup x11 rwind
+else
+    raco setup x11 rwind
+fi

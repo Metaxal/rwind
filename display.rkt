@@ -36,7 +36,7 @@
     (x11-debug-prefix "  X: ")
 
     ; For debugging purposes only, because very slow!
-    #;(XSynchronize (current-display) #t)
+    (XSynchronize (current-display) #t)
 
     #;(XSetAfterFunction (current-display)
                          (λ(display) ; -> int
@@ -49,11 +49,11 @@
   ;; https://github.com/SawfishWM/sawfish/blob/47e09a56bffb17e1deda7adff175ae67c9a48daa/src/display.c
   (XSetErrorHandler
    (λ(display err-ev)
-     ;(printf "Error received: ~a\n" (XErrorEvent->list* err-ev))
+     #;(printf "Error received: ~a\n" (XErrorEvent->list* err-ev))
      (match-define
        (XErrorEvent _ disp resourceid _ err-code request-code minor-code)
        err-ev)
-     (printf "*** Error: ~a\n" (XGetErrorText disp err-code 500)) ; Sufficient bytes?
+     (printf "*** Error: ~a\n" (XGetErrorText disp err-code 1024)) ; Sufficient bytes?
      
      (when (eq? err-code 'BadWindow)
        (unless (and (eq? request-code 'X_ConfigureWindow)
