@@ -177,4 +177,21 @@ This also means that any new feature that may appear in the new versions of thes
 will not be added to your files.
 You can reconfigure RWind, and you will be asked if you want to replace the existing `config.rkt` file.
 
+## Debugging
+
+Because RWind heavily relies on the X11 collection, a large part of the debugging happens an the interface between the two.
+
+Create symbolic links to the scripts `user-files/.xinitrc-rwind-debug` and `user-files/rwind-debug` in your home directory.
+
+Compile rwind and x11 in debug mode with `$ user-files/compile-rwind debug`. Basically, it removes all previous compilations of the two collections and compiles it with some flags.
+
+Finally, start RWind from a non-X terminal (say, Ctrl-Alt-F1):
+```
+xinit .xinitrc-rwind-debug -- :2 &
+```
+
+Then all error messages are redirected to `~/rwind.log`.
+You should see lines starting with "RW:", and lines starting with "  X:" (for the X11 lib).
+You can also track the error messages from within RWind with `tail -f ~/rwind.log`.
+
 
