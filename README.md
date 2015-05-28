@@ -163,6 +163,15 @@ The layout can be changed immediately:
 > (policy. set-layout 'dwindle)
 ```
 
+Each workspace can have its own layout:
+```racket
+> (policy. set-workspace-layout 'uniform)
+```
+To reset the layout of a workspace to the default one:
+```racket
+> (policy. reset-workspace-layout)
+```
+
 ## Updating RWind
 
 RWind has some dependencies, in particular the [X11 FFI bindings](https://github.com/kazzmir/x11-racket),
