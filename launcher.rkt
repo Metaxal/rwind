@@ -88,17 +88,20 @@
     (reset-zipper!)
     (reset-command-cycle!))
   (when (eq? type 'text-field-enter)
-    (define str (send tf get-value))
-    (define plst (process str))
+    (define str (string-trim (send tf get-value)))
     ; close the launcher window
     (send launcher-frame show #f)
     (send tf set-value "")
-    ; add to history
-    (add-launcher-history! str)
-    ; explicitly close input/output ports
-    (close-input-port (first plst))
-    (close-output-port (second plst))
-    (close-input-port (fourth plst))))
+    (unless (string=? str "")
+      (define plst (process str))
+      ; add to history
+      (unless (or (empty? hist-init)
+                  (string=? str (first hist-init)))
+        (add-launcher-history! str))
+      ; explicitly close input/output ports
+      (close-input-port (first plst))
+      (close-output-port (second plst))
+      (close-input-port (fourth plst)))))
 
 (define my-dialog%
   (class dialog%
