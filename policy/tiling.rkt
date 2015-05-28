@@ -5,6 +5,7 @@
 
 (require rwind/policy/simple
          rwind/doc-string
+         rwind/util
          rwind/window
          rwind/workspace
          racket/list
@@ -115,11 +116,11 @@
         (partition window-place-above?
                    (viewable-windows wk)))
       (match-define (rect x y w h) (workspace-bounds wk))
-      (do-layout wl 0 0 w h) ; relative to workspace root window
+      (do-layout wk wl 0 0 w h) ; relative to workspace root window
       (place-above aboves))
     
-    (define/public (do-layout wl x y w h)
-      (define proc (dict-ref layouts layout))
+    (define/public (do-layout wk wl x y w h)
+      (define proc (dict-ref layouts (workspace-layout wk)))
       (proc wl x y w h))
     
     ; TODO: place the layouts in a separate class/file?
@@ -188,7 +189,25 @@
     
     #;(define/override (on-change-workspace-mode mode)
       (void))
+
+    ;;; Per workspace layout
     
+    (define workspace-layouts (make-hash))
+
+    (define/public (set-workspace-layout layout [wk (current-workspace)])
+      (if (dict-ref layouts layout #f)
+        (let ()
+          (dict-set! workspace-layouts wk layout)
+          (relayout wk))
+        (dprintf "No such layout: ~a\n" layout)))
+
+    (define/public (reset-workspace-layout [wk (current-workspace)])
+      (dict-remove! wk)
+      (relayout wk))
+
+    (define/public (workspace-layout [wk (current-workspace)])
+      (dict-ref workspace-layouts wk layout))
+
     (super-new)
 
     ; Must be defined after the procedures.
@@ -199,6 +218,6 @@
         (dwindle3/5 . ,(dwindle-layout 3/5))
         ))
     
-    (init-field [layout 'uniform])
+    (init-field [layout 'uniform]) ; default applied layout for all workspaces
     
     ))
