@@ -1,8 +1,10 @@
-#lang racket/gui
+#lang racket/base
 ; launcher-base.rkt
 (require rwind/base
          rwind/util
-         rwind/doc-string)
+         rwind/doc-string
+         racket/file
+         racket/list)
 
 (define history-max-length 50)
 
