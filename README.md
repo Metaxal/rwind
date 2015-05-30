@@ -1,17 +1,15 @@
 # RWind - The Racket Window Manager
 
-An extensible window manager aiming to be similar to [Sawfish](http://sawfish.wikia.com), but written in the [Racket programming language](http://www.racket-lang.org).
+An extensible window manager written in the [Racket programming language](http://www.racket-lang.org), meant to be highly customizable.
 
 There is an [RWind mailing list](https://groups.google.com/forum/?fromgroups#!forum/rwind).
 
 
 First some **warnings**:
 
-* This package is under current development and is in no way stable, and
-  is intended for testing purposes only.
 * Backward compatibility will not be ensured in the 0.x branch.
-* Due to a security issue, the current version should not be used on multiple
-  user computers. Use at your own risk.
+* Due to a security issue in the server, the current version should not be used on multiple
+  user computers, unless the server is disabled. Use at your own risk.
 
 
 ## Current features
@@ -23,6 +21,7 @@ First some **warnings**:
     - single mode: one workspace over all monitors
     - multi mode: one workspace per monitor
 * Xinerama and RandR support
+* Fullscreen
 * Currently little ICCCM/EWMH compliance
 
 All these features are in development stage.
