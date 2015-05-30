@@ -202,7 +202,7 @@
         (dprintf "No such layout: ~a\n" layout)))
 
     (define/public (reset-workspace-layout [wk (current-workspace)])
-      (dict-remove! wk)
+      (dict-remove! workspace-layouts wk)
       (relayout wk))
 
     (define/public (workspace-layout [wk (current-workspace)])
