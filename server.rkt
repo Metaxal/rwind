@@ -66,10 +66,15 @@
                      (λ()
                        ;(printf "BEFORE EVAL")(flush-output)
                        (with-output-to-string
-                        (λ()
-                          (define r (eval e server-namespace))
+                        (λ ()
+                          #|(define r (eval e server-namespace))
                           (unless (void? r)
-                            (write r)))))
+                            (write r))|#
+                          (for-each (λ (retval)
+                                      (unless (void? retval)
+                                        (write retval)
+                                        (newline)))
+                                    (call-with-values (λ () (eval e server-namespace)) list)))))
                      (λ()
                        ;(printf "BETWEEN EVAL AND FLUSH")(flush-output)
                        (XFlush (current-display))
