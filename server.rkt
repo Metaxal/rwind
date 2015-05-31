@@ -64,16 +64,14 @@
                     (dynamic-wind
                      (λ() (XLockDisplay d))
                      (λ()
-                       ;(printf "BEFORE EVAL")(flush-output)
                        (with-output-to-string
-                        (λ()
-                          (define r (eval e server-namespace))
-                          (unless (void? r)
-                            (write r)))))
+                        (λ ()
+                          (define l (call-with-values (λ () (eval e server-namespace)) list))
+                          (unless (and (= 1 (length l))
+                                       (void? (first l)))
+                            (display (apply ~s l #:separator "\n"))))))
                      (λ()
-                       ;(printf "BETWEEN EVAL AND FLUSH")(flush-output)
                        (XFlush (current-display))
-                       ;(printf "AFTER FLUSH")(flush-output)
                        (XUnlockDisplay d)))))
                 (dprint-wait "Sending value: ~a" res)
                 ; Printed in a string, to send a string,
