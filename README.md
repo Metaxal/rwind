@@ -42,6 +42,8 @@ raco pkg install rwind
 
 It will ask you if you want to install `x11`. You should say yes as RWind cannot work without this library.
 
+You may also need to install `libedit` (installed by default on Ubuntu at least, but not on Gentoo). See [here](https://github.com/Metaxal/rwind/issues/16#issue-273254092) if installation fails due to this missing dependency.
+
 ### 3) Configure RWind
 Type:
 ```shell
