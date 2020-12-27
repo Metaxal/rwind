@@ -261,7 +261,8 @@ since there is no fixed value for them."
     [else
      (printf "Warning: Could not find modifiers!\n")]))
 
-(module+ test
+(module+ try-me
+  ;; raco test -s try-me keymap.rkt
   (define dpy (XOpenDisplay #f))
   (current-display dpy)
   (find-modifiers)
