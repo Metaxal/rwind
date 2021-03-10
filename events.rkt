@@ -11,7 +11,7 @@
          rwind/workspace
          rwind/policy/base
          x11/x11
-         x11/fd
+         ffi/unsafe/port
          racket/match
          )
 
@@ -211,7 +211,11 @@
   (XFlush (current-display))
   ; Kevin Tew's version (unfortunately, it does not seem that it can be used
   ; to avoid using other threads, although I think it should)
-  (define x11-port (open-fd-input-port (XConnectionNumber (current-display))
+  (define x11-port
+    (unsafe-file-descriptor->port (XConnectionNumber (current-display))
+                                  'x11-connection
+                                  '(read))
+    #;(open-fd-input-port (XConnectionNumber (current-display))
                                        #;'x11-connection))
   (let loop ()
     (with-handlers ([exn:fail? (λ(e)(dprintf (string-append "Error: " (exn-message e) "\n"))
