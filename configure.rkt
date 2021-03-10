@@ -1,6 +1,7 @@
 #lang racket/base
 (require "base.rkt"
          "util.rkt"
+         racket/file
          racket/path
          racket/runtime-path
          (for-syntax "base.rkt"
@@ -57,6 +58,7 @@ Try 'sudo racket -l rwind/configure'.
 
 ;; Creates the configuration file
 (define (config-config)
+  (make-directory* (find-user-config-dir rwind-dir-name))
   (copy-file/print
    (build-path src-dir "config-simple.rkt")
    (find-user-config-file rwind-dir-name rwind-user-config-file-name)))
