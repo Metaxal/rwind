@@ -32,7 +32,8 @@ All these features are in development stage.
 
 Download and install Racket at https://download.racket-lang.org
 
-You may need to [set your PATH environment variable](https://github.com/racket/racket/wiki/Set-your-PATH-environment-variable).
+You may need to 
+[set your PATH environment variable](https://github.com/racket/racket/wiki/Set-your-PATH-environment-variable).
 
 ### 2) Install RWind
 Type:
@@ -43,7 +44,9 @@ raco pkg install --auto --update-deps rwind
 
 This will also install missing Racket dependencies such as the `x11` Racket package.
 
-You may also need to install `libedit` (installed by default on Ubuntu at least, but not on Gentoo). See [here](https://github.com/Metaxal/rwind/issues/16#issue-273254092) if installation fails due to this missing dependency.
+You may also need to install `libedit` (installed by default on Ubuntu at least, but not on 
+Gentoo). See [here](https://github.com/Metaxal/rwind/issues/16#issue-273254092) if installation 
+fails due to this missing dependency.
 
 ### 3) Configure RWind
 Type:
@@ -53,7 +56,8 @@ racket -l rwind/configure
 And follow the instructions.
 This creates a default RWind configuration file, then it asks you to choose
 between a session manager or a `xinit/startx` configuration.
-If you choose a session manager configuration, it will abort and you will need to re-type the above command preceded by `sudo`.
+If you choose a session manager configuration, it will abort and you will need to re-type the 
+above command preceded by `sudo`.
 These two steps are required because the first configuration files must be owned by the user.
 
 You can reconfigure RWind at any time.
@@ -63,14 +67,15 @@ You can reconfigure RWind at any time.
 a) If you chose a session configuration, go back to the login screen.
 You should now see RWind in the login options.
 
-b) If you chose a xinit/startx configuration, in a virtual terminal (`Ctrl-Alt-F1`), type the following:
+b) If you chose a xinit/startx configuration, in a virtual terminal 
+(`Ctrl-Alt-F1` or `Ctrl-Alt-F2`, etc.), type the following:
 ```shell
 xinit .xinitrc-rwind -- :1 &
 ```
 
-You may need to modify the display `:1` to `:2` for example if `:1` is not
-available. The default `.xinitrc-rwind` is a simple example file that you may want to edit to fit your needs.
-By default, you need to close the xterms to exit the session.
+You may need to modify the display `:1` to `:2` for example if `:1` is not available. The default 
+`.xinitrc-rwind` is a simple example file that you may want to edit to fit your needs. By 
+default, you need to close the xterms to exit the session.
 
 <!--
 ### c) Replace your current window manager
@@ -110,10 +115,11 @@ This file defines a number of keyboard and mouse bindings that you can easily re
  - ...
 -->
 
-The default window policy is stacking (as for most traditional window managers),
-but you can easily change it to [tiling](http://en.wikipedia.org/wiki/Tiling_window_manager) in the configuration file.
-With the tiling policy, several layouts are possible (mainly `uniform` and `dwindle`).
-To choose a layout, specify so in the file:
+The default window policy is stacking (as for most traditional window managers), but you can 
+easily change it to [tiling](http://en.wikipedia.org/wiki/Tiling_window_manager) in the 
+configuration file. With the tiling policy, several layouts are possible (mainly `uniform` and 
+`dwindle`). To choose a layout, specify so in the file: 
+
 ```racket
 (current-policy (new policy-tiling% [layout 'dwindle]))
 ```
@@ -124,8 +130,9 @@ You don't need to recompile RWind, just restart it.
 
 ## The client
 
-The client is a console where you can evaluate Racket expressions and communicate with the window manager.
-It can be opened in a terminal with:
+The client is a console where you can evaluate Racket expressions and communicate with the window 
+manager. It can be opened in a terminal with:
+
 ```shell
 racket -l rwind/client
 ```
@@ -190,11 +197,14 @@ You can reconfigure RWind, and you will be asked if you want to replace the exis
 
 ## Debugging
 
-Because RWind heavily relies on the X11 collection, a large part of the debugging happens an the interface between the two.
+Because RWind heavily relies on the X11 collection, a large part of the debugging happens an the 
+interface between the two.
 
-Create symbolic links to the scripts `user-files/.xinitrc-rwind-debug` and `user-files/rwind-debug` in your home directory.
+Create symbolic links to the scripts `user-files/.xinitrc-rwind-debug` and 
+`user-files/rwind-debug` in your home directory.
 
-Compile rwind and x11 in debug mode with `$ user-files/compile-rwind debug`. Basically, it removes all previous compilations of the two collections and compiles it with some flags.
+Compile rwind and x11 in debug mode with `$ user-files/compile-rwind debug`. Basically, it 
+removes all previous compilations of the two collections and compiles it with some flags.
 
 Finally, start RWind from a non-X terminal (say, Ctrl-Alt-F1):
 ```
@@ -204,5 +214,4 @@ xinit .xinitrc-rwind-debug -- :2 &
 Then all error messages are redirected to `~/rwind.log`.
 You should see lines starting with "RW:", and lines starting with "  X:" (for the X11 lib).
 You can also track the error messages from within RWind with `tail -f ~/rwind.log`.
-
 
