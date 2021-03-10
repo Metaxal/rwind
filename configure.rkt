@@ -1,6 +1,7 @@
 #lang racket/base
 (require "base.rkt"
          "util.rkt"
+         racket/file
          racket/path
          racket/runtime-path
          (for-syntax "base.rkt"
@@ -28,6 +29,7 @@ Try 'sudo racket -l rwind/configure'.
 ")
                               (exit -1)]
                              [else (raise e)]))])
+      (make-parent-directory* dst)
       (copy-file src dst #t))))
 
 ;; Displays a list of numbered choices and asks the user for a choice.
@@ -81,8 +83,7 @@ Try 'sudo racket -l rwind/configure'.
   
   (copy-file/print
    (build-path src-dir (list-ref start-files (sub1 start-index)))
-   "/usr/local/bin/rwind.start")
-  )
+   "/usr/local/bin/rwind.start"))
 
 ;; Install files for use with xinit/startx
 (define (xinit-config)
@@ -99,5 +100,5 @@ Try 'sudo racket -l rwind/configure'.
        "xinit/startx")
      #:default 1))
   (case kind
-    [(1)(session-config)]
-    [(2)(xinit-config)]))
+    [(1) (session-config)]
+    [(2) (xinit-config)]))
