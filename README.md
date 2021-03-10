@@ -29,18 +29,19 @@ All these features are in development stage.
 ## Installation & quick start
 
 ### 1) Install Racket
-<!-- [Racket](http://www.racket-lang.org) -->
 
-Currently, you will need the [latest version of Racket](http://plt.eecs.northwestern.edu/snapshots/).
+Download and install Racket at https://download.racket-lang.org
+
+You may need to [set your PATH environment variable](https://github.com/racket/racket/wiki/Set-your-PATH-environment-variable).
 
 ### 2) Install RWind
 Type:
 ```shell
-raco pkg install rwind
+raco pkg install --auto --update-deps rwind
 ```
 (`raco` is provided with Racket, so it should be in your path)
 
-It will ask you if you want to install `x11`. You should say yes as RWind cannot work without this library.
+This will also install missing Racket dependencies such as the `x11` Racket package.
 
 You may also need to install `libedit` (installed by default on Ubuntu at least, but not on Gentoo). See [here](https://github.com/Metaxal/rwind/issues/16#issue-273254092) if installation fails due to this missing dependency.
 
@@ -91,7 +92,7 @@ This is where all the RWind customization is done.
 By default, you can open this file within RWind by pressing `Alt-F11`
 (this can also be changed in the configuration file).
 Take a look at this file to know what keybindings are defined.
-You can also of course add you own keybindings.
+You can also of course add your own keybindings.
 
 <!--
 This file defines a number of keyboard and mouse bindings that you can easily redefine:
