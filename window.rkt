@@ -858,5 +858,4 @@
   (unless (XineramaIsActive (current-display))
     (dprintf "Warning: Xinerama not yet active\n"))
 
-  (xinerama-update-infos)
-  )
+  (xinerama-update-infos))

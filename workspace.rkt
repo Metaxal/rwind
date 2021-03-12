@@ -622,7 +622,9 @@ if the latter is not #f."
   (for ([wk workspaces])
     (workspace-give-focus wk))
 
-  (policy. on-init-workspaces))
+  (dprintf "before callback: policy. on-init-workspaces\n")
+  (policy. on-init-workspaces)
+  (dprintf " after callback: policy. on-init-workspaces\n"))
 
 (define* (exit-workspaces)
   "Reparents all sub-windows to the true root-window."

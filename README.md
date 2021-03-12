@@ -32,6 +32,8 @@ All these features are in development stage.
 
 Download and install Racket at https://download.racket-lang.org
 
+**Note**: Racket BC is currently recommended, as some FFI segfaults may occur with Racket CS.
+
 You may need to 
 [set your PATH environment variable](https://github.com/racket/racket/wiki/Set-your-PATH-environment-variable).
 

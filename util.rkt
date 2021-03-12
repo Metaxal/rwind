@@ -3,17 +3,15 @@
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
 
-(require rwind/base
-         rwind/doc-string
+(require ; Need non-collection path when running with sudo
+         "base.rkt"
+         "doc-string.rkt"
          racket/system
          racket/list
          racket/contract
          racket/string
          racket/file
-         racket/function
-         #;compiler/compiler
-         "main.rkt"
-         )
+         racket/function)
 
 (module+ test
   (require rackunit))
@@ -65,7 +63,8 @@
 
 (define* (print-ok)
   "Prints 'Ok.'"
-  (displayln "Ok."))
+  (displayln "Ok.")
+  (flush-output))
 
 (define* debug-prefix
   "A parameter to control what string is printed before debug messages."
@@ -75,7 +74,8 @@
   "Like printf but only in debugging mode."
   (when (rwind-debug)
     (display (debug-prefix))
-    (apply printf fmt args)))
+    (apply printf fmt args)
+    (flush-output)))
 
 (define* (dprint-wait . args)
   "Like print-wait, but for debugging."

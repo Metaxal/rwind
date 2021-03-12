@@ -95,6 +95,10 @@
 
         (intern-atoms)
         
+        ; Main loop in a separate thread
+        (dprintf ">> run-event-loop\n")
+        (define event-loop-thread (thread run-event-loop))
+
         ; Initialises the number of workspaces, so must be before `init-workspaces'
         (dprintf ">> init-user\n")
         (init-user)
@@ -109,9 +113,7 @@
         (dprintf ">> init-server\n")
         (init-server)
 
-        ; Main loop
-        (dprintf ">> run-event-loop\n")
-        (run-event-loop)
+        (thread-wait event-loop-thread)
 
         (dprintf "Terminating...\n")
 

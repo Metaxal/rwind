@@ -214,11 +214,9 @@
   (define x11-port
     (unsafe-file-descriptor->port (XConnectionNumber (current-display))
                                   'x11-connection
-                                  '(read))
-    #;(open-fd-input-port (XConnectionNumber (current-display))
-                                       #;'x11-connection))
+                                  '(read)))
   (let loop ()
-    (with-handlers ([exn:fail? (λ(e)(dprintf (string-append "Error: " (exn-message e) "\n"))
+    (with-handlers ([exn:fail? (λ(e) (dprintf (string-append "Error: " (exn-message e) "\n"))
                                  #;(thread (λ()(error-message-box e))))])
       (sync/enable-break
        (handle-evt x11-port

@@ -9,8 +9,7 @@
          racket/list
          racket/format
          racket/path
-         racket/contract
-         )
+         racket/contract)
 
 #| TODO
 - compilation parameter to make contracts work either:

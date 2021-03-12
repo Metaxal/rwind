@@ -3,7 +3,7 @@
 ;;; Author: Laurent Orseau
 ;;; License: LGPL
 
-(require rwind/doc-string)
+(require "doc-string.rkt")
 
 (define* (make-fun-box val)
   "Like a box, but the identifier is used like for parameters.

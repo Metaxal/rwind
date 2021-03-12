@@ -85,8 +85,13 @@
     (define/override (on-init-workspaces)
       (for* ([wk workspaces]
              [win (workspace-windows wk)])
+        (dprintf "policy-simple. on-init-workspaces: wk: ~a win: ~a name:~a\n" wk win (window-name win))
+        (dprintf "Window properties: ~a\n" (window-properties win))
+        (dprintf "Setting border color: ~a\n" normal-border-color)
         (set-window-border-color win normal-border-color)
-        (set-window-border-width win normal-border-width))
+        (dprintf "Setting border-width: ~a\n" normal-border-width)
+        (set-window-border-width win normal-border-width)
+        (print-ok))
       ; FIXME: Can't do this yet because crashes on BadWindow
       ; (the exception could be caught, but it seems to be a deeper problem)
       #;(relayout))

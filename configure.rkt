@@ -1,16 +1,17 @@
 #lang racket/base
+
 (require "base.rkt"
          "util.rkt"
          racket/file
          racket/path
          racket/runtime-path
-         (for-syntax "base.rkt"
-                     racket/runtime-path))
+         (for-syntax "base.rkt"))
 
 ;;; Warning: This file must be run *without* sudo to install the config.rkt and xinit files
 ;;;   but it must be run with sudo for the session manager files.
 
 (define-runtime-path src-dir user-files-dir)
+(define-runtime-path configure.rkt "configure.rkt")
 
 (define (copy-file/print src dst)
   (printf "Copying: ~a\n     To: ~a\n" src dst)
@@ -21,11 +22,11 @@
           [else #t]))
   (when do-copy
     (with-handlers ([exn:fail:filesystem:errno? 
-                     (λ(e)(define errno (exn:fail:filesystem:errno-errno e))
+                     (λ(e)
+                       (define errno (exn:fail:filesystem:errno-errno e))
                        (cond [(equal? errno '(13 . posix))
                               (printf "Error: Permission denied.
-You probably have to run this command with 'sudo'.
-Try 'sudo racket -l rwind/configure'.
+You probably need to run this command with 'sudo'
 ")
                               (exit -1)]
                              [else (raise e)]))])
@@ -74,8 +75,8 @@ Try 'sudo racket -l rwind/configure'.
    "/usr/share/xsessions/rwind.desktop")
   
   (define start-files
-    (filter (λ(f)(and (file-exists? (build-path src-dir f))
-                      (equal? (filename-extension f) #"start")))
+    (filter (λ(f) (and (file-exists? (build-path src-dir f))
+                       (equal? (filename-extension f) #"start")))
             (directory-list src-dir)))
   
   (define start-index
@@ -92,13 +93,25 @@ Try 'sudo racket -l rwind/configure'.
    (build-path (getenv "HOME") ".xinitrc-rwind")))
 
 (module+ main
-  (config-config)
-  (define kind
-    (text-choice 
-     #:text "What kind of configuration do you want?"
-     '("Session manager (lightdm, gdm, etc.)"
-       "xinit/startx")
-     #:default 1))
-  (case kind
-    [(1) (session-config)]
-    [(2) (xinit-config)]))
+  (cond
+    [(equal? (current-command-line-arguments)
+             #("session"))
+     (session-config)]
+    [else
+     (config-config)
+     
+     (define kind
+       (text-choice 
+        #:text "What kind of configuration do you want?"
+        '("Session manager (lightdm, gdm, etc.)"
+          "xinit/startx")
+        #:default 1))
+     
+     (case kind
+       [(1)
+        (printf "Need sudo rights to continue. Please type the following:\n")
+        (printf "  sudo ~s ~s session\n"
+                (path->string (find-system-path 'exec-file))
+                (path->string configure.rkt))
+        (exit 0)]
+       [(2) (xinit-config)])]))
