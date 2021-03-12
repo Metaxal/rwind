@@ -2,6 +2,7 @@
 
 (require "base.rkt"
          "util.rkt"
+         launcher/launcher
          racket/file
          racket/path
          racket/runtime-path
@@ -92,8 +93,19 @@ You probably need to run this command with 'sudo'
    (build-path src-dir ".xinitrc-rwind")
    (build-path (getenv "HOME") ".xinitrc-rwind")))
 
+(define (install-rwind-launcher)
+  (define locs
+    (expand-user-path "~/"))
+  (displayln "Installing a launcher for RWind")
+  (define launcher-path (racket-program-launcher-path "rwind"))
+  (displayln launcher-path)
+  (install-racket-program-launcher "main.rkt" "rwind" "rwind"))
+
 (module+ main
   (cond
+    [(equal? (current-command-line-arguments)
+             #("launcher"))
+     (install-rwind-launcher)]
     [(equal? (current-command-line-arguments)
              #("session"))
      (session-config)]
