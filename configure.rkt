@@ -8,9 +8,6 @@
          racket/runtime-path
          (for-syntax "base.rkt"))
 
-;;; Warning: This file must be run *without* sudo to install the config.rkt and xinit files
-;;;   but it must be run with sudo for the session manager files.
-
 (define-runtime-path src-dir user-files-dir)
 (define-runtime-path configure.rkt "configure.rkt")
 
@@ -93,13 +90,26 @@ You probably need to run this command with 'sudo'
    (build-path src-dir ".xinitrc-rwind")
    (build-path (getenv "HOME") ".xinitrc-rwind")))
 
+(define (need-sudo/exit arg)
+  (displayln "Need sudo rights to continue. Please type the following:")
+  (printf "  sudo ~s ~s ~a\n"
+          (path->string (find-system-path 'exec-file))
+          (path->string configure.rkt)
+          arg)
+  (exit 0))
+
 (define (install-rwind-launcher)
-  (define locs
-    (expand-user-path "~/"))
-  (displayln "Installing a launcher for RWind")
-  (define launcher-path (racket-program-launcher-path "rwind"))
-  (displayln launcher-path)
-  (install-racket-program-launcher "main.rkt" "rwind" "rwind"))
+  (define tmp-dest "/tmp/rwind")
+  (printf "Creating a launcher in ~a\n" tmp-dest)
+  (make-racket-program-launcher "main.rkt" "rwind" tmp-dest)
+  
+  (define dest "/usr/local/bin/rwind")
+  (printf "Installing a launcher for RWind to ~a\n" dest)
+  (cond
+    [(memq 'write (file-or-directory-permissions (path-only dest)))
+     (copy-file/print tmp-dest dest)]
+    [else
+     (need-sudo/exit "launcher")]))
 
 (module+ main
   (cond
@@ -108,6 +118,8 @@ You probably need to run this command with 'sudo'
      (install-rwind-launcher)]
     [(equal? (current-command-line-arguments)
              #("session"))
+     #;(install-rwind-launcher) ; won't work because will run racket as sudo
+     ; needs sudo
      (session-config)]
     [else
      (config-config)
@@ -120,10 +132,5 @@ You probably need to run this command with 'sudo'
         #:default 1))
      
      (case kind
-       [(1)
-        (printf "Need sudo rights to continue. Please type the following:\n")
-        (printf "  sudo ~s ~s session\n"
-                (path->string (find-system-path 'exec-file))
-                (path->string configure.rkt))
-        (exit 0)]
+       [(1) (need-sudo/exit "session")]
        [(2) (xinit-config)])]))

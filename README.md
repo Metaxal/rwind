@@ -51,7 +51,7 @@ Gentoo). See [here](https://github.com/Metaxal/rwind/issues/16#issue-273254092) 
 fails due to this missing dependency.
 
 ### 3) Configure RWind
-Type:
+**As a normal user** (not a super-user), type:
 ```shell
 racket -l rwind/configure
 ```
@@ -203,12 +203,12 @@ Because RWind heavily relies on the X11 collection, a large part of the debuggin
 interface between the two.
 
 Create symbolic links to the scripts `user-files/.xinitrc-rwind-debug` and 
-`user-files/rwind-debug` in your home directory.
+`user-files/rwind-debug` in your home directory, or copy these files.
 
 Compile rwind and x11 in debug mode with `$ user-files/compile-rwind debug`. Basically, it 
 removes all previous compilations of the two collections and compiles it with some flags.
 
-Finally, start RWind from a non-X terminal (say, Ctrl-Alt-F1):
+Finally, start RWind from a non-X terminal (say, Ctrl-Alt-F2):
 ```
 xinit .xinitrc-rwind-debug -- :2 &
 ```
