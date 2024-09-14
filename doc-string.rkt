@@ -1,8 +1,5 @@
 #lang racket/base
 
-;;; Author: Laurent Orseau
-;;; License: LGPL
-
 (require (for-syntax racket/base)
          racket/dict
          racket/string

@@ -1,8 +1,5 @@
 #lang racket/base
 
-;;; Author: Laurent Orseau
-;;; License: LGPL
-
 (require rwind/base
          rwind/display
          rwind/doc-string

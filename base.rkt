@@ -1,8 +1,5 @@
 #lang racket/base
 
-;;; Author: Laurent Orseau
-;;; License: LGPL
-
 (require "doc-string.rkt")
 
 (define* (make-fun-box val)

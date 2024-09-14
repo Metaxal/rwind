@@ -6,3 +6,5 @@
   '("client.rkt"
     "user-files"
     "launcher.rkt"))
+
+(define license '(Apache-2.0 OR MIT))

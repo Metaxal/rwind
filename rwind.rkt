@@ -1,11 +1,6 @@
 #!/usr/bin/racket
 #lang racket/base
 
-;;; Author: Laurent Orseau
-;;; License: LGPL
-;;; Note that the standalone client.rkt is in GPL, 
-;;; because it uses readline, but rwind does not depend on it.
-
 #| Helpful resources:
 - tinywm: http://incise.org/tinywm.html
 - evilwm: http://www.6809.org.uk/evilwm/

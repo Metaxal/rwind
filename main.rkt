@@ -1,8 +1,5 @@
 #lang racket/base
 
-;;; Author: Laurent Orseau
-;;; License: LGPL
-
 ;;; Derived from: https://gist.github.com/tonyg/4548874
 
 ;;; Allows to run another racket program and restart it without having

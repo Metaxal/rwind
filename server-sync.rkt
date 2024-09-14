@@ -1,8 +1,5 @@
 #lang racket
 
-;;; Author: Laurent Orseau
-;;; License: LGPL
-
 ;; Trying to make the server not use threads
 ;; (not currently used)
 

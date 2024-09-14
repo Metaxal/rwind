@@ -1,8 +1,5 @@
 #lang racket/base
 
-;;; Author: Laurent Orseau
-;;; License: LGPL
-
 (require ; Need non-collection path when running with sudo
          "base.rkt"
          "doc-string.rkt"
